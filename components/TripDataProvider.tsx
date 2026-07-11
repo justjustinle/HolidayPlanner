@@ -411,13 +411,14 @@ export default function TripDataProvider({
           .upload(path, compressed, { contentType: compressed.type || 'image/webp' });
         if (up.error) throw up.error;
         const { data: pub } = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
-        await supabase!.from('photos').insert({
+        const ins = await supabase!.from('photos').insert({
           id,
           activity_id: activityId,
           url: pub.publicUrl,
           uploaded_by_id: me?.id ?? null,
           tagged_user_ids: tagged,
         });
+        if (ins.error) throw ins.error;
       }
       await refetchAll();
     },
