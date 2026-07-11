@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Font-family variables referenced by tailwind.config.ts. Fonts load via a
+     <link> in the layout so the build never depends on network access. */
+  --font-spectral: 'Spectral', Georgia, serif;
+  --font-work-sans: 'Work Sans', system-ui, -apple-system, sans-serif;
+  --font-caveat: 'Caveat', 'Segoe Script', cursive;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: theme('colors.cream.outer');
+  color: theme('colors.ink');
+  font-family: var(--font-work-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Hide scrollbars for the chromeless mobile feel */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease;
+}
