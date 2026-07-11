@@ -12,10 +12,12 @@ export default function TabHeader({
   eyebrow,
   title,
   titleExtra,
+  action,
 }: {
   eyebrow?: string;
   title: string;
   titleExtra?: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   const { me, signOut, setMyPhoto } = useTripData();
   const [open, setOpen] = useState(false);
@@ -40,43 +42,46 @@ export default function TabHeader({
           </h1>
         </div>
 
-        {me && (
-          <div className="relative">
-            <button onClick={() => setOpen((o) => !o)} aria-label="Account">
-              <Avatar name={me.name} src={me.avatar_url} size={38} />
-            </button>
-            {open && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-                <div className="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-black/5 bg-cream-card p-1 shadow-polaroid">
-                  <div className="px-3 py-2 text-[13px] text-muted">
-                    Signed in as <span className="font-medium text-ink">{me.name}</span>
+        <div className="flex items-center gap-2.5">
+          {action}
+          {me && (
+            <div className="relative">
+              <button onClick={() => setOpen((o) => !o)} aria-label="Account">
+                <Avatar name={me.name} src={me.avatar_url} size={38} />
+              </button>
+              {open && (
+                <>
+                  <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+                  <div className="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-black/5 bg-cream-card p-1 shadow-polaroid">
+                    <div className="px-3 py-2 text-[13px] text-muted">
+                      Signed in as <span className="font-medium text-ink">{me.name}</span>
+                    </div>
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
+                    >
+                      <Camera size={15} /> {me.avatar_url ? 'Change photo' : 'Add photo'}
+                    </button>
+                    <button
+                      onClick={signOut}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
+                    >
+                      <LogOut size={15} /> Switch person
+                    </button>
                   </div>
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
-                  >
-                    <Camera size={15} /> {me.avatar_url ? 'Change photo' : 'Add photo'}
-                  </button>
-                  <button
-                    onClick={signOut}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
-                  >
-                    <LogOut size={15} /> Switch person
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          capture="user"
-          onChange={onPick}
-          className="hidden"
-        />
+                </>
+              )}
+            </div>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="user"
+            onChange={onPick}
+            className="hidden"
+          />
+        </div>
       </div>
     </header>
   );
