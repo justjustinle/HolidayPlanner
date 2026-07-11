@@ -8,8 +8,6 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Prioritizes the cheapest extraction models. If ANTHROPIC_MODEL is set in 
-// your environment, it will always be tried first.
 const MODEL_CANDIDATES = [
   ...(process.env.ANTHROPIC_MODEL ? [process.env.ANTHROPIC_MODEL] : []),
   'claude-3-5-haiku-latest', 
@@ -42,14 +40,21 @@ interface ScannedItem {
   price: number;
 }
 
+// Sniff base64 headers to get the genuine mime-type, protecting against frontend mismatches
+function detectMimeType(base64Str: string, fallback: string): string {
+  const chars = base64Str.substring(0, 16);
+  if (chars.startsWith('iVBORw0KGgo')) return 'image/png';
+  if (chars.startsWith('/9j/')) return 'image/jpeg';
+  if (chars.startsWith('UklGR')) return 'image/webp';
+  if (chars.startsWith('R0lGODlh')) return 'image/gif';
+  return fallback;
+}
+
 export async function POST(req: Request) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return NextResponse.json(
-      {
-        error:
-          'Receipt scanning is not configured. Set ANTHROPIC_API_KEY in your environment, then redeploy.',
-      },
+      { error: 'Receipt scanning is not configured. Set ANTHROPIC_API_KEY in your environment.' },
       { status: 503 }
     );
   }
@@ -65,13 +70,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'imageBase64 is required' }, { status: 400 });
   }
 
-  // Anthropic throws an error if the base64 string includes data URL prefixes 
-  // (e.g., "data:image/jpeg;base64,"). This sanitizes it just in case.
+  // Strip data URL headers (e.g. "data:image/png;base64,")
   const cleanBase64 = body.imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
+  // Auto-detect format based on the actual base64 content signature
+  const verifiedMimeType = detectMimeType(cleanBase64, body.mimeType || 'image/jpeg');
 
   let res: Response | null = null;
   
-  // Try candidate models in order if a 404 or 400 occurs (e.g. model tier unavailable)
   for (const model of MODEL_CANDIDATES) {
     const payload = {
       model: model,
@@ -86,7 +92,7 @@ export async function POST(req: Request) {
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: body.mimeType || 'image/jpeg',
+                media_type: verifiedMimeType,
                 data: cleanBase64,
               },
             },
@@ -104,7 +110,7 @@ export async function POST(req: Request) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': key,
-        'anthropic-version': '2023-06-01', // Required header for Anthropic API
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(payload),
     });
@@ -135,8 +141,6 @@ export async function POST(req: Request) {
   };
   
   try {
-    // Claude occasionally includes markdown code blocks even when asked not to.
-    // This removes them safely before passing to JSON.parse().
     const cleanText = text.replace(/```json\s*/i, '').replace(/```\s*$/, '').trim();
     parsed = JSON.parse(cleanText);
   } catch {
@@ -146,7 +150,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Normalization layer
   const currency = ['VND', 'THB', 'GBP'].includes(parsed.currency ?? '')
     ? parsed.currency
     : 'THB';
