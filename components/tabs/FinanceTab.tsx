@@ -1,44 +1,113 @@
 'use client';
 
-import { useMemo } from 'react';
-import { ArrowRight, PartyPopper } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowRight, PartyPopper, Receipt, ScanLine } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import TabHeader from '../ui/TabHeader';
+import DayPicker from '../ui/DayPicker';
 import RateSettings from '../finance/RateSettings';
+import ExpenseCard from '../finance/ExpenseCard';
+import UploadReceiptSheet from '../finance/UploadReceiptSheet';
+import LogExpenseSheet from '../finance/LogExpenseSheet';
 import Avatar from '../ui/Avatar';
 import { formatGbp, round2 } from '@/lib/currency';
 import { computeNetBalances, minimizeTransfers, totalSpend } from '@/lib/settle';
+import { defaultDayNumber } from '@/lib/trip';
 
 export default function FinanceTab() {
-  const { profiles, expenses, splits, me } = useTripData();
+  const { profiles, expenses, splits, receipts, receiptItems, me } = useTripData();
+  const [day, setDay] = useState(0); // 0 = all days
+  const [sheet, setSheet] = useState<'receipt' | 'expense' | null>(null);
 
   const avatarFor = (id: string) => profiles.find((p) => p.id === id)?.avatar_url;
 
+  // Settlement is always trip-wide; the day picker only filters the list below.
   const { net, transfers, total } = useMemo(() => {
-    const net = computeNetBalances(profiles, expenses, splits);
+    const net = computeNetBalances(profiles, expenses, splits, receipts, receiptItems);
     return {
       net,
       transfers: minimizeTransfers(profiles, net),
       total: totalSpend(expenses),
     };
-  }, [profiles, expenses, splits]);
+  }, [profiles, expenses, splits, receipts, receiptItems]);
+
+  const visible = useMemo(
+    () =>
+      expenses
+        .filter((e) => day === 0 || e.day_number === day)
+        .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')),
+    [expenses, day]
+  );
+  const dayTotal = useMemo(() => totalSpend(visible), [visible]);
+
+  const unclaimedCount = useMemo(
+    () => receiptItems.filter((i) => i.claimed_by_id == null).length,
+    [receiptItems]
+  );
 
   return (
     <div>
       <TabHeader eyebrow="Shared expenses" title="Money" />
 
-      <div className="space-y-6 px-5 pt-2">
+      <div className="px-5">
+        <DayPicker value={day} onChange={setDay} allowAll />
+      </div>
+
+      <div className="space-y-6 px-5 pt-1">
         {/* total */}
         <div className="rounded-2xl bg-ink px-5 py-4 text-cream">
           <div className="text-[12px] uppercase tracking-wide text-cream/60">
-            Total group spend
+            {day === 0 ? 'Total group spend' : `Day ${day} spend`}
           </div>
           <div className="mt-1 font-serif text-[30px] font-semibold">
-            {formatGbp(total)}
+            {formatGbp(day === 0 ? total : dayTotal)}
           </div>
+          {day !== 0 && (
+            <div className="text-[12px] text-cream/60">trip total {formatGbp(total)}</div>
+          )}
         </div>
 
-        <RateSettings />
+        {/* add actions */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setSheet('receipt')}
+            className="flex items-center justify-center gap-2 rounded-xl bg-ink py-3 text-[14px] font-medium text-white"
+          >
+            <ScanLine size={17} /> Upload receipt
+          </button>
+          <button
+            onClick={() => setSheet('expense')}
+            className="flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-cream-card py-3 text-[14px] font-medium text-ink"
+          >
+            <Receipt size={17} /> Log an expense
+          </button>
+        </div>
+
+        {/* expense list */}
+        <div>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted">
+              Expenses{day !== 0 && ` · Day ${day}`}
+            </h2>
+            {unclaimedCount > 0 && (
+              <span className="text-[12px] text-saigon">
+                {unclaimedCount} unclaimed item{unclaimedCount === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          {visible.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-black/10 p-6 text-center text-[13px] text-muted">
+              No expenses {day === 0 ? 'yet' : `on Day ${day}`}. Upload a receipt or log
+              one above.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {visible.map((e) => (
+                <ExpenseCard key={e.id} expense={e} />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* settlement */}
         <div>
@@ -107,12 +176,23 @@ export default function FinanceTab() {
           </div>
         </div>
 
-        {expenses.length === 0 && (
-          <p className="pb-4 text-center text-[13px] text-muted">
-            No bills yet. Log one from any activity card in the Itinerary tab.
-          </p>
-        )}
+        <div className="pb-8">
+          <RateSettings />
+        </div>
       </div>
+
+      {sheet === 'receipt' && (
+        <UploadReceiptSheet
+          defaultDay={day || defaultDayNumber()}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet === 'expense' && (
+        <LogExpenseSheet
+          defaultDay={day || defaultDayNumber()}
+          onClose={() => setSheet(null)}
+        />
+      )}
     </div>
   );
 }

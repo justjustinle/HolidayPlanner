@@ -34,6 +34,26 @@ export function dayByNumber(n: number): TripDay | undefined {
   return TRIP_DAYS.find((d) => d.dayNumber === n);
 }
 
+// Day 1 = 28 Aug 2026. Used to map real dates (e.g. Apple Health step pushes)
+// onto trip day numbers and to preselect "today" in day pickers.
+export const TRIP_START_ISO = '2026-08-28';
+
+export function dayNumberForDate(date: Date): number | null {
+  const start = new Date(`${TRIP_START_ISO}T00:00:00`);
+  const diff = Math.floor((date.getTime() - start.getTime()) / 86_400_000) + 1;
+  return diff >= 1 && diff <= TRIP_DAYS.length ? diff : null;
+}
+
+// Today's trip day, clamped into the trip range so pickers always land somewhere.
+export function defaultDayNumber(): number {
+  const now = new Date();
+  const exact = dayNumberForDate(now);
+  if (exact) return exact;
+  return now.getTime() < new Date(`${TRIP_START_ISO}T00:00:00`).getTime()
+    ? 1
+    : TRIP_DAYS.length;
+}
+
 export const CURRENCY_SYMBOL: Record<string, string> = {
   VND: '₫',
   THB: '฿',

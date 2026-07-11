@@ -1,23 +1,50 @@
-import type { Expense, ExpenseSplit, Profile, Transfer } from './types';
+import type { Expense, ExpenseSplit, Profile, Receipt, ReceiptItem, Transfer } from './types';
 import { round2 } from './currency';
 
 // Net balance for one person = total they PAID − total they OWE (their shares).
 // Positive → the group owes them (creditor). Negative → they owe (debtor).
+//
+// Manual expenses owe via expense_splits. Receipt expenses owe via claimed
+// line items: each claimed item is owed by its claimer, and unclaimed items
+// fall back to the payer (so books always balance even mid-claiming). Any
+// service charge / tax gap between line items and the receipt total is spread
+// proportionally across the items.
 export function computeNetBalances(
   profiles: Profile[],
   expenses: Expense[],
-  splits: ExpenseSplit[]
+  splits: ExpenseSplit[],
+  receipts: Receipt[] = [],
+  receiptItems: ReceiptItem[] = []
 ): Map<string, number> {
   const net = new Map<string, number>();
   for (const p of profiles) net.set(p.id, 0);
+  const add = (id: string, delta: number) => {
+    if (net.has(id)) net.set(id, round2((net.get(id) ?? 0) + delta));
+  };
 
   for (const e of expenses) {
-    net.set(e.paid_by_id, round2((net.get(e.paid_by_id) ?? 0) + e.base_amount_gbp));
+    add(e.paid_by_id, e.base_amount_gbp);
   }
   for (const s of splits) {
-    if (!net.has(s.user_id)) continue;
-    net.set(s.user_id, round2((net.get(s.user_id) ?? 0) - s.amount_owed));
+    add(s.user_id, -s.amount_owed);
   }
+
+  for (const r of receipts) {
+    const expense = expenses.find((e) => e.id === r.expense_id);
+    if (!expense) continue;
+    const items = receiptItems.filter((i) => i.receipt_id === r.id);
+    const itemSum = items.reduce((sum, i) => sum + i.local_amount, 0);
+    if (itemSum <= 0) {
+      // No parseable lines — the payer carries the whole bill.
+      add(expense.paid_by_id, -expense.base_amount_gbp);
+      continue;
+    }
+    for (const item of items) {
+      const ower = item.claimed_by_id ?? expense.paid_by_id;
+      add(ower, -round2((item.local_amount / itemSum) * expense.base_amount_gbp));
+    }
+  }
+
   for (const [id, v] of net) net.set(id, round2(v));
   return net;
 }

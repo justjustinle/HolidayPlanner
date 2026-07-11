@@ -22,13 +22,28 @@ export interface ItineraryItem {
   time_label: string;
   title: string;
   location: string | null;
-  photo_url: string | null;
+  photo_url: string | null; // legacy single-photo column, superseded by `photos`
   created_at?: string;
 }
 
-export interface Expense {
+// One photo inside an activity's Polaroid carousel. Multiple per activity.
+export interface Photo {
   id: string;
   activity_id: string;
+  url: string;
+  uploaded_by_id: string | null;
+  tagged_user_ids: string[]; // people in the photo (defaults to uploader)
+  created_at?: string;
+}
+
+export type ExpenseKind = 'manual' | 'receipt';
+
+export interface Expense {
+  id: string;
+  activity_id: string | null; // legacy link; new expenses are standalone
+  label: string | null; // e.g. "Street food dinner" or the receipt merchant
+  day_number: number | null;
+  kind: ExpenseKind;
   local_amount: number;
   local_currency: CurrencyCode;
   base_amount_gbp: number;
@@ -43,13 +58,37 @@ export interface ExpenseSplit {
   amount_owed: number;
 }
 
-export interface ChecklistItem {
+// A scanned receipt attached to a `kind = 'receipt'` expense.
+export interface Receipt {
   id: string;
-  label: string;
-  scope: 'group' | 'individual';
-  owner_id: string | null;
-  checked: boolean;
+  expense_id: string;
+  merchant: string | null;
+  image_url: string | null;
   created_at?: string;
+}
+
+// One line item on a receipt. Unclaimed (claimed_by_id null) until someone
+// self-selects it; unclaimed lines fall back to the payer in settlement.
+export interface ReceiptItem {
+  id: string;
+  receipt_id: string;
+  name: string;
+  quantity: number;
+  local_amount: number; // line total in the receipt's currency
+  claimed_by_id: string | null;
+  created_at?: string;
+}
+
+export type StatCategory = 'poop' | 'drink' | 'mosquito' | 'coffee' | 'steps';
+
+// One person's count for one category on one trip day.
+export interface StatEntry {
+  id: string;
+  user_id: string;
+  day_number: number;
+  category: StatCategory;
+  count: number;
+  updated_at?: string;
 }
 
 // A settlement transfer produced by the debt-minimization routine.
