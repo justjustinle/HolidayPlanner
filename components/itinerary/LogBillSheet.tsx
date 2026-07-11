@@ -116,7 +116,7 @@ export default function LogBillSheet({
                 active ? 'border-ink bg-ink/5 text-ink' : 'border-black/10 text-muted'
               }`}
             >
-              <Avatar name={p.name} size={20} />
+              <Avatar name={p.name} src={p.avatar_url} size={20} />
               {p.name}
             </button>
           );
@@ -141,7 +141,7 @@ export default function LogBillSheet({
                 on ? 'border-ink bg-ink/5 text-ink' : 'border-black/10 text-muted'
               }`}
             >
-              <Avatar name={p.name} size={20} dim={!on} />
+              <Avatar name={p.name} src={p.avatar_url} size={20} dim={!on} />
               {p.name}
             </button>
           );

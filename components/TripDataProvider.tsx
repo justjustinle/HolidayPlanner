@@ -69,7 +69,9 @@ interface TripDataValue {
   splits: ExpenseSplit[];
   checklist: ChecklistItem[];
 
-  ensureProfile: (name: string) => Promise<Profile>;
+  ensureProfile: (name: string, photo?: File | null) => Promise<Profile>;
+  signInAs: (profile: Profile) => void;
+  setMyPhoto: (file: File) => Promise<void>;
   signOut: () => void;
 
   addItineraryItem: (input: Omit<ItineraryItem, 'id' | 'photo_url'>) => Promise<void>;
@@ -210,8 +212,26 @@ export default function TripDataProvider({
     }
   };
 
+  // Upload an avatar photo into the shared bucket under a stable key so it
+  // overwrites cleanly. Best-effort: returns null if storage/column isn't set
+  // up yet so profile creation never hard-fails on the photo.
+  const uploadAvatar = async (profileId: string, file: File): Promise<string | null> => {
+    if (!supabase) return null;
+    try {
+      const path = `avatars/${profileId}.jpg`;
+      const up = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+      if (up.error) return null;
+      const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
+      return `${data.publicUrl}?v=${Date.now()}`;
+    } catch {
+      return null;
+    }
+  };
+
   const ensureProfile = useCallback(
-    async (rawName: string): Promise<Profile> => {
+    async (rawName: string, photo?: File | null): Promise<Profile> => {
       const name = rawName.trim();
       if (!name) throw new Error('Please enter your name.');
 
@@ -219,8 +239,15 @@ export default function TripDataProvider({
         const existing = profiles.find(
           (p) => p.name.toLowerCase() === name.toLowerCase()
         );
-        const profile = existing ?? { id: genId(), name };
-        if (!existing) setProfiles((prev) => [...prev, profile]);
+        const avatar_url = photo ? await fileToDataUrl(photo) : existing?.avatar_url ?? null;
+        const profile: Profile = existing
+          ? { ...existing, avatar_url }
+          : { id: genId(), name, avatar_url };
+        setProfiles((prev) =>
+          prev.some((p) => p.id === profile.id)
+            ? prev.map((p) => (p.id === profile.id ? profile : p))
+            : [...prev, profile]
+        );
         persistMe(profile);
         return profile;
       }
@@ -232,20 +259,52 @@ export default function TripDataProvider({
         .ilike('name', name)
         .limit(1)
         .maybeSingle();
-      if (found) {
-        persistMe(found as Profile);
-        return found as Profile;
+      let profile = (found as Profile) ?? null;
+
+      if (!profile) {
+        const { data: created, error } = await supabase!
+          .from('profiles')
+          .insert({ name })
+          .select()
+          .single();
+        if (error || !created) throw error ?? new Error('Could not create profile');
+        profile = created as Profile;
       }
-      const { data: created, error } = await supabase!
-        .from('profiles')
-        .insert({ name })
-        .select()
-        .single();
-      if (error || !created) throw error ?? new Error('Could not create profile');
-      persistMe(created as Profile);
-      return created as Profile;
+
+      if (photo) {
+        const url = await uploadAvatar(profile.id, photo);
+        if (url) {
+          await supabase!.from('profiles').update({ avatar_url: url }).eq('id', profile.id);
+          profile = { ...profile, avatar_url: url };
+        }
+      }
+
+      persistMe(profile);
+      await refetchAll();
+      return profile;
     },
-    [demoMode, profiles]
+    [demoMode, profiles, refetchAll]
+  );
+
+  const signInAs = useCallback((profile: Profile) => persistMe(profile), []);
+
+  const setMyPhoto = useCallback<TripDataValue['setMyPhoto']>(
+    async (file) => {
+      if (!me) return;
+      if (demoMode) {
+        const avatar_url = await fileToDataUrl(file);
+        const updated = { ...me, avatar_url };
+        setProfiles((prev) => prev.map((p) => (p.id === me.id ? updated : p)));
+        persistMe(updated);
+        return;
+      }
+      const url = await uploadAvatar(me.id, file);
+      if (!url) return;
+      await supabase!.from('profiles').update({ avatar_url: url }).eq('id', me.id);
+      persistMe({ ...me, avatar_url: url });
+      await refetchAll();
+    },
+    [demoMode, me, refetchAll]
   );
 
   const signOut = useCallback(() => persistMe(null), []);
@@ -441,6 +500,8 @@ export default function TripDataProvider({
       splits,
       checklist,
       ensureProfile,
+      signInAs,
+      setMyPhoto,
       signOut,
       addItineraryItem,
       deleteItineraryItem,
@@ -463,6 +524,8 @@ export default function TripDataProvider({
       splits,
       checklist,
       ensureProfile,
+      signInAs,
+      setMyPhoto,
       signOut,
       addItineraryItem,
       deleteItineraryItem,

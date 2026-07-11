@@ -12,6 +12,8 @@ import { computeNetBalances, minimizeTransfers, totalSpend } from '@/lib/settle'
 export default function FinanceTab() {
   const { profiles, expenses, splits, me } = useTripData();
 
+  const avatarFor = (id: string) => profiles.find((p) => p.id === id)?.avatar_url;
+
   const { net, transfers, total } = useMemo(() => {
     const net = computeNetBalances(profiles, expenses, splits);
     return {
@@ -57,10 +59,10 @@ export default function FinanceTab() {
                   className="flex items-center justify-between rounded-2xl border border-black/5 bg-cream-card p-3"
                 >
                   <div className="flex items-center gap-2 text-[14px]">
-                    <Avatar name={t.fromName} size={26} />
+                    <Avatar name={t.fromName} src={avatarFor(t.fromId)} size={26} />
                     <span className="text-ink">{t.fromName}</span>
                     <ArrowRight size={15} className="text-muted" />
-                    <Avatar name={t.toName} size={26} />
+                    <Avatar name={t.toName} src={avatarFor(t.toId)} size={26} />
                     <span className="text-ink">{t.toName}</span>
                   </div>
                   <span className="font-semibold text-ink">{formatGbp(t.amount)}</span>
@@ -86,7 +88,7 @@ export default function FinanceTab() {
                   className="flex items-center justify-between rounded-xl px-1 py-1.5 text-[14px]"
                 >
                   <span className="flex items-center gap-2 text-ink">
-                    <Avatar name={p.name} size={24} />
+                    <Avatar name={p.name} src={p.avatar_url} size={24} />
                     {p.name}
                     {me?.id === p.id && <span className="text-[12px] text-muted">(you)</span>}
                   </span>

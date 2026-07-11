@@ -21,7 +21,8 @@ export default function ItineraryCard({
   const [billOpen, setBillOpen] = useState(false);
 
   const cardExpenses = expenses.filter((e) => e.activity_id === item.id);
-  const nameOf = (id: string) => profiles.find((p) => p.id === id)?.name ?? 'Someone';
+  const profileOf = (id: string) => profiles.find((p) => p.id === id);
+  const nameOf = (id: string) => profileOf(id)?.name ?? 'Someone';
 
   return (
     <div className="rounded-2xl border border-black/5 bg-cream-card p-4 shadow-card">
@@ -56,7 +57,7 @@ export default function ItineraryCard({
         </button>
       </div>
 
-      <div className="mx-auto mt-4 w-[62%] max-w-[220px]">
+      <div className="mx-auto mt-3 w-full">
         <Polaroid activityId={item.id} photoUrl={item.photo_url} caption={item.title} />
       </div>
 
@@ -66,7 +67,7 @@ export default function ItineraryCard({
           {cardExpenses.map((e) => (
             <div key={e.id} className="flex items-center justify-between text-[13px]">
               <span className="flex items-center gap-2 text-muted">
-                <Avatar name={nameOf(e.paid_by_id)} size={18} />
+                <Avatar name={nameOf(e.paid_by_id)} src={profileOf(e.paid_by_id)?.avatar_url} size={18} />
                 {nameOf(e.paid_by_id)} paid
               </span>
               <span className="text-ink">

@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Sheet from '../ui/Sheet';
+import TimeWheel from '../ui/TimeWheel';
 import { useTripData } from '../TripDataProvider';
 import { TRIP_DAYS } from '@/lib/trip';
+import { buildTimeLabel, type TimeValue } from '@/lib/time';
 
-// Add a new itinerary card to a chosen day.
+// Add a new itinerary card to a chosen day, with a fixed scrollable time wheel.
 export default function AddCardSheet({
   defaultDay,
   onClose,
@@ -15,7 +17,7 @@ export default function AddCardSheet({
 }) {
   const { addItineraryItem } = useTripData();
   const [day, setDay] = useState(defaultDay);
-  const [time, setTime] = useState('');
+  const [time, setTime] = useState<TimeValue>({ hour12: 9, minute: 0, period: 'AM' });
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,7 +28,7 @@ export default function AddCardSheet({
     try {
       await addItineraryItem({
         day_number: day,
-        time_label: time.trim() || 'Any time',
+        time_label: buildTimeLabel(time),
         title: title.trim(),
         location: location.trim() || null,
       });
@@ -61,12 +63,12 @@ export default function AddCardSheet({
         autoFocus
         className={`${inputCls} mb-3`}
       />
-      <input
-        value={time}
-        onChange={(e) => setTime(e.target.value)}
-        placeholder="Time, e.g. 8:00 AM or Evening"
-        className={`${inputCls} mb-3`}
-      />
+
+      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Time</label>
+      <div className="mb-3">
+        <TimeWheel value={time} onChange={setTime} />
+      </div>
+
       <input
         value={location}
         onChange={(e) => setLocation(e.target.value)}

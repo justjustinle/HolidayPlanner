@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { LogOut, Camera } from 'lucide-react';
 import Avatar from './Avatar';
 import { useTripData } from '../TripDataProvider';
 
-// Shared sticky-ish header: an eyebrow line, a serif title, and the signed-in
-// user's avatar (tap to sign out / switch person).
+// Shared header: eyebrow, serif title, and the signed-in user's avatar (photo
+// or initial). Tap it to change your photo or switch person.
 export default function TabHeader({
   eyebrow,
   title,
@@ -14,8 +14,17 @@ export default function TabHeader({
   eyebrow: string;
   title: string;
 }) {
-  const { me, signOut } = useTripData();
+  const { me, signOut, setMyPhoto } = useTripData();
   const [open, setOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setOpen(false);
+    await setMyPhoto(file);
+  };
 
   return (
     <header className="px-5 pt-8">
@@ -30,15 +39,21 @@ export default function TabHeader({
         {me && (
           <div className="relative">
             <button onClick={() => setOpen((o) => !o)} aria-label="Account">
-              <Avatar name={me.name} size={38} />
+              <Avatar name={me.name} src={me.avatar_url} size={38} />
             </button>
             {open && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-                <div className="absolute right-0 z-30 mt-2 w-44 rounded-xl border border-black/5 bg-cream-card p-1 shadow-polaroid">
+                <div className="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-black/5 bg-cream-card p-1 shadow-polaroid">
                   <div className="px-3 py-2 text-[13px] text-muted">
                     Signed in as <span className="font-medium text-ink">{me.name}</span>
                   </div>
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
+                  >
+                    <Camera size={15} /> {me.avatar_url ? 'Change photo' : 'Add photo'}
+                  </button>
                   <button
                     onClick={signOut}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
@@ -50,6 +65,14 @@ export default function TabHeader({
             )}
           </div>
         )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="user"
+          onChange={onPick}
+          className="hidden"
+        />
       </div>
     </header>
   );

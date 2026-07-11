@@ -5,6 +5,7 @@ export type CurrencyCode = 'VND' | 'THB' | 'GBP';
 export interface Profile {
   id: string;
   name: string;
+  avatar_url?: string | null;
   created_at?: string;
 }
 

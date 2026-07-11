@@ -10,8 +10,11 @@ create extension if not exists "uuid-ossp";
 create table if not exists profiles (
   id uuid default uuid_generate_v4() primary key,
   name text unique not null,
+  avatar_url text, -- public URL to the profile photo in storage (nullable)
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+-- If the table already exists from an earlier version, add the column:
+alter table profiles add column if not exists avatar_url text;
 
 -- 2. TRIP CONFIGURATION (Exchange Rates Controlled by Group)
 create table if not exists trip_settings (

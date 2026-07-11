@@ -7,6 +7,7 @@ import ItineraryCard from '../itinerary/ItineraryCard';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
 import { TRIP_DAYS, dayByNumber } from '@/lib/trip';
+import { timeToMinutes } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
 export default function ItineraryTab() {
@@ -23,7 +24,11 @@ export default function ItineraryTab() {
     }
     return TRIP_DAYS.filter((d) => map.has(d.dayNumber)).map((d) => ({
       day: d,
-      items: map.get(d.dayNumber)!,
+      // Order activities chronologically within the day.
+      items: map
+        .get(d.dayNumber)!
+        .slice()
+        .sort((a, b) => timeToMinutes(a.time_label) - timeToMinutes(b.time_label)),
     }));
   }, [itinerary]);
 
