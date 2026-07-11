@@ -27,7 +27,7 @@ export default function TabHeader({
   };
 
   return (
-    <header className="px-5 pt-8">
+    <header className="px-5 pt-5">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-[12px] text-muted">{eyebrow}</div>

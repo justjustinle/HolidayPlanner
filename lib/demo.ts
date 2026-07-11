@@ -1,9 +1,12 @@
 import type {
-  ChecklistItem,
   Expense,
   ExpenseSplit,
   ItineraryItem,
+  Photo,
   Profile,
+  Receipt,
+  ReceiptItem,
+  StatEntry,
   TripSettings,
 } from './types';
 
@@ -67,16 +70,32 @@ export const DEMO_ITINERARY: ItineraryItem[] = [
   },
 ];
 
-// One sample expense so the settlement ledger has something to show:
-// Alex paid ฿1,000 for street food, split across Alex, Sam, Jo, Priya.
+export const DEMO_PHOTOS: Photo[] = [];
+
+// One manual expense: Alex paid ฿1,000 for street food, split four ways.
 export const DEMO_EXPENSES: Expense[] = [
   {
     id: 'demo-e1',
-    activity_id: 'demo-i2',
+    activity_id: null,
+    label: 'Street food dinner',
+    day_number: 1,
+    kind: 'manual',
     local_amount: 1000,
     local_currency: 'THB',
     base_amount_gbp: 22.42, // 1000 / 44.6
     paid_by_id: 'demo-alex',
+  },
+  // One scanned receipt: Sam paid ฿560 at a food court; items self-claimable.
+  {
+    id: 'demo-e2',
+    activity_id: null,
+    label: 'Chatuchak food court',
+    day_number: 2,
+    kind: 'receipt',
+    local_amount: 560,
+    local_currency: 'THB',
+    base_amount_gbp: 12.56, // 560 / 44.6
+    paid_by_id: 'demo-sam',
   },
 ];
 
@@ -87,12 +106,21 @@ export const DEMO_SPLITS: ExpenseSplit[] = [
   { id: 'demo-s4', expense_id: 'demo-e1', user_id: 'demo-priya', amount_owed: 5.62 },
 ];
 
-export const DEMO_CHECKLIST: ChecklistItem[] = [
-  { id: 'demo-c1', label: 'Passport + visa printout', scope: 'group', owner_id: null, checked: true },
-  { id: 'demo-c2', label: 'Universal power adapter', scope: 'group', owner_id: null, checked: false },
-  { id: 'demo-c3', label: 'Mosquito repellent (DEET)', scope: 'group', owner_id: null, checked: false },
-  { id: 'demo-c4', label: 'First-aid + Imodium kit', scope: 'group', owner_id: null, checked: false },
-  { id: 'demo-c5', label: 'Sunscreen SPF50', scope: 'individual', owner_id: null, checked: false },
-  { id: 'demo-c6', label: 'Swimwear + quick-dry towel', scope: 'individual', owner_id: null, checked: false },
-  { id: 'demo-c7', label: 'Reef-safe flip flops', scope: 'individual', owner_id: null, checked: false },
+export const DEMO_RECEIPTS: Receipt[] = [
+  { id: 'demo-r1', expense_id: 'demo-e2', merchant: 'Chatuchak food court', image_url: null },
+];
+
+export const DEMO_RECEIPT_ITEMS: ReceiptItem[] = [
+  { id: 'demo-ri1', receipt_id: 'demo-r1', name: 'Pad thai', quantity: 2, local_amount: 240, claimed_by_id: 'demo-sam' },
+  { id: 'demo-ri2', receipt_id: 'demo-r1', name: 'Mango sticky rice', quantity: 1, local_amount: 120, claimed_by_id: null },
+  { id: 'demo-ri3', receipt_id: 'demo-r1', name: 'Coconut shakes', quantity: 2, local_amount: 200, claimed_by_id: null },
+];
+
+export const DEMO_STATS: StatEntry[] = [
+  { id: 'demo-st1', user_id: 'demo-alex', day_number: 1, category: 'drink', count: 3 },
+  { id: 'demo-st2', user_id: 'demo-sam', day_number: 1, category: 'drink', count: 5 },
+  { id: 'demo-st3', user_id: 'demo-sam', day_number: 1, category: 'mosquito', count: 2 },
+  { id: 'demo-st4', user_id: 'demo-jo', day_number: 1, category: 'coffee', count: 4 },
+  { id: 'demo-st5', user_id: 'demo-alex', day_number: 1, category: 'steps', count: 14200 },
+  { id: 'demo-st6', user_id: 'demo-jo', day_number: 1, category: 'steps', count: 11890 },
 ];

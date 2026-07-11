@@ -5,30 +5,28 @@ import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
 import { useTripData } from '../TripDataProvider';
 import { toGbp, formatGbp } from '@/lib/currency';
-import { CURRENCY_SYMBOL } from '@/lib/trip';
+import { CURRENCY_SYMBOL, TRIP_DAYS } from '@/lib/trip';
 import type { CurrencyCode } from '@/lib/types';
 
 const CURRENCIES: CurrencyCode[] = ['VND', 'THB', 'GBP'];
 
-// Flow C: log a bill against an activity. Pick a currency, who paid, and who
-// splits it; the GBP base amount is computed live from the group's rates.
-export default function LogBillSheet({
-  activityId,
-  activityTitle,
+// Log a standalone expense: name it, pick the day, enter the cost in
+// VND/THB/GBP, choose who paid and who splits it. Equal split.
+export default function LogExpenseSheet({
+  defaultDay,
   onClose,
 }: {
-  activityId: string;
-  activityTitle: string;
+  defaultDay: number;
   onClose: () => void;
 }) {
   const { profiles, me, settings, addExpense } = useTripData();
 
+  const [label, setLabel] = useState('');
+  const [day, setDay] = useState(defaultDay || 1);
   const [currency, setCurrency] = useState<CurrencyCode>('THB');
   const [amountStr, setAmountStr] = useState('');
   const [paidById, setPaidById] = useState<string>(me?.id ?? profiles[0]?.id ?? '');
-  const [participants, setParticipants] = useState<string[]>(
-    profiles.map((p) => p.id)
-  );
+  const [participants, setParticipants] = useState<string[]>(profiles.map((p) => p.id));
   const [busy, setBusy] = useState(false);
 
   const amount = parseFloat(amountStr) || 0;
@@ -43,14 +41,15 @@ export default function LogBillSheet({
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
 
-  const canSave = amount > 0 && paidById && participants.length > 0 && !busy;
+  const canSave = label.trim() && amount > 0 && paidById && participants.length > 0 && !busy;
 
   const save = async () => {
     if (!canSave) return;
     setBusy(true);
     try {
       await addExpense({
-        activityId,
+        label: label.trim(),
+        dayNumber: day,
         amount,
         currency,
         paidById,
@@ -62,9 +61,31 @@ export default function LogBillSheet({
     }
   };
 
+  const inputCls =
+    'w-full rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-[15px] text-ink outline-none focus:border-ink';
+
   return (
-    <Sheet title="Log a bill" onClose={onClose}>
-      <p className="-mt-2 mb-4 text-[13px] text-muted">for {activityTitle}</p>
+    <Sheet title="Log an expense" onClose={onClose}>
+      <input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="What was it? e.g. Beach club taxi"
+        autoFocus
+        className={`${inputCls} mb-3`}
+      />
+
+      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Day</label>
+      <select
+        value={day}
+        onChange={(e) => setDay(Number(e.target.value))}
+        className={`${inputCls} mb-3 appearance-none`}
+      >
+        {TRIP_DAYS.map((d) => (
+          <option key={d.dayNumber} value={d.dayNumber}>
+            {d.label} · {d.destination} · {d.dateLabel}
+          </option>
+        ))}
+      </select>
 
       {/* currency picker */}
       <div className="mb-3 grid grid-cols-3 gap-2">
@@ -153,7 +174,7 @@ export default function LogBillSheet({
         disabled={!canSave}
         className="w-full rounded-xl bg-ink py-3 text-[15px] font-medium text-white disabled:opacity-40"
       >
-        Save bill
+        Save expense
       </button>
     </Sheet>
   );

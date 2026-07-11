@@ -15,47 +15,57 @@ import {
   SUPABASE_BUCKET,
 } from '@/lib/supabase';
 import { toGbp, round2, splitEqually } from '@/lib/currency';
+import { compressToWebp, fileToDataUrl } from '@/lib/image';
 import {
-  DEMO_CHECKLIST,
   DEMO_EXPENSES,
   DEMO_ITINERARY,
+  DEMO_PHOTOS,
   DEMO_PROFILES,
+  DEMO_RECEIPTS,
+  DEMO_RECEIPT_ITEMS,
   DEMO_SETTINGS,
   DEMO_SPLITS,
+  DEMO_STATS,
 } from '@/lib/demo';
 import type {
-  ChecklistItem,
   CurrencyCode,
   Expense,
   ExpenseSplit,
   ItineraryItem,
+  Photo,
   Profile,
+  Receipt,
+  ReceiptItem,
+  StatCategory,
+  StatEntry,
   TripSettings,
 } from '@/lib/types';
 
 const ME_KEY = 'travel_user_profile';
-const DEMO_KEY = 'travel_demo_state';
+const DEMO_KEY = 'travel_demo_state_v2';
 
 function genId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 export interface NewExpenseInput {
-  activityId: string;
+  label: string;
+  dayNumber: number;
   amount: number;
   currency: CurrencyCode;
   paidById: string;
   participantIds: string[];
+}
+
+export interface NewReceiptInput {
+  merchant: string;
+  dayNumber: number;
+  currency: CurrencyCode;
+  total: number;
+  paidById: string;
+  items: { name: string; quantity: number; price: number }[];
+  imageFile?: File | null;
 }
 
 interface TripDataValue {
@@ -65,9 +75,12 @@ interface TripDataValue {
   profiles: Profile[];
   settings: TripSettings;
   itinerary: ItineraryItem[];
+  photos: Photo[];
   expenses: Expense[];
   splits: ExpenseSplit[];
-  checklist: ChecklistItem[];
+  receipts: Receipt[];
+  receiptItems: ReceiptItem[];
+  stats: StatEntry[];
 
   ensureProfile: (name: string, photo?: File | null) => Promise<Profile>;
   signInAs: (profile: Profile) => void;
@@ -76,15 +89,18 @@ interface TripDataValue {
 
   addItineraryItem: (input: Omit<ItineraryItem, 'id' | 'photo_url'>) => Promise<void>;
   deleteItineraryItem: (id: string) => Promise<void>;
-  setPhoto: (activityId: string, file: File) => Promise<void>;
+
+  addPhotos: (activityId: string, files: File[]) => Promise<void>;
+  deletePhoto: (id: string) => Promise<void>;
+  togglePhotoTag: (photoId: string, userId: string) => Promise<void>;
 
   updateRates: (vnd: number, thb: number) => Promise<void>;
   addExpense: (input: NewExpenseInput) => Promise<void>;
+  addReceiptExpense: (input: NewReceiptInput) => Promise<void>;
+  setItemClaim: (itemId: string, userId: string | null) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
 
-  addChecklistItem: (label: string, scope: 'group' | 'individual') => Promise<void>;
-  toggleChecklist: (id: string, checked: boolean) => Promise<void>;
-  deleteChecklistItem: (id: string) => Promise<void>;
+  setStat: (dayNumber: number, category: StatCategory, count: number) => Promise<void>;
 }
 
 const TripDataContext = createContext<TripDataValue | null>(null);
@@ -107,9 +123,12 @@ export default function TripDataProvider({
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<TripSettings>(DEMO_SETTINGS);
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [splits, setSplits] = useState<ExpenseSplit[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [receiptItems, setReceiptItems] = useState<ReceiptItem[]>([]);
+  const [stats, setStats] = useState<StatEntry[]>([]);
 
   // --- demo persistence -----------------------------------------------------
   const persistDemo = useRef<() => void>(() => {});
@@ -118,7 +137,17 @@ export default function TripDataProvider({
     try {
       localStorage.setItem(
         DEMO_KEY,
-        JSON.stringify({ profiles, settings, itinerary, expenses, splits, checklist })
+        JSON.stringify({
+          profiles,
+          settings,
+          itinerary,
+          photos,
+          expenses,
+          splits,
+          receipts,
+          receiptItems,
+          stats,
+        })
       );
     } catch {
       /* localStorage may be full (e.g. large photo data URLs) — ignore */
@@ -126,25 +155,31 @@ export default function TripDataProvider({
   };
   useEffect(() => {
     if (demoMode && ready) persistDemo.current();
-  }, [demoMode, ready, profiles, settings, itinerary, expenses, splits, checklist]);
+  }, [demoMode, ready, profiles, settings, itinerary, photos, expenses, splits, receipts, receiptItems, stats]);
 
   // --- initial load ---------------------------------------------------------
   const refetchAll = useCallback(async () => {
     if (!supabase) return;
-    const [p, s, it, ex, sp, cl] = await Promise.all([
+    const [p, s, it, ph, ex, sp, rc, ri, st] = await Promise.all([
       supabase.from('profiles').select('*').order('created_at'),
       supabase.from('trip_settings').select('*').eq('id', 1).single(),
       supabase.from('itinerary_items').select('*').order('day_number').order('created_at'),
+      supabase.from('photos').select('*').order('created_at'),
       supabase.from('expenses').select('*').order('created_at'),
       supabase.from('expense_splits').select('*'),
-      supabase.from('checklist_items').select('*').order('created_at'),
+      supabase.from('receipts').select('*'),
+      supabase.from('receipt_items').select('*').order('created_at'),
+      supabase.from('stat_entries').select('*'),
     ]);
     if (p.data) setProfiles(p.data as Profile[]);
     if (s.data) setSettings(s.data as TripSettings);
     if (it.data) setItinerary(it.data as ItineraryItem[]);
+    if (ph.data) setPhotos(ph.data as Photo[]);
     if (ex.data) setExpenses(ex.data as Expense[]);
     if (sp.data) setSplits(sp.data as ExpenseSplit[]);
-    if (cl.data) setChecklist(cl.data as ChecklistItem[]);
+    if (rc.data) setReceipts(rc.data as Receipt[]);
+    if (ri.data) setReceiptItems(ri.data as ReceiptItem[]);
+    if (st.data) setStats(st.data as StatEntry[]);
   }, []);
 
   useEffect(() => {
@@ -163,9 +198,12 @@ export default function TripDataProvider({
         profiles: DEMO_PROFILES,
         settings: DEMO_SETTINGS,
         itinerary: DEMO_ITINERARY,
+        photos: DEMO_PHOTOS,
         expenses: DEMO_EXPENSES,
         splits: DEMO_SPLITS,
-        checklist: DEMO_CHECKLIST,
+        receipts: DEMO_RECEIPTS,
+        receiptItems: DEMO_RECEIPT_ITEMS,
+        stats: DEMO_STATS,
       };
       try {
         const raw = localStorage.getItem(DEMO_KEY);
@@ -176,9 +214,12 @@ export default function TripDataProvider({
       setProfiles(state.profiles);
       setSettings(state.settings);
       setItinerary(state.itinerary);
+      setPhotos(state.photos);
       setExpenses(state.expenses);
       setSplits(state.splits);
-      setChecklist(state.checklist);
+      setReceipts(state.receipts);
+      setReceiptItems(state.receiptItems);
+      setStats(state.stats);
       setReady(true);
       return;
     }
@@ -218,10 +259,11 @@ export default function TripDataProvider({
   const uploadAvatar = async (profileId: string, file: File): Promise<string | null> => {
     if (!supabase) return null;
     try {
-      const path = `avatars/${profileId}.jpg`;
+      const compressed = await compressToWebp(file);
+      const path = `avatars/${profileId}.webp`;
       const up = await supabase.storage
         .from(SUPABASE_BUCKET)
-        .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+        .upload(path, compressed, { upsert: true, contentType: compressed.type || 'image/webp' });
       if (up.error) return null;
       const { data } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
       return `${data.publicUrl}?v=${Date.now()}`;
@@ -239,7 +281,9 @@ export default function TripDataProvider({
         const existing = profiles.find(
           (p) => p.name.toLowerCase() === name.toLowerCase()
         );
-        const avatar_url = photo ? await fileToDataUrl(photo) : existing?.avatar_url ?? null;
+        const avatar_url = photo
+          ? await fileToDataUrl(await compressToWebp(photo))
+          : existing?.avatar_url ?? null;
         const profile: Profile = existing
           ? { ...existing, avatar_url }
           : { id: genId(), name, avatar_url };
@@ -292,7 +336,7 @@ export default function TripDataProvider({
     async (file) => {
       if (!me) return;
       if (demoMode) {
-        const avatar_url = await fileToDataUrl(file);
+        const avatar_url = await fileToDataUrl(await compressToWebp(file));
         const updated = { ...me, avatar_url };
         setProfiles((prev) => prev.map((p) => (p.id === me.id ? updated : p)));
         persistMe(updated);
@@ -326,7 +370,7 @@ export default function TripDataProvider({
     async (id) => {
       if (demoMode) {
         setItinerary((prev) => prev.filter((i) => i.id !== id));
-        setExpenses((prev) => prev.filter((e) => e.activity_id !== id));
+        setPhotos((prev) => prev.filter((p) => p.activity_id !== id));
         return;
       }
       await supabase!.from('itinerary_items').delete().eq('id', id);
@@ -335,27 +379,87 @@ export default function TripDataProvider({
     [demoMode, refetchAll]
   );
 
-  const setPhoto = useCallback<TripDataValue['setPhoto']>(
-    async (activityId, file) => {
+  // --- photos ---------------------------------------------------------------
+  // Multiple photos per activity. Every upload is compressed to ≤1200px WebP
+  // first (see lib/image.ts) and tagged with the uploader by default.
+  const addPhotos = useCallback<TripDataValue['addPhotos']>(
+    async (activityId, files) => {
+      const tagged = me ? [me.id] : [];
       if (demoMode) {
-        const dataUrl = await fileToDataUrl(file);
-        setItinerary((prev) =>
-          prev.map((i) => (i.id === activityId ? { ...i, photo_url: dataUrl } : i))
-        );
+        const added: Photo[] = [];
+        for (const file of files) {
+          const url = await fileToDataUrl(await compressToWebp(file));
+          added.push({
+            id: genId(),
+            activity_id: activityId,
+            url,
+            uploaded_by_id: me?.id ?? null,
+            tagged_user_ids: tagged,
+            created_at: new Date().toISOString(),
+          });
+        }
+        setPhotos((prev) => [...prev, ...added]);
         return;
       }
-      // One photo per card: fixed object key, upsert overwrites the old file.
-      const path = `${activityId}.jpg`;
-      const up = await supabase!.storage
-        .from(SUPABASE_BUCKET)
-        .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
-      if (up.error) throw up.error;
-      const { data: pub } = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
-      const url = `${pub.publicUrl}?v=${Date.now()}`; // cache-bust the overwrite
-      await supabase!.from('itinerary_items').update({ photo_url: url }).eq('id', activityId);
+
+      for (const file of files) {
+        const compressed = await compressToWebp(file);
+        const id = genId();
+        const path = `photos/${activityId}/${id}.webp`;
+        const up = await supabase!.storage
+          .from(SUPABASE_BUCKET)
+          .upload(path, compressed, { contentType: compressed.type || 'image/webp' });
+        if (up.error) throw up.error;
+        const { data: pub } = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
+        await supabase!.from('photos').insert({
+          id,
+          activity_id: activityId,
+          url: pub.publicUrl,
+          uploaded_by_id: me?.id ?? null,
+          tagged_user_ids: tagged,
+        });
+      }
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, me, refetchAll]
+  );
+
+  const deletePhoto = useCallback<TripDataValue['deletePhoto']>(
+    async (id) => {
+      if (demoMode) {
+        setPhotos((prev) => prev.filter((p) => p.id !== id));
+        return;
+      }
+      const photo = photos.find((p) => p.id === id);
+      await supabase!.from('photos').delete().eq('id', id);
+      // Best-effort storage cleanup — the row is the source of truth.
+      const marker = `/object/public/${SUPABASE_BUCKET}/`;
+      const idx = photo?.url.indexOf(marker) ?? -1;
+      if (photo && idx >= 0) {
+        const path = photo.url.slice(idx + marker.length).split('?')[0];
+        await supabase!.storage.from(SUPABASE_BUCKET).remove([decodeURIComponent(path)]);
+      }
+      await refetchAll();
+    },
+    [demoMode, photos, refetchAll]
+  );
+
+  const togglePhotoTag = useCallback<TripDataValue['togglePhotoTag']>(
+    async (photoId, userId) => {
+      const photo = photos.find((p) => p.id === photoId);
+      if (!photo) return;
+      const current = photo.tagged_user_ids ?? [];
+      const next = current.includes(userId)
+        ? current.filter((id) => id !== userId)
+        : [...current, userId];
+      // Optimistic update so tag chips feel instant; realtime reconciles.
+      setPhotos((prev) =>
+        prev.map((p) => (p.id === photoId ? { ...p, tagged_user_ids: next } : p))
+      );
+      if (demoMode) return;
+      await supabase!.from('photos').update({ tagged_user_ids: next }).eq('id', photoId);
+    },
+    [demoMode, photos]
   );
 
   // --- finance --------------------------------------------------------------
@@ -376,7 +480,7 @@ export default function TripDataProvider({
   );
 
   const addExpense = useCallback<TripDataValue['addExpense']>(
-    async ({ activityId, amount, currency, paidById, participantIds }) => {
+    async ({ label, dayNumber, amount, currency, paidById, participantIds }) => {
       const baseGbp = toGbp(amount, currency, settings);
       const parts = participantIds.length ? participantIds : [paidById];
       const shares = splitEqually(baseGbp, parts.length);
@@ -387,7 +491,10 @@ export default function TripDataProvider({
           ...prev,
           {
             id: expId,
-            activity_id: activityId,
+            activity_id: null,
+            label,
+            day_number: dayNumber,
+            kind: 'manual',
             local_amount: round2(amount),
             local_currency: currency,
             base_amount_gbp: baseGbp,
@@ -409,7 +516,9 @@ export default function TripDataProvider({
       const { data: exp, error } = await supabase!
         .from('expenses')
         .insert({
-          activity_id: activityId,
+          label,
+          day_number: dayNumber,
+          kind: 'manual',
           local_amount: round2(amount),
           local_currency: currency,
           base_amount_gbp: baseGbp,
@@ -430,62 +539,161 @@ export default function TripDataProvider({
     [demoMode, refetchAll, settings]
   );
 
-  const deleteExpense = useCallback<TripDataValue['deleteExpense']>(
-    async (id) => {
-      if (demoMode) {
-        setExpenses((prev) => prev.filter((e) => e.id !== id));
-        setSplits((prev) => prev.filter((s) => s.expense_id !== id));
-        return;
-      }
-      await supabase!.from('expenses').delete().eq('id', id);
-      await refetchAll();
-    },
-    [demoMode, refetchAll]
-  );
+  // Save a scanned/edited receipt: one expense (kind 'receipt') + a receipt
+  // row + its line items. Items start unclaimed unless claimed in review.
+  const addReceiptExpense = useCallback<TripDataValue['addReceiptExpense']>(
+    async ({ merchant, dayNumber, currency, total, paidById, items, imageFile }) => {
+      const label = merchant.trim() || 'Receipt';
+      const baseGbp = toGbp(total, currency, settings);
+      const cleanItems = items
+        .map((i) => ({
+          name: i.name.trim() || 'Item',
+          quantity: Math.max(1, Math.round(i.quantity) || 1),
+          local_amount: round2(i.price),
+        }))
+        .filter((i) => i.local_amount > 0);
 
-  // --- checklist ------------------------------------------------------------
-  const addChecklistItem = useCallback<TripDataValue['addChecklistItem']>(
-    async (label, scope) => {
-      const trimmed = label.trim();
-      if (!trimmed) return;
-      const owner_id = scope === 'individual' ? me?.id ?? null : null;
       if (demoMode) {
-        setChecklist((prev) => [
+        const expId = genId();
+        const receiptId = genId();
+        const imageUrl = imageFile ? await fileToDataUrl(await compressToWebp(imageFile)) : null;
+        setExpenses((prev) => [
           ...prev,
-          { id: genId(), label: trimmed, scope, owner_id, checked: false },
+          {
+            id: expId,
+            activity_id: null,
+            label,
+            day_number: dayNumber,
+            kind: 'receipt',
+            local_amount: round2(total),
+            local_currency: currency,
+            base_amount_gbp: baseGbp,
+            paid_by_id: paidById,
+          },
+        ]);
+        setReceipts((prev) => [
+          ...prev,
+          { id: receiptId, expense_id: expId, merchant: label, image_url: imageUrl },
+        ]);
+        setReceiptItems((prev) => [
+          ...prev,
+          ...cleanItems.map((i) => ({
+            id: genId(),
+            receipt_id: receiptId,
+            ...i,
+            claimed_by_id: null,
+          })),
         ]);
         return;
       }
-      await supabase!.from('checklist_items').insert({ label: trimmed, scope, owner_id });
-      await refetchAll();
-    },
-    [demoMode, me, refetchAll]
-  );
 
-  const toggleChecklist = useCallback<TripDataValue['toggleChecklist']>(
-    async (id, checked) => {
-      if (demoMode) {
-        setChecklist((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, checked } : c))
-        );
-        return;
+      const { data: exp, error } = await supabase!
+        .from('expenses')
+        .insert({
+          label,
+          day_number: dayNumber,
+          kind: 'receipt',
+          local_amount: round2(total),
+          local_currency: currency,
+          base_amount_gbp: baseGbp,
+          paid_by_id: paidById,
+        })
+        .select()
+        .single();
+      if (error || !exp) throw error ?? new Error('Could not save receipt');
+
+      let image_url: string | null = null;
+      if (imageFile) {
+        const compressed = await compressToWebp(imageFile);
+        const path = `receipts/${(exp as Expense).id}.webp`;
+        const up = await supabase!.storage
+          .from(SUPABASE_BUCKET)
+          .upload(path, compressed, { upsert: true, contentType: 'image/webp' });
+        if (!up.error) {
+          image_url = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path).data.publicUrl;
+        }
       }
-      await supabase!.from('checklist_items').update({ checked }).eq('id', id);
+
+      const { data: receipt, error: rErr } = await supabase!
+        .from('receipts')
+        .insert({ expense_id: (exp as Expense).id, merchant: label, image_url })
+        .select()
+        .single();
+      if (rErr || !receipt) throw rErr ?? new Error('Could not save receipt');
+
+      if (cleanItems.length) {
+        await supabase!.from('receipt_items').insert(
+          cleanItems.map((i) => ({ receipt_id: (receipt as Receipt).id, ...i }))
+        );
+      }
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, refetchAll, settings]
   );
 
-  const deleteChecklistItem = useCallback<TripDataValue['deleteChecklistItem']>(
+  // Claim (userId) or release (null) a receipt line item.
+  const setItemClaim = useCallback<TripDataValue['setItemClaim']>(
+    async (itemId, userId) => {
+      // Optimistic update for a snappy claim toggle; realtime reconciles.
+      setReceiptItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, claimed_by_id: userId } : i))
+      );
+      if (demoMode) return;
+      await supabase!.from('receipt_items').update({ claimed_by_id: userId }).eq('id', itemId);
+    },
+    [demoMode]
+  );
+
+  const deleteExpense = useCallback<TripDataValue['deleteExpense']>(
     async (id) => {
       if (demoMode) {
-        setChecklist((prev) => prev.filter((c) => c.id !== id));
+        const receiptIds = receipts.filter((r) => r.expense_id === id).map((r) => r.id);
+        setExpenses((prev) => prev.filter((e) => e.id !== id));
+        setSplits((prev) => prev.filter((s) => s.expense_id !== id));
+        setReceipts((prev) => prev.filter((r) => r.expense_id !== id));
+        setReceiptItems((prev) => prev.filter((i) => !receiptIds.includes(i.receipt_id)));
         return;
       }
-      await supabase!.from('checklist_items').delete().eq('id', id);
+      await supabase!.from('expenses').delete().eq('id', id); // cascades receipt + items
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, receipts, refetchAll]
+  );
+
+  // --- stats ------------------------------------------------------------
+  // Upsert my count for one category on one day (poop/drink/mosquito/coffee).
+  const setStat = useCallback<TripDataValue['setStat']>(
+    async (dayNumber, category, count) => {
+      if (!me) return;
+      const clamped = Math.max(0, Math.round(count));
+      // Optimistic local update so +/− steppers feel instant.
+      setStats((prev) => {
+        const existing = prev.find(
+          (s) => s.user_id === me.id && s.day_number === dayNumber && s.category === category
+        );
+        if (existing) {
+          return prev.map((s) => (s.id === existing.id ? { ...s, count: clamped } : s));
+        }
+        return [
+          ...prev,
+          { id: genId(), user_id: me.id, day_number: dayNumber, category, count: clamped },
+        ];
+      });
+      if (demoMode) return;
+      await supabase!
+        .from('stat_entries')
+        .upsert(
+          {
+            user_id: me.id,
+            day_number: dayNumber,
+            category,
+            count: clamped,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,day_number,category' }
+        );
+    },
+    [demoMode, me]
   );
 
   const value = useMemo<TripDataValue>(
@@ -496,22 +704,27 @@ export default function TripDataProvider({
       profiles,
       settings,
       itinerary,
+      photos,
       expenses,
       splits,
-      checklist,
+      receipts,
+      receiptItems,
+      stats,
       ensureProfile,
       signInAs,
       setMyPhoto,
       signOut,
       addItineraryItem,
       deleteItineraryItem,
-      setPhoto,
+      addPhotos,
+      deletePhoto,
+      togglePhotoTag,
       updateRates,
       addExpense,
+      addReceiptExpense,
+      setItemClaim,
       deleteExpense,
-      addChecklistItem,
-      toggleChecklist,
-      deleteChecklistItem,
+      setStat,
     }),
     [
       ready,
@@ -520,22 +733,27 @@ export default function TripDataProvider({
       profiles,
       settings,
       itinerary,
+      photos,
       expenses,
       splits,
-      checklist,
+      receipts,
+      receiptItems,
+      stats,
       ensureProfile,
       signInAs,
       setMyPhoto,
       signOut,
       addItineraryItem,
       deleteItineraryItem,
-      setPhoto,
+      addPhotos,
+      deletePhoto,
+      togglePhotoTag,
       updateRates,
       addExpense,
+      addReceiptExpense,
+      setItemClaim,
       deleteExpense,
-      addChecklistItem,
-      toggleChecklist,
-      deleteChecklistItem,
+      setStat,
     ]
   );
 
