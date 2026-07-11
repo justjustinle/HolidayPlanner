@@ -90,9 +90,10 @@ To set up:
 1. Get a free API key at <https://aistudio.google.com/apikey>.
 2. Set `GEMINI_API_KEY` in `.env.local` / Vercel env vars (server-side only —
    it is never shipped to the browser).
-3. Default model is `gemini-1.5-flash`. If your key can't access 1.5 (Google
-   has been sunsetting it for new projects), set `GEMINI_MODEL=gemini-2.0-flash`
-   — the payload format is identical.
+3. The scanner tries `gemini-2.5-flash`, then `gemini-2.0-flash`, then
+   `gemini-1.5-flash`, skipping any model your key can't access (Google keeps
+   sunsetting older models for new projects). Set `GEMINI_MODEL` to force a
+   specific model — it's always tried first.
 
 Flow: Money tab → **Upload receipt** → photo is compressed to WebP → sent to
 `POST /api/scan-receipt` → Gemini returns
