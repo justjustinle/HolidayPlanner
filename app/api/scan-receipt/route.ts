@@ -7,11 +7,12 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
+// Updated for modern model naming conventions.
+// Prioritizes the ultra-cheap Haiku 4.5 vision model, with a fallback to Sonnet 5.
 const MODEL_CANDIDATES = [
   ...(process.env.ANTHROPIC_MODEL ? [process.env.ANTHROPIC_MODEL] : []),
-  'claude-3-5-haiku-latest', 
-  'claude-3-5-sonnet-latest',
+  'claude-haiku-4-5',
+  'claude-sonnet-5',
 ];
 
 const PROMPT = `You are a receipt scanner for a group holiday expense app.
