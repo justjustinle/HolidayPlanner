@@ -1,7 +1,11 @@
-import type { ItineraryItem, Photo, Profile, StatCategory, StatEntry } from './types';
+import type { Photo, Profile, StatCategory, StatEntry } from './types';
 
-// The four self-input counters. Steps and photos are derived/read-only and
-// handled separately in the UI.
+// Stats are cumulative across the whole trip. Each person/category pair keeps
+// a single row in stat_entries, stored under this fixed day_number slot.
+export const STATS_DAY = 1;
+
+// The five self-input counters. The photos-taken stat is derived/read-only
+// and handled separately in the UI.
 export const COUNTER_CATEGORIES: {
   key: StatCategory;
   label: string;
@@ -11,12 +15,12 @@ export const COUNTER_CATEGORIES: {
   { key: 'drink', label: 'Drinks', emoji: '🍻' },
   { key: 'mosquito', label: 'Mozzie bites', emoji: '🦟' },
   { key: 'coffee', label: 'Coffees', emoji: '☕' },
+  { key: 'cards', label: 'Card games won', emoji: '🃏' },
 ];
 
 export const ALL_LEADERBOARD_CATEGORIES: { key: StatCategory | 'photos'; label: string; emoji: string; unit: string }[] = [
   ...COUNTER_CATEGORIES.map((c) => ({ key: c.key, label: c.label, emoji: c.emoji, unit: '' })),
-  { key: 'photos', label: 'Photos tagged in', emoji: '📸', unit: '' },
-  { key: 'steps', label: 'Steps', emoji: '👟', unit: '' },
+  { key: 'photos', label: 'Photos taken', emoji: '📸', unit: '' },
 ];
 
 export function statFor(
@@ -32,7 +36,8 @@ export function statFor(
   );
 }
 
-// Trip-wide total per person for one stat category.
+// Trip-wide total per person for one stat category. Sums every row so counts
+// logged under old per-day slots still show up.
 export function statTotals(
   profiles: Profile[],
   stats: StatEntry[],
@@ -47,22 +52,16 @@ export function statTotals(
   return totals;
 }
 
-// Photos each person is tagged in — the "photo counter" leaderboard source.
-// Pass a dayNumber to restrict to one day (via the photo's parent activity).
-export function photoTagCounts(
+// Photos each person has taken (uploaded) — the "photos" leaderboard source.
+export function photoUploadCounts(
   profiles: Profile[],
-  photos: Photo[],
-  itinerary: ItineraryItem[],
-  dayNumber?: number
+  photos: Photo[]
 ): Map<string, number> {
-  const dayOf = new Map(itinerary.map((i) => [i.id, i.day_number]));
   const totals = new Map<string, number>();
   for (const p of profiles) totals.set(p.id, 0);
   for (const photo of photos) {
-    if (dayNumber && dayOf.get(photo.activity_id) !== dayNumber) continue;
-    for (const uid of photo.tagged_user_ids ?? []) {
-      if (totals.has(uid)) totals.set(uid, (totals.get(uid) ?? 0) + 1);
-    }
+    const uid = photo.uploaded_by_id;
+    if (uid && totals.has(uid)) totals.set(uid, (totals.get(uid) ?? 0) + 1);
   }
   return totals;
 }

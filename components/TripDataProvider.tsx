@@ -92,7 +92,6 @@ interface TripDataValue {
 
   addPhotos: (activityId: string, files: File[]) => Promise<void>;
   deletePhoto: (id: string) => Promise<void>;
-  togglePhotoTag: (photoId: string, userId: string) => Promise<void>;
 
   updateRates: (vnd: number, thb: number) => Promise<void>;
   addExpense: (input: NewExpenseInput) => Promise<void>;
@@ -444,24 +443,6 @@ export default function TripDataProvider({
     [demoMode, photos, refetchAll]
   );
 
-  const togglePhotoTag = useCallback<TripDataValue['togglePhotoTag']>(
-    async (photoId, userId) => {
-      const photo = photos.find((p) => p.id === photoId);
-      if (!photo) return;
-      const current = photo.tagged_user_ids ?? [];
-      const next = current.includes(userId)
-        ? current.filter((id) => id !== userId)
-        : [...current, userId];
-      // Optimistic update so tag chips feel instant; realtime reconciles.
-      setPhotos((prev) =>
-        prev.map((p) => (p.id === photoId ? { ...p, tagged_user_ids: next } : p))
-      );
-      if (demoMode) return;
-      await supabase!.from('photos').update({ tagged_user_ids: next }).eq('id', photoId);
-    },
-    [demoMode, photos]
-  );
-
   // --- finance --------------------------------------------------------------
   const updateRates = useCallback<TripDataValue['updateRates']>(
     async (vnd, thb) => {
@@ -718,7 +699,6 @@ export default function TripDataProvider({
       deleteItineraryItem,
       addPhotos,
       deletePhoto,
-      togglePhotoTag,
       updateRates,
       addExpense,
       addReceiptExpense,
@@ -747,7 +727,6 @@ export default function TripDataProvider({
       deleteItineraryItem,
       addPhotos,
       deletePhoto,
-      togglePhotoTag,
       updateRates,
       addExpense,
       addReceiptExpense,

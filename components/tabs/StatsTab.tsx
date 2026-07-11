@@ -1,16 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Footprints, Images, Minus, Plus } from 'lucide-react';
+import { useMemo } from 'react';
+import { Images, Minus, Plus } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import TabHeader from '../ui/TabHeader';
-import DayPicker from '../ui/DayPicker';
 import Avatar from '../ui/Avatar';
-import { defaultDayNumber } from '@/lib/trip';
 import {
   ALL_LEADERBOARD_CATEGORIES,
   COUNTER_CATEGORIES,
-  photoTagCounts,
+  STATS_DAY,
+  photoUploadCounts,
   statFor,
   statTotals,
 } from '@/lib/stats';
@@ -19,15 +18,14 @@ import type { StatCategory } from '@/lib/types';
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export default function StatsTab() {
-  const { profiles, me, stats, photos, itinerary, setStat } = useTripData();
-  const [day, setDay] = useState(defaultDayNumber);
+  const { profiles, me, stats, photos, setStat } = useTripData();
 
   const myCount = (category: StatCategory) =>
-    me ? statFor(stats, me.id, day, category) : 0;
+    me ? statFor(stats, me.id, STATS_DAY, category) : 0;
 
   const myPhotoCount = useMemo(
-    () => (me ? photoTagCounts(profiles, photos, itinerary, day).get(me.id) ?? 0 : 0),
-    [me, profiles, photos, itinerary, day]
+    () => (me ? photoUploadCounts(profiles, photos).get(me.id) ?? 0 : 0),
+    [me, profiles, photos]
   );
 
   // Trip-wide totals per category, ranked for the live leaderboards.
@@ -36,26 +34,24 @@ export default function StatsTab() {
       ALL_LEADERBOARD_CATEGORIES.map((cat) => {
         const totals =
           cat.key === 'photos'
-            ? photoTagCounts(profiles, photos, itinerary)
+            ? photoUploadCounts(profiles, photos)
             : statTotals(profiles, stats, cat.key);
         const rows = profiles
           .map((p) => ({ profile: p, total: totals.get(p.id) ?? 0 }))
           .sort((a, b) => b.total - a.total);
         return { ...cat, rows };
       }),
-    [profiles, stats, photos, itinerary]
+    [profiles, stats, photos]
   );
 
   return (
     <div>
       <TabHeader eyebrow="Trip Olympics" title="Stats" />
 
-      <div className="px-5 pb-10">
-        <DayPicker value={day} onChange={setDay} />
-
-        {/* daily submission */}
+      <div className="px-5 pb-10 pt-4">
+        {/* cumulative self counters */}
         <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">
-          My Day {day} log
+          My trip log
         </h2>
         {!me && (
           <p className="mb-3 rounded-xl bg-black/5 px-3 py-2 text-[13px] text-muted">
@@ -75,7 +71,7 @@ export default function StatsTab() {
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <button
-                    onClick={() => setStat(day, cat.key, count - 1)}
+                    onClick={() => setStat(STATS_DAY, cat.key, count - 1)}
                     disabled={!me || count === 0}
                     aria-label={`One less ${cat.label}`}
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-ink disabled:opacity-30"
@@ -86,7 +82,7 @@ export default function StatsTab() {
                     {count}
                   </span>
                   <button
-                    onClick={() => setStat(day, cat.key, count + 1)}
+                    onClick={() => setStat(STATS_DAY, cat.key, count + 1)}
                     disabled={!me}
                     aria-label={`One more ${cat.label}`}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-white disabled:opacity-30"
@@ -97,30 +93,16 @@ export default function StatsTab() {
               </div>
             );
           })}
-        </div>
-
-        {/* read-only trackers */}
-        <div className="mb-7 grid grid-cols-2 gap-2">
+          {/* read-only tracker */}
           <div className="rounded-2xl border border-black/5 bg-cream-card p-3">
             <div className="flex items-center gap-1.5 text-[12px] text-muted">
-              <Footprints size={14} /> Steps
-            </div>
-            <div className="mt-1 font-serif text-[26px] font-semibold text-ink">
-              {(me ? statFor(stats, me.id, day, 'steps') : 0).toLocaleString()}
-            </div>
-            <div className="text-[10px] leading-tight text-muted">
-              auto-synced from Apple Health (see README shortcut)
-            </div>
-          </div>
-          <div className="rounded-2xl border border-black/5 bg-cream-card p-3">
-            <div className="flex items-center gap-1.5 text-[12px] text-muted">
-              <Images size={14} /> Photos I&apos;m in
+              <Images size={14} /> Photos I&apos;ve taken
             </div>
             <div className="mt-1 font-serif text-[26px] font-semibold text-ink">
               {myPhotoCount}
             </div>
             <div className="text-[10px] leading-tight text-muted">
-              counted from tagged trip photos
+              counted from the trip photos you&apos;ve uploaded
             </div>
           </div>
         </div>

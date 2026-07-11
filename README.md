@@ -3,7 +3,7 @@
 A mobile-first, installable **PWA** for a group holiday across Bangkok →
 Phuket → Saigon → Nha Trang. Plan a day-by-day itinerary, fill Polaroid photo
 carousels, scan receipts with Gemini and self-claim your items, and battle it
-out on daily trip-stat leaderboards — all synced to the whole group in
+out on trip-stat leaderboards — all synced to the whole group in
 realtime.
 
 Built as a **Next.js 14 (App Router) + TypeScript + Tailwind CSS + Supabase**
@@ -11,17 +11,16 @@ app.
 
 ## Features
 
-Four tabs along the top, each with a **Day 1 … Day 13 selector** matching the
-trip dates (28 Aug – 10 Sep).
+Three tabs along a bottom navigation bar:
 
-- **Itinerary** — per-day activity cards. Each card has a **Polaroid carousel**:
-  swipe through the activity's photos, with the last frame always being
-  "📸 Add Memory" (multi-select supported). With no photos yet the frame
-  collapses to a slim ~30% strip to keep scrolling short. Photos can be
-  **tagged** with the people in them and **saved to your device** (share sheet
-  on mobile, download elsewhere).
-- **Photos** — the same carousels laid out as a day-by-day photo wall.
-- **Money** — two ways to add spend:
+- **Itinerary** — per-day activity cards behind a **Day 1 … Day 13 selector**
+  matching the trip dates (28 Aug – 10 Sep). Each card has a **Polaroid
+  carousel**: swipe through the activity's photos, with the last frame always
+  being "📸 Add Memory" (multi-select supported). With no photos yet the frame
+  collapses to a slim ~30% strip to keep scrolling short. Photos are credited
+  to their uploader ("taken by …") and can be **saved to your device** (share
+  sheet on mobile, download elsewhere).
+- **Expenses** — trip-wide, with two ways to add spend:
   - **Upload receipt**: snap the bill, Gemini reads it into merchant, currency,
     and line items. Everyone then **self-claims their own items**; unclaimed
     lines stay untagged (the payer carries them until claimed).
@@ -29,10 +28,10 @@ trip dates (28 Aug – 10 Sep).
     who paid and who splits it equally.
   Group-editable exchange rates and a **greedy debt-minimization** settlement
   ("Priya → Alex £8.31") cover both kinds.
-- **Stats** — daily self-input counters (💩 poops, 🍻 drinks, 🦟 mozzie bites,
-  ☕ coffees), a read-only **step counter** synced from Apple Health via an iOS
-  Shortcut, a **photo counter** derived from tagged photos, and **live
-  leaderboards** for every category.
+- **Stats** — cumulative whole-trip self-input counters (💩 poops, 🍻 drinks,
+  🦟 mozzie bites, ☕ coffees, 🃏 card games won), a read-only **photos-taken
+  counter** derived from your uploads, and **live leaderboards** for every
+  category.
 
 Every photo (memories, avatars, receipts) is **compressed client-side to
 ≤1200px WebP** before upload (`browser-image-compression`), so phone-camera
@@ -100,30 +99,11 @@ Flow: Money tab → **Upload receipt** → photo is compressed to WebP → sent 
 `{ merchant, currency, total, items: [{ name, quantity, price }] }` → you
 review/edit → saved as an expense + claimable line items.
 
-### 3. Apple Health step sync (read-only)
+### 3. Vercel deploy
 
-Web apps can't read HealthKit directly, so each person pushes their own steps
-with a **daily iOS Shortcuts automation** (~2 min to set up):
-
-1. Set `STEPS_WEBHOOK_TOKEN` to a long random string in your env vars and
-   redeploy.
-2. On the iPhone: **Shortcuts app → Automation → New → Time of Day** (e.g.
-   23:30, daily) with these actions:
-   1. **Find Health Samples** — type *Steps*, *Today*, group by *Day*
-      (returns the day's total).
-   2. **Get Contents of URL** — `https://<your-app>/api/steps`, Method
-      **POST**, Request Body **JSON**:
-      - `name`: your profile name in the app (e.g. `Justin`)
-      - `steps`: the Health Samples variable
-      - `token`: the value of `STEPS_WEBHOOK_TOKEN`
-3. Turn off "Ask Before Running". Steps then appear in the Stats tab and the
-   👟 leaderboard each night. Dates outside the trip are ignored.
-
-### 4. Vercel deploy
-
-Set all env vars from `.env.example` in the Vercel project (`GEMINI_API_KEY`,
-`STEPS_WEBHOOK_TOKEN`, and the Supabase pair at minimum). Everything else is a
-standard Next.js deploy.
+Set all env vars from `.env.example` in the Vercel project (`GEMINI_API_KEY`
+and the Supabase pair at minimum). Everything else is a standard Next.js
+deploy.
 
 ## Project structure
 
@@ -133,14 +113,13 @@ app/
   page.tsx              # provider + app root
   globals.css           # Tailwind + design tokens
   api/scan-receipt/     # Gemini receipt → JSON endpoint
-  api/steps/            # Apple Health (iOS Shortcut) step webhook
 components/
   AppRoot.tsx           # loading / gate / shell switch
   WelcomeGate.tsx       # one-time name login
-  AppShell.tsx          # four top tabs
+  AppShell.tsx          # bottom nav with the three tabs
   TripDataProvider.tsx  # data layer: Supabase OR localStorage demo + realtime
   ServiceWorkerRegister.tsx
-  tabs/                 # ItineraryTab, PhotosTab, FinanceTab, StatsTab
+  tabs/                 # ItineraryTab, FinanceTab, StatsTab
   itinerary/            # ItineraryCard, PolaroidCarousel, AddCardSheet
   finance/              # RateSettings, ExpenseCard, sheets for receipt/expense
   ui/                   # Avatar, Sheet, TabHeader, DayPicker, TimeWheel
@@ -150,12 +129,13 @@ lib/
   trip.ts               # fixed trip days / destinations / date mapping
   currency.ts           # GBP conversion, 2-dp rounding, equal split
   settle.ts             # net balances (incl. receipt claims) + transfer minimization
-  stats.ts              # stat categories, totals, photo-tag counts
+  stats.ts              # stat categories, totals, photos-taken counts
   image.ts              # WebP compression (≤1200px), save-to-device helper
   avatar.ts, demo.ts    # avatar colors, demo seed data
 supabase/
   schema.sql            # fresh-install database + storage setup
   migration-v2.sql      # upgrade an existing v1 database
+  migration-v3.sql      # v2 → v3: cumulative stats, steps → card games won
 public/                 # manifest.json, sw.js, icons
 ```
 

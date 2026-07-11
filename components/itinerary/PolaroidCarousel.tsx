@@ -12,10 +12,11 @@ import type { ItineraryItem } from '@/lib/types';
 // No photos yet → the frame collapses to a short (~30% height) "Add Memory"
 // strip so cards stay compact. With photos → a swipeable carousel inside the
 // white frame: one slide per photo, and the LAST slide is always Add Memory.
-// Multiple images can be added at once; each photo can be tagged with the
-// people in it (feeds the Stats photo counter) and saved to the device.
+// Multiple images can be added at once; each photo is credited to its
+// uploader (feeds the Stats photos-taken counter) and can be saved to the
+// device.
 export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
-  const { photos, profiles, me, addPhotos, deletePhoto, togglePhotoTag } = useTripData();
+  const { photos, profiles, addPhotos, deletePhoto } = useTripData();
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
@@ -50,6 +51,9 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
   const slideCount = mine.length + 1; // photos + trailing Add Memory frame
   const active = mine[Math.min(index, mine.length - 1)];
   const onPhotoSlide = index < mine.length;
+  const uploader = active
+    ? profiles.find((p) => p.id === active.uploaded_by_id)
+    : undefined;
 
   const addFrame = (collapsed: boolean) => (
     <button
@@ -136,24 +140,11 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
         {item.title}
       </p>
 
-      {/* who's in this photo — tap to tag/untag (feeds the photo leaderboard) */}
-      {onPhotoSlide && active && (
-        <div className="mt-2 flex items-center justify-center gap-1.5">
-          <span className="text-[10px] uppercase tracking-wide text-muted">Tag:</span>
-          {profiles.map((p) => {
-            const tagged = active.tagged_user_ids?.includes(p.id);
-            return (
-              <button
-                key={p.id}
-                onClick={() => togglePhotoTag(active.id, p.id)}
-                aria-label={`${tagged ? 'Untag' : 'Tag'} ${p.name}`}
-                className={`rounded-full ${tagged ? 'ring-2 ring-ink' : 'opacity-45'}`}
-              >
-                <Avatar name={p.name} src={p.avatar_url} size={22} />
-              </button>
-            );
-          })}
-          {me == null && <span className="text-[11px] text-muted">sign in to tag</span>}
+      {/* photo credit */}
+      {onPhotoSlide && uploader && (
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-muted">
+          <Avatar name={uploader.name} src={uploader.avatar_url} size={18} />
+          taken by {uploader.name}
         </div>
       )}
 
