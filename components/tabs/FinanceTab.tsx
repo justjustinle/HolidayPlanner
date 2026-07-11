@@ -47,7 +47,7 @@ export default function FinanceTab() {
 
   return (
     <div>
-      <TabHeader eyebrow="Shared expenses" title="Money" />
+      <TabHeader eyebrow="Shared expenses" title="Expenses" />
 
       <div className="px-5">
         <DayPicker value={day} onChange={setDay} allowAll />
