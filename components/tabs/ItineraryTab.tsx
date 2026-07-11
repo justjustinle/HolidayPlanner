@@ -35,6 +35,16 @@ export default function ItineraryTab() {
             <VietnamFlag size={22} />
           </span>
         }
+        action={
+          <button
+            onClick={() => setAdding(true)}
+            aria-label="Add activity"
+            className="flex h-9 items-center gap-1.5 rounded-full bg-ink pl-3 pr-3.5 text-[13px] font-medium text-white shadow-polaroid"
+          >
+            <Plus size={16} />
+            Add
+          </button>
+        }
       />
 
       <div className="px-5">
@@ -69,16 +79,6 @@ export default function ItineraryTab() {
           </div>
         )}
       </div>
-
-      {/* floating add button */}
-      <button
-        onClick={() => setAdding(true)}
-        aria-label="Add activity"
-        className="fixed bottom-6 left-1/2 z-30 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-ink text-white shadow-polaroid"
-        style={{ marginLeft: 'calc(min(50vw, 240px) - 44px)' }}
-      >
-        <Plus size={26} />
-      </button>
 
       {adding && (
         <AddCardSheet defaultDay={day} onClose={() => setAdding(false)} />
