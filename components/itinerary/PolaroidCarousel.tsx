@@ -21,6 +21,7 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [index, setIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const mine = useMemo(
     () =>
@@ -35,8 +36,11 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
     e.target.value = ''; // allow re-selecting the same files later
     if (!files.length) return;
     setBusy(true);
+    setError(null);
     try {
       await addPhotos(item.id, files);
+    } catch (err) {
+      setError((err as Error).message || 'Could not upload photo. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -146,6 +150,12 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
           <Avatar name={uploader.name} src={uploader.avatar_url} size={18} />
           taken by {uploader.name}
         </div>
+      )}
+
+      {error && (
+        <p className="mt-2 rounded-lg bg-saigon/10 px-2 py-1.5 text-center text-[12px] text-saigon">
+          {error}
+        </p>
       )}
 
       <input
