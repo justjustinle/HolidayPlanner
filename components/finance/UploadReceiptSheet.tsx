@@ -301,11 +301,12 @@ export default function UploadReceiptSheet({
         </>
       )}
 
+      {/* No `capture` attribute: mobile browsers then offer both the camera
+          and the photo library / camera roll, instead of forcing the camera. */}
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={onPick}
         className="hidden"
       />
