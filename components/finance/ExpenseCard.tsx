@@ -1,18 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import Avatar from '../ui/Avatar';
+import LogExpenseSheet from './LogExpenseSheet';
 import { useTripData } from '../TripDataProvider';
 import { formatGbp, round2, toGbp } from '@/lib/currency';
 import { CURRENCY_SYMBOL, dayByNumber } from '@/lib/trip';
 import type { Expense } from '@/lib/types';
 
-// One expense row in the Money tab. Manual expenses show who's splitting;
+// One expense row in the Expenses tab. Manual expenses show who's splitting;
 // receipt expenses list their line items with tap-to-claim chips: unclaimed
-// items are untagged until someone self-selects them.
+// items are untagged until someone self-selects them. Tapping the card opens
+// the edit sheet.
 export default function ExpenseCard({ expense }: { expense: Expense }) {
   const { profiles, me, splits, receipts, receiptItems, settings, setItemClaim, deleteExpense } =
     useTripData();
+  const [editing, setEditing] = useState(false);
 
   const profileOf = (id: string | null) => profiles.find((p) => p.id === id);
   const payer = profileOf(expense.paid_by_id);
@@ -26,7 +30,9 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
     toGbp(localAmount, expense.local_currency, settings);
 
   return (
-    <div className="rounded-2xl border border-black/5 bg-cream-card p-4">
+    <div
+      onClick={() => setEditing(true)}
+      className="cursor-pointer rounded-2xl border border-black/5 bg-cream-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[15px] font-medium text-ink">
@@ -48,7 +54,10 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
             <div className="text-[11px] text-muted">{formatGbp(expense.base_amount_gbp)}</div>
           </div>
           <button
-            onClick={() => deleteExpense(expense.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteExpense(expense.id);
+            }}
             aria-label="Delete expense"
             className="text-muted/50 hover:text-saigon"
           >
@@ -79,7 +88,10 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
               <button
                 key={item.id}
                 disabled={!canClaim && !isMine}
-                onClick={() => setItemClaim(item.id, isMine ? null : me!.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setItemClaim(item.id, isMine ? null : me!.id);
+                }}
                 className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-[13px] ${
                   isMine
                     ? 'border-ink bg-ink/5'
@@ -116,6 +128,16 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {editing && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <LogExpenseSheet
+            defaultDay={expense.day_number ?? 1}
+            expense={expense}
+            onClose={() => setEditing(false)}
+          />
         </div>
       )}
     </div>

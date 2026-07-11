@@ -95,6 +95,7 @@ interface TripDataValue {
 
   updateRates: (vnd: number, thb: number) => Promise<void>;
   addExpense: (input: NewExpenseInput) => Promise<void>;
+  updateExpense: (id: string, input: NewExpenseInput) => Promise<void>;
   addReceiptExpense: (input: NewReceiptInput) => Promise<void>;
   setItemClaim: (itemId: string, userId: string | null) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
@@ -520,6 +521,61 @@ export default function TripDataProvider({
     [demoMode, refetchAll, settings]
   );
 
+  // Edit an existing expense. Manual expenses get their equal splits rebuilt
+  // from the new amount/participants; receipt expenses keep their line items
+  // (claims drive the settlement) and just sync the merchant label.
+  const updateExpense = useCallback<TripDataValue['updateExpense']>(
+    async (id, { label, dayNumber, amount, currency, paidById, participantIds }) => {
+      const existing = expenses.find((e) => e.id === id);
+      if (!existing) return;
+      const isManual = existing.kind !== 'receipt';
+      const baseGbp = toGbp(amount, currency, settings);
+      const parts = participantIds.length ? participantIds : [paidById];
+      const shares = splitEqually(baseGbp, parts.length);
+      const patch = {
+        label,
+        day_number: dayNumber,
+        local_amount: round2(amount),
+        local_currency: currency,
+        base_amount_gbp: baseGbp,
+        paid_by_id: paidById,
+      };
+
+      if (demoMode) {
+        setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+        if (isManual) {
+          setSplits((prev) => [
+            ...prev.filter((s) => s.expense_id !== id),
+            ...parts.map((uid, i) => ({
+              id: genId(),
+              expense_id: id,
+              user_id: uid,
+              amount_owed: shares[i],
+            })),
+          ]);
+        } else {
+          setReceipts((prev) =>
+            prev.map((r) => (r.expense_id === id ? { ...r, merchant: label } : r))
+          );
+        }
+        return;
+      }
+
+      const { error } = await supabase!.from('expenses').update(patch).eq('id', id);
+      if (error) throw error;
+      if (isManual) {
+        await supabase!.from('expense_splits').delete().eq('expense_id', id);
+        await supabase!.from('expense_splits').insert(
+          parts.map((uid, i) => ({ expense_id: id, user_id: uid, amount_owed: shares[i] }))
+        );
+      } else {
+        await supabase!.from('receipts').update({ merchant: label }).eq('expense_id', id);
+      }
+      await refetchAll();
+    },
+    [demoMode, expenses, refetchAll, settings]
+  );
+
   // Save a scanned/edited receipt: one expense (kind 'receipt') + a receipt
   // row + its line items. Items start unclaimed unless claimed in review.
   const addReceiptExpense = useCallback<TripDataValue['addReceiptExpense']>(
@@ -701,6 +757,7 @@ export default function TripDataProvider({
       deletePhoto,
       updateRates,
       addExpense,
+      updateExpense,
       addReceiptExpense,
       setItemClaim,
       deleteExpense,
@@ -729,6 +786,7 @@ export default function TripDataProvider({
       deletePhoto,
       updateRates,
       addExpense,
+      updateExpense,
       addReceiptExpense,
       setItemClaim,
       deleteExpense,
