@@ -8,7 +8,16 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+// Models to try in order. Google keeps sunsetting older Gemini models for new
+// API keys (1.5 already 404s on fresh projects), so we fall through to the
+// next candidate whenever a model comes back 404 NOT_FOUND. GEMINI_MODEL, if
+// set, is always tried first.
+const MODEL_CANDIDATES = [
+  ...(process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []),
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
 
 const PROMPT = `You are a receipt scanner for a group holiday expense app.
 Read the receipt in the image and return ONLY a JSON object with this exact shape:
@@ -50,37 +59,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'imageBase64 is required' }, { status: 400 });
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
+  const payload = JSON.stringify({
+    contents: [
+      {
+        parts: [
+          { text: PROMPT },
           {
-            parts: [
-              { text: PROMPT },
-              {
-                inline_data: {
-                  mime_type: body.mimeType || 'image/webp',
-                  data: body.imageBase64,
-                },
-              },
-            ],
+            inline_data: {
+              mime_type: body.mimeType || 'image/webp',
+              data: body.imageBase64,
+            },
           },
         ],
-        generationConfig: {
-          response_mime_type: 'application/json',
-          temperature: 0,
-        },
-      }),
-    }
-  );
+      },
+    ],
+    generationConfig: {
+      response_mime_type: 'application/json',
+      temperature: 0,
+    },
+  });
 
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
+  let res: Response | null = null;
+  for (const model of MODEL_CANDIDATES) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }
+    );
+    if (res.status !== 404) break; // 404 = model unknown to this key; try the next one
+  }
+
+  if (!res || !res.ok) {
+    const detail = res ? await res.text().catch(() => '') : '';
+    const status = res?.status ?? 502;
+    const hint =
+      status === 404
+        ? ` None of the models (${MODEL_CANDIDATES.join(', ')}) are available to this API key.`
+        : '';
     return NextResponse.json(
-      { error: `Gemini request failed (${res.status}). ${detail.slice(0, 300)}` },
+      { error: `Gemini request failed (${status}).${hint} ${detail.slice(0, 300)}` },
       { status: 502 }
     );
   }
