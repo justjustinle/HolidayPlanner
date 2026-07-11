@@ -1,19 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarDays, Images, Wallet, Trophy } from 'lucide-react';
+import { CalendarDays, Wallet, Trophy } from 'lucide-react';
 import { useTripData } from './TripDataProvider';
 import ItineraryTab from './tabs/ItineraryTab';
-import PhotosTab from './tabs/PhotosTab';
 import FinanceTab from './tabs/FinanceTab';
 import StatsTab from './tabs/StatsTab';
 
-type TabKey = 'itinerary' | 'photos' | 'finance' | 'stats';
+type TabKey = 'itinerary' | 'finance' | 'stats';
 
 const TABS: { key: TabKey; label: string; icon: typeof CalendarDays }[] = [
   { key: 'itinerary', label: 'Itinerary', icon: CalendarDays },
-  { key: 'photos', label: 'Photos', icon: Images },
-  { key: 'finance', label: 'Money', icon: Wallet },
+  { key: 'finance', label: 'Expenses', icon: Wallet },
   { key: 'stats', label: 'Stats', icon: Trophy },
 ];
 
@@ -29,8 +27,14 @@ export default function AppShell() {
         </div>
       )}
 
-      {/* top tab bar */}
-      <nav className="sticky top-0 z-30 border-b border-black/5 bg-cream-card/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <main className="no-scrollbar flex-1 overflow-y-auto pb-10">
+        {tab === 'itinerary' && <ItineraryTab />}
+        {tab === 'finance' && <FinanceTab />}
+        {tab === 'stats' && <StatsTab />}
+      </main>
+
+      {/* bottom tab bar */}
+      <nav className="sticky bottom-0 z-30 border-t border-black/5 bg-cream-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="flex items-stretch justify-around px-2">
           {TABS.map(({ key, label, icon: Icon }) => {
             const active = tab === key;
@@ -45,20 +49,13 @@ export default function AppShell() {
                 <Icon size={22} strokeWidth={active ? 2.4 : 1.8} />
                 <span className={active ? 'font-semibold' : ''}>{label}</span>
                 {active && (
-                  <span className="absolute inset-x-6 bottom-0 h-0.5 rounded-full bg-ink" />
+                  <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-ink" />
                 )}
               </button>
             );
           })}
         </div>
       </nav>
-
-      <main className="no-scrollbar flex-1 overflow-y-auto pb-10">
-        {tab === 'itinerary' && <ItineraryTab />}
-        {tab === 'photos' && <PhotosTab />}
-        {tab === 'finance' && <FinanceTab />}
-        {tab === 'stats' && <StatsTab />}
-      </main>
     </div>
   );
 }
