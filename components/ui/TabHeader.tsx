@@ -5,14 +5,17 @@ import { LogOut, Camera } from 'lucide-react';
 import Avatar from './Avatar';
 import { useTripData } from '../TripDataProvider';
 
-// Shared header: eyebrow, serif title, and the signed-in user's avatar (photo
-// or initial). Tap it to change your photo or switch person.
+// Shared header: optional eyebrow, serif title (with optional inline extras,
+// e.g. flags), and the signed-in user's avatar (photo or initial). Tap it to
+// change your photo or switch person.
 export default function TabHeader({
   eyebrow,
   title,
+  titleExtra,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
+  titleExtra?: React.ReactNode;
 }) {
   const { me, signOut, setMyPhoto } = useTripData();
   const [open, setOpen] = useState(false);
@@ -30,9 +33,10 @@ export default function TabHeader({
     <header className="px-5 pt-5">
       <div className="flex items-start justify-between">
         <div>
-          <div className="text-[12px] text-muted">{eyebrow}</div>
-          <h1 className="mt-1 font-serif text-[26px] font-semibold leading-tight text-ink">
+          {eyebrow && <div className="text-[12px] text-muted">{eyebrow}</div>}
+          <h1 className="mt-1 flex items-center gap-2.5 font-serif text-[26px] font-semibold leading-tight text-ink">
             {title}
+            {titleExtra}
           </h1>
         </div>
 

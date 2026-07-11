@@ -121,6 +121,6 @@ export const DEMO_STATS: StatEntry[] = [
   { id: 'demo-st2', user_id: 'demo-sam', day_number: 1, category: 'drink', count: 5 },
   { id: 'demo-st3', user_id: 'demo-sam', day_number: 1, category: 'mosquito', count: 2 },
   { id: 'demo-st4', user_id: 'demo-jo', day_number: 1, category: 'coffee', count: 4 },
-  { id: 'demo-st5', user_id: 'demo-alex', day_number: 1, category: 'steps', count: 14200 },
-  { id: 'demo-st6', user_id: 'demo-jo', day_number: 1, category: 'steps', count: 11890 },
+  { id: 'demo-st5', user_id: 'demo-alex', day_number: 1, category: 'cards', count: 2 },
+  { id: 'demo-st6', user_id: 'demo-jo', day_number: 1, category: 'cards', count: 1 },
 ];

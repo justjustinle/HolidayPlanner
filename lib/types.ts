@@ -79,9 +79,10 @@ export interface ReceiptItem {
   created_at?: string;
 }
 
-export type StatCategory = 'poop' | 'drink' | 'mosquito' | 'coffee' | 'steps';
+export type StatCategory = 'poop' | 'drink' | 'mosquito' | 'coffee' | 'cards';
 
-// One person's count for one category on one trip day.
+// One person's count for one category. Stats are cumulative across the whole
+// trip; day_number is kept for schema compatibility and is always STATS_DAY.
 export interface StatEntry {
   id: string;
   user_id: string;

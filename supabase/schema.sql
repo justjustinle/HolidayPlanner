@@ -93,12 +93,13 @@ create table if not exists receipt_items (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 9. DAILY STATS — one row per person / day / category.
+-- 9. TRIP STATS — one row per person / category. Stats are cumulative across
+-- the whole trip; day_number is a legacy slot the app always sets to 1.
 create table if not exists stat_entries (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references profiles(id) on delete cascade not null,
   day_number integer not null,
-  category text not null check (category in ('poop', 'drink', 'mosquito', 'coffee', 'steps')),
+  category text not null check (category in ('poop', 'drink', 'mosquito', 'coffee', 'cards')),
   count integer not null default 0,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique (user_id, day_number, category)

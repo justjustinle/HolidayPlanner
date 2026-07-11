@@ -7,6 +7,7 @@ import ItineraryCard from '../itinerary/ItineraryCard';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
 import DayPicker from '../ui/DayPicker';
+import { ThaiFlag, VietnamFlag } from '../ui/Flag';
 import { dayByNumber, defaultDayNumber } from '@/lib/trip';
 import { timeToMinutes } from '@/lib/time';
 
@@ -27,8 +28,13 @@ export default function ItineraryTab() {
   return (
     <div>
       <TabHeader
-        eyebrow="28 Aug – 10 Sep · 4 stops"
-        title="Vietnam & Thailand"
+        title="Thailand & Vietnam"
+        titleExtra={
+          <span className="flex items-center gap-1.5">
+            <ThaiFlag size={22} />
+            <VietnamFlag size={22} />
+          </span>
+        }
       />
 
       <div className="px-5">

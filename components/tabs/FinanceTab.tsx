@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { ArrowRight, PartyPopper, Receipt, ScanLine } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import TabHeader from '../ui/TabHeader';
-import DayPicker from '../ui/DayPicker';
 import RateSettings from '../finance/RateSettings';
 import ExpenseCard from '../finance/ExpenseCard';
 import UploadReceiptSheet from '../finance/UploadReceiptSheet';
@@ -16,12 +15,11 @@ import { defaultDayNumber } from '@/lib/trip';
 
 export default function FinanceTab() {
   const { profiles, expenses, splits, receipts, receiptItems, me } = useTripData();
-  const [day, setDay] = useState(0); // 0 = all days
   const [sheet, setSheet] = useState<'receipt' | 'expense' | null>(null);
 
   const avatarFor = (id: string) => profiles.find((p) => p.id === id)?.avatar_url;
 
-  // Settlement is always trip-wide; the day picker only filters the list below.
+  // Everything is trip-wide: expenses persist across all days of the trip.
   const { net, transfers, total } = useMemo(() => {
     const net = computeNetBalances(profiles, expenses, splits, receipts, receiptItems);
     return {
@@ -33,12 +31,9 @@ export default function FinanceTab() {
 
   const visible = useMemo(
     () =>
-      expenses
-        .filter((e) => day === 0 || e.day_number === day)
-        .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')),
-    [expenses, day]
+      [...expenses].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')),
+    [expenses]
   );
-  const dayTotal = useMemo(() => totalSpend(visible), [visible]);
 
   const unclaimedCount = useMemo(
     () => receiptItems.filter((i) => i.claimed_by_id == null).length,
@@ -49,22 +44,15 @@ export default function FinanceTab() {
     <div>
       <TabHeader eyebrow="Shared expenses" title="Expenses" />
 
-      <div className="px-5">
-        <DayPicker value={day} onChange={setDay} allowAll />
-      </div>
-
-      <div className="space-y-6 px-5 pt-1">
+      <div className="space-y-6 px-5 pt-4">
         {/* total */}
         <div className="rounded-2xl bg-ink px-5 py-4 text-cream">
           <div className="text-[12px] uppercase tracking-wide text-cream/60">
-            {day === 0 ? 'Total group spend' : `Day ${day} spend`}
+            Total group spend
           </div>
           <div className="mt-1 font-serif text-[30px] font-semibold">
-            {formatGbp(day === 0 ? total : dayTotal)}
+            {formatGbp(total)}
           </div>
-          {day !== 0 && (
-            <div className="text-[12px] text-cream/60">trip total {formatGbp(total)}</div>
-          )}
         </div>
 
         {/* add actions */}
@@ -87,7 +75,7 @@ export default function FinanceTab() {
         <div>
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted">
-              Expenses{day !== 0 && ` · Day ${day}`}
+              Expenses
             </h2>
             {unclaimedCount > 0 && (
               <span className="text-[12px] text-saigon">
@@ -97,8 +85,7 @@ export default function FinanceTab() {
           </div>
           {visible.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-black/10 p-6 text-center text-[13px] text-muted">
-              No expenses {day === 0 ? 'yet' : `on Day ${day}`}. Upload a receipt or log
-              one above.
+              No expenses yet. Upload a receipt or log one above.
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -182,16 +169,10 @@ export default function FinanceTab() {
       </div>
 
       {sheet === 'receipt' && (
-        <UploadReceiptSheet
-          defaultDay={day || defaultDayNumber()}
-          onClose={() => setSheet(null)}
-        />
+        <UploadReceiptSheet defaultDay={defaultDayNumber()} onClose={() => setSheet(null)} />
       )}
       {sheet === 'expense' && (
-        <LogExpenseSheet
-          defaultDay={day || defaultDayNumber()}
-          onClose={() => setSheet(null)}
-        />
+        <LogExpenseSheet defaultDay={defaultDayNumber()} onClose={() => setSheet(null)} />
       )}
     </div>
   );
