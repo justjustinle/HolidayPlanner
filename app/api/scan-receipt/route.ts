@@ -1,26 +1,26 @@
 import { NextResponse } from 'next/server';
 
 // POST /api/scan-receipt  { imageBase64, mimeType }
-// Sends the receipt photo to Google Gemini and returns a normalized JSON
+// Sends the receipt photo to Anthropic Claude and returns a normalized JSON
 // payload: { merchant, currency, total, items: [{ name, quantity, price }] }.
-// Requires GEMINI_API_KEY (server-side env var — see README).
+// Requires ANTHROPIC_API_KEY (server-side env var).
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Models to try in order. Google keeps sunsetting older Gemini models for new
-// API keys (1.5 already 404s on fresh projects), so we fall through to the
-// next candidate whenever a model comes back 404 NOT_FOUND. GEMINI_MODEL, if
-// set, is always tried first.
+// Prioritizes the cheapest extraction models. If ANTHROPIC_MODEL is set in 
+// your environment, it will always be tried first.
 const MODEL_CANDIDATES = [
-  ...(process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []),
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  ...(process.env.ANTHROPIC_MODEL ? [process.env.ANTHROPIC_MODEL] : []),
+  'claude-3-5-haiku-latest', 
+  'claude-3-5-sonnet-latest',
 ];
 
 const PROMPT = `You are a receipt scanner for a group holiday expense app.
-Read the receipt in the image and return ONLY a JSON object with this exact shape:
+Read the receipt in the image and return ONLY a valid JSON object matching this schema. 
+Do not include any conversational preamble or markdown code blocks (like \`\`\`json).
+
+Shape:
 {
   "merchant": string,            // shop/restaurant name, or "" if unreadable
   "currency": "VND"|"THB"|"GBP", // the receipt's currency; VND for Vietnam (₫/dong), THB for Thailand (฿/baht), GBP for pounds. Pick the closest if ambiguous.
@@ -29,7 +29,12 @@ Read the receipt in the image and return ONLY a JSON object with this exact shap
     { "name": string, "quantity": number, "price": number } // price = LINE TOTAL (qty × unit price), same currency
   ]
 }
-Rules: numbers must be plain numbers without separators or symbols. Skip tax/service/subtotal lines as items (they are captured by "total"). If quantity is missing use 1. If the image is not a receipt, return {"merchant":"","currency":"THB","total":0,"items":[]}.`;
+
+Rules:
+1. Numbers must be plain numbers without thousands separators or currency symbols.
+2. Skip tax, service charge, or subtotal lines as individual items (they are captured by "total").
+3. If quantity is missing, use 1.
+4. If the image is not a receipt, return {"merchant":"","currency":"THB","total":0,"items":[]}.`;
 
 interface ScannedItem {
   name: string;
@@ -38,12 +43,12 @@ interface ScannedItem {
 }
 
 export async function POST(req: Request) {
-  const key = process.env.GEMINI_API_KEY;
+  const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return NextResponse.json(
       {
         error:
-          'Receipt scanning is not configured. Set GEMINI_API_KEY in your environment (get a free key at https://aistudio.google.com/apikey), then redeploy.',
+          'Receipt scanning is not configured. Set ANTHROPIC_API_KEY in your environment, then redeploy.',
       },
       { status: 503 }
     );
@@ -55,56 +60,71 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
+
   if (!body.imageBase64) {
     return NextResponse.json({ error: 'imageBase64 is required' }, { status: 400 });
   }
 
-  const payload = JSON.stringify({
-    contents: [
-      {
-        parts: [
-          { text: PROMPT },
-          {
-            inline_data: {
-              mime_type: body.mimeType || 'image/webp',
-              data: body.imageBase64,
-            },
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      response_mime_type: 'application/json',
-      temperature: 0,
-    },
-  });
+  // Anthropic throws an error if the base64 string includes data URL prefixes 
+  // (e.g., "data:image/jpeg;base64,"). This sanitizes it just in case.
+  const cleanBase64 = body.imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
   let res: Response | null = null;
+  
+  // Try candidate models in order if a 404 or 400 occurs (e.g. model tier unavailable)
   for (const model of MODEL_CANDIDATES) {
-    res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }
-    );
-    if (res.status !== 404) break; // 404 = model unknown to this key; try the next one
+    const payload = {
+      model: model,
+      max_tokens: 2000,
+      temperature: 0,
+      system: "You are a precise data extraction engine. You output raw JSON only.",
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: body.mimeType || 'image/jpeg',
+                data: cleanBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: PROMPT,
+            },
+          ],
+        },
+      ],
+    };
+
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01', // Required header for Anthropic API
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.status !== 404 && res.status !== 400) break;
   }
 
   if (!res || !res.ok) {
     const detail = res ? await res.text().catch(() => '') : '';
     const status = res?.status ?? 502;
-    const hint =
-      status === 404
-        ? ` None of the models (${MODEL_CANDIDATES.join(', ')}) are available to this API key.`
-        : '';
     return NextResponse.json(
-      { error: `Gemini request failed (${status}).${hint} ${detail.slice(0, 300)}` },
+      { error: `Anthropic request failed (${status}). ${detail.slice(0, 300)}` },
       { status: 502 }
     );
   }
 
   const data = await res.json();
-  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text: string | undefined = data?.content?.[0]?.text;
   if (!text) {
-    return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 });
+    return NextResponse.json({ error: 'Anthropic returned no text content' }, { status: 502 });
   }
 
   let parsed: {
@@ -113,8 +133,12 @@ export async function POST(req: Request) {
     total?: number;
     items?: Partial<ScannedItem>[];
   };
+  
   try {
-    parsed = JSON.parse(text);
+    // Claude occasionally includes markdown code blocks even when asked not to.
+    // This removes them safely before passing to JSON.parse().
+    const cleanText = text.replace(/```json\s*/i, '').replace(/```\s*$/, '').trim();
+    parsed = JSON.parse(cleanText);
   } catch {
     return NextResponse.json(
       { error: 'Could not parse the scan result — try a clearer photo.' },
@@ -122,9 +146,11 @@ export async function POST(req: Request) {
     );
   }
 
+  // Normalization layer
   const currency = ['VND', 'THB', 'GBP'].includes(parsed.currency ?? '')
     ? parsed.currency
     : 'THB';
+
   const items: ScannedItem[] = (parsed.items ?? [])
     .map((i) => ({
       name: String(i.name ?? 'Item').slice(0, 120),
@@ -132,6 +158,7 @@ export async function POST(req: Request) {
       price: Math.max(0, Number(i.price) || 0),
     }))
     .filter((i) => i.price > 0);
+
   const itemSum = items.reduce((s, i) => s + i.price, 0);
 
   return NextResponse.json({
