@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import Avatar from '../ui/Avatar';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import LogExpenseSheet from './LogExpenseSheet';
 import { useTripData } from '../TripDataProvider';
 import { formatGbp, round2, toGbp } from '@/lib/currency';
@@ -17,6 +18,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   const { profiles, me, splits, receipts, receiptItems, settings, setItemClaim, deleteExpense } =
     useTripData();
   const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const profileOf = (id: string | null) => profiles.find((p) => p.id === id);
   const payer = profileOf(expense.paid_by_id);
@@ -56,7 +58,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              deleteExpense(expense.id);
+              setConfirming(true);
             }}
             aria-label="Delete expense"
             className="text-muted/50 hover:text-saigon"
@@ -128,6 +130,20 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {confirming && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ConfirmDialog
+            title="Delete expense?"
+            message={`"${expense.label ?? 'This expense'}" and its splits will be removed for everyone.`}
+            onCancel={() => setConfirming(false)}
+            onConfirm={() => {
+              setConfirming(false);
+              deleteExpense(expense.id);
+            }}
+          />
         </div>
       )}
 

@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Camera, Download, Loader2, Trash2 } from 'lucide-react';
 import Avatar from '../ui/Avatar';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { useTripData } from '../TripDataProvider';
 import { savePhoto } from '@/lib/image';
 import type { ItineraryItem } from '@/lib/types';
@@ -22,6 +23,9 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
   const [busy, setBusy] = useState(false);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Photo id pending delete confirmation (pinned at tap time so a swipe while
+  // the dialog is open can't change which photo gets removed).
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const mine = useMemo(
     () =>
@@ -115,7 +119,7 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
                 <Download size={15} />
               </button>
               <button
-                onClick={() => deletePhoto(active.id)}
+                onClick={() => setConfirmId(active.id)}
                 aria-label="Delete photo"
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white"
               >
@@ -166,6 +170,18 @@ export default function PolaroidCarousel({ item }: { item: ItineraryItem }) {
         onChange={onPick}
         className="hidden"
       />
+
+      {confirmId && (
+        <ConfirmDialog
+          title="Delete photo?"
+          message="This photo will be removed for everyone on the trip."
+          onCancel={() => setConfirmId(null)}
+          onConfirm={() => {
+            setConfirmId(null);
+            deletePhoto(confirmId);
+          }}
+        />
+      )}
     </div>
   );
 }
