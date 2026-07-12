@@ -25,17 +25,26 @@ export async function POST(req: Request) {
   }
 
   let eventId: string | undefined;
+  let tripId: string | undefined;
   try {
     const body = await req.json();
     eventId = typeof body?.eventId === 'string' ? body.eventId : undefined;
+    // Optional trip override, used by the isolated E2E. Harmless in prod: a
+    // trip nobody has engaged with produces no notifications.
+    tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
   } catch {
     // No body is fine — just run the batch pass.
   }
 
   try {
     const immediate = eventId ? await sendImmediate(eventId) : false;
-    const { notified } = await dispatchBatched(false);
-    return NextResponse.json({ ok: true, immediate, notified: notified.length });
+    const { notified } = await dispatchBatched(false, tripId);
+    return NextResponse.json({
+      ok: true,
+      immediate,
+      notified: notified.length,
+      notifiedIds: notified,
+    });
   } catch (err) {
     // Never leak an empty-body 500 — return a readable JSON error so callers
     // (and the E2E) can see what went wrong. Config problems get a distinct
