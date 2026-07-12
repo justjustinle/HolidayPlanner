@@ -33,16 +33,22 @@ export default function TabHeader({
 
   return (
     <header className="px-5 pt-5">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           {eyebrow && <div className="text-[12px] text-muted">{eyebrow}</div>}
-          <h1 className="mt-1 flex items-center gap-2.5 font-serif text-[26px] font-semibold leading-tight text-ink">
+          <h1 className="mt-1 font-serif text-[26px] font-semibold leading-tight text-ink">
             {title}
-            {titleExtra}
+            {/* Inline so extras (flags) flow with the text and land at the end
+                of the last line when the title wraps on narrow screens. */}
+            {titleExtra && (
+              <span className="ml-2 inline-flex translate-y-[3px] items-center whitespace-nowrap">
+                {titleExtra}
+              </span>
+            )}
           </h1>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-none items-center gap-2.5">
           {action}
           {me && (
             <div className="relative">
