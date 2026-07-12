@@ -80,7 +80,8 @@ export default function TabHeader({
                       onClick={() => fileRef.current?.click()}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
                     >
-                      <Camera size={15} /> {me.avatar_url ? 'Change photo' : 'Add photo'}
+                      <Camera size={15} />{' '}
+                      {me.avatar_url ? 'Change profile picture' : 'Add profile picture'}
                     </button>
                     <button
                       onClick={onEnablePush}
