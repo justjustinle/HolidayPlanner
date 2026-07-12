@@ -115,7 +115,7 @@ export default function TabHeader({
                       onClick={signOut}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
                     >
-                      <LogOut size={15} /> Switch person
+                      <LogOut size={15} /> Log out
                     </button>
                   </div>
                 </>
