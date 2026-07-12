@@ -324,12 +324,12 @@ export default function FinanceTab() {
           )}
         </div>
 
-        {/* total group spend — compact pill below balances */}
-        <div className="w-fit rounded-2xl bg-ink px-3.5 py-2.5 text-cream">
-          <div className="text-[10px] uppercase tracking-wide text-cream/55">
+        {/* total group spend — full-width card below balances */}
+        <div className="w-full rounded-2xl bg-ink px-5 py-4 text-cream">
+          <div className="text-[12px] uppercase tracking-wide text-cream/60">
             Total group spend
           </div>
-          <div className="font-serif text-[18px] font-semibold leading-tight">
+          <div className="mt-1 font-serif text-[30px] font-semibold leading-tight">
             {formatGbp(total)}
           </div>
         </div>
