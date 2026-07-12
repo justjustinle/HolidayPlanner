@@ -1,21 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import LogExpenseSheet from './LogExpenseSheet';
+import UploadReceiptSheet from './UploadReceiptSheet';
 import { useTripData } from '../TripDataProvider';
-import { formatGbp, round2, toGbp } from '@/lib/currency';
+import { formatGbp, round2 } from '@/lib/currency';
+import { receiptTaxMultiplier } from '@/lib/settle';
 import { CURRENCY_SYMBOL, dayByNumber } from '@/lib/trip';
 import type { Expense } from '@/lib/types';
 
 // One expense row in the Expenses tab. Manual expenses show who's splitting;
-// receipt expenses list their line items with tap-to-claim chips: unclaimed
-// items are untagged until someone self-selects them. Tapping the card opens
-// the edit sheet.
+// receipt expenses list their line items with tap-to-claim chips. Tapping a
+// receipt opens the receipt editor; tapping a manual expense opens the log
+// sheet. Claim amounts include proportional tax/service when the receipt
+// total exceeds the item subtotal — so a £100 bill with £93 of items shares
+// the £7 gap across whoever claims each line.
 export default function ExpenseCard({ expense }: { expense: Expense }) {
-  const { profiles, me, splits, receipts, receiptItems, settings, setItemClaim, deleteExpense } =
+  const { profiles, me, splits, receipts, receiptItems, setItemClaim, deleteExpense } =
     useTripData();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -27,9 +31,19 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   const receipt = receipts.find((r) => r.expense_id === expense.id);
   const items = receipt ? receiptItems.filter((i) => i.receipt_id === receipt.id) : [];
   const mySplitters = splits.filter((s) => s.expense_id === expense.id);
+  const isReceipt = expense.kind === 'receipt';
 
-  const localGbpOf = (localAmount: number) =>
-    toGbp(localAmount, expense.local_currency, settings);
+  // Line amounts scaled so tax/service on the receipt total is included.
+  const { multiplier, taxGapLocal } = useMemo(() => {
+    const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
+    const mult = receiptTaxMultiplier(itemSubtotal, expense.local_amount);
+    return {
+      multiplier: mult,
+      taxGapLocal: round2(expense.local_amount - itemSubtotal),
+    };
+  }, [items, expense.local_amount]);
+
+  const hasTaxGap = taxGapLocal > 0.005 && items.length > 0;
 
   return (
     <div
@@ -44,7 +58,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
             <Avatar name={payer?.name ?? '?'} src={payer?.avatar_url} size={16} />
             {payer?.name ?? 'Someone'} paid
             {day && <span>· {day.label}</span>}
-            {expense.kind === 'receipt' && <span>· receipt</span>}
+            {isReceipt && <span>· receipt</span>}
           </div>
         </div>
         <div className="flex flex-none items-center gap-2">
@@ -69,7 +83,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
       </div>
 
       {/* manual expense: who splits it */}
-      {expense.kind !== 'receipt' && mySplitters.length > 0 && (
+      {!isReceipt && mySplitters.length > 0 && (
         <div className="mt-2.5 flex items-center gap-1">
           <span className="mr-1 text-[11px] text-muted">split:</span>
           {mySplitters.map((s) => {
@@ -82,10 +96,19 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
       {/* receipt expense: claimable line items */}
       {items.length > 0 && (
         <div className="mt-3 space-y-1.5 border-t border-black/5 pt-3">
-          {items.map((item) => {
+          {hasTaxGap && (
+            <p className="text-[11px] font-medium text-nhatrang">
+              Incl. {CURRENCY_SYMBOL[expense.local_currency]}
+              {taxGapLocal.toLocaleString()} tax/service — split proportionally on claim
+            </p>
+          )}
+          {items.map((item, idx) => {
             const claimer = profileOf(item.claimed_by_id);
             const isMine = item.claimed_by_id != null && item.claimed_by_id === me?.id;
             const canClaim = me != null && item.claimed_by_id == null;
+            const menuPrice = item.local_amount;
+            const priceWithTax = round2(menuPrice * multiplier);
+            const sym = CURRENCY_SYMBOL[expense.local_currency];
             return (
               <button
                 key={item.id}
@@ -106,11 +129,14 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
                   {item.name}
                   {item.quantity > 1 && <span className="text-muted"> ×{item.quantity}</span>}
                 </span>
-                <span className="flex-none text-muted">
-                  {CURRENCY_SYMBOL[expense.local_currency]}
-                  {item.local_amount.toLocaleString()}
-                  <span className="ml-1 text-[11px]">
-                    · {formatGbp(round2(localGbpOf(item.local_amount)))}
+                <span className="flex-none text-right">
+                  <span className="font-medium text-ink">
+                    {sym}
+                    {priceWithTax.toLocaleString()}
+                  </span>
+                  <span className="ml-1 text-[11px] text-muted">
+                    · {sym}
+                    {menuPrice.toLocaleString()}
                   </span>
                 </span>
                 <span className="flex-none">
@@ -149,11 +175,19 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
 
       {editing && (
         <div onClick={(e) => e.stopPropagation()}>
-          <LogExpenseSheet
-            defaultDay={expense.day_number ?? 1}
-            expense={expense}
-            onClose={() => setEditing(false)}
-          />
+          {isReceipt ? (
+            <UploadReceiptSheet
+              defaultDay={expense.day_number ?? 1}
+              expense={expense}
+              onClose={() => setEditing(false)}
+            />
+          ) : (
+            <LogExpenseSheet
+              defaultDay={expense.day_number ?? 1}
+              expense={expense}
+              onClose={() => setEditing(false)}
+            />
+          )}
         </div>
       )}
     </div>
