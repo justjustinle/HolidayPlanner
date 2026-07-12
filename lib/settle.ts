@@ -47,9 +47,18 @@ export function computeNetBalances(
       add(expense.paid_by_id, -expense.base_amount_gbp);
       continue;
     }
-    for (const item of items) {
-      const ower = item.claimed_by_id ?? expense.paid_by_id;
-      add(ower, -round2((item.local_amount / itemSum) * expense.base_amount_gbp));
+    // Round each line's GBP share, then put any leftover penny on the last
+    // item so claimed shares always sum to the bill (same idea as splitEqually).
+    const shares = items.map((item) =>
+      round2((item.local_amount / itemSum) * expense.base_amount_gbp)
+    );
+    const allocated = round2(shares.reduce((s, n) => s + n, 0));
+    shares[shares.length - 1] = round2(
+      shares[shares.length - 1] + (expense.base_amount_gbp - allocated)
+    );
+    for (let i = 0; i < items.length; i++) {
+      const ower = items[i].claimed_by_id ?? expense.paid_by_id;
+      add(ower, -shares[i]);
     }
   }
 
