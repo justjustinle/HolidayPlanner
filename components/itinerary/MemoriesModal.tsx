@@ -12,6 +12,7 @@ const SWIPE_CLOSE_PX = 100;
 
 // Full-screen memories gallery for one activity. Opens over the timeline;
 // close via ✕, scrim tap, or a downward swipe on the header — no navigation / reload.
+// Surfaces use the same cream / city-tint language as the rest of the app.
 export default function MemoriesModal({
   item,
   onClose,
@@ -119,14 +120,14 @@ export default function MemoriesModal({
       type="button"
       onClick={() => inputRef.current?.click()}
       disabled={busy}
-      className="relative flex h-full w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-white/25 bg-white/5 text-white/80"
+      className="relative flex h-full w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-black/15 bg-cream-card text-muted"
     >
       <Camera size={28} />
-      <span className="text-[15px] font-medium">Add Memory</span>
-      <span className="text-[12px] text-white/50">Tap to upload photos</span>
+      <span className="text-[15px] font-medium text-ink">Add photo</span>
+      <span className="text-[12px] text-muted">Tap to upload</span>
       {busy && (
-        <span className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <Loader2 size={26} className="animate-spin text-white" />
+        <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-cream/70">
+          <Loader2 size={26} className="animate-spin text-ink" />
         </span>
       )}
     </button>
@@ -147,15 +148,15 @@ export default function MemoriesModal({
       className={`fixed inset-0 z-50 mx-auto flex max-w-app flex-col ${
         closing ? '' : 'animate-fade-in'
       }`}
-      style={{ background: `rgba(20,14,8,${closing ? 0 : Math.max(0.35, 0.72 - dragY / 600)})` }}
+      style={{ background: `rgba(30,20,10,${closing ? 0 : Math.max(0.2, 0.4 - dragY / 800)})` }}
       onClick={dismiss}
       role="dialog"
       aria-modal="true"
-      aria-label={`Memories — ${item.title}`}
+      aria-label={`Photos — ${item.title}`}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`flex h-full w-full flex-col bg-[#1a1610] text-white ${
+        className={`city-tint flex h-full w-full flex-col text-ink ${
           closing || dragY > 0 ? '' : 'animate-modal-up'
         }`}
         style={panelStyle}
@@ -167,24 +168,24 @@ export default function MemoriesModal({
           onTouchMove={onHeaderTouchMove}
           onTouchEnd={onHeaderTouchEnd}
         >
-          <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-white/25" />
+          <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-black/15" />
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
-                Memories
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                Photos
               </p>
-              <h2 className="truncate font-serif text-[20px] leading-tight text-white">
+              <h2 className="truncate font-serif text-[20px] leading-tight text-ink">
                 {item.title}
               </h2>
               {item.time_label && (
-                <p className="mt-0.5 text-[13px] text-white/50">{item.time_label}</p>
+                <p className="mt-0.5 text-[13px] text-muted">{item.time_label}</p>
               )}
             </div>
             <button
               type="button"
               onClick={dismiss}
               aria-label="Close"
-              className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-white/10 text-white"
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-black/5 text-muted hover:text-ink"
             >
               <X size={18} />
             </button>
@@ -194,11 +195,9 @@ export default function MemoriesModal({
         {/* gallery body */}
         <div className="flex min-h-0 flex-1 flex-col px-4 pb-6 pt-2">
           {mine.length === 0 ? (
-            <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl">
-              {addFrame}
-            </div>
+            <div className="relative flex min-h-0 flex-1 overflow-hidden">{addFrame}</div>
           ) : (
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-cream-card shadow-card">
               <div
                 ref={scrollRef}
                 onScroll={onScroll}
@@ -215,7 +214,7 @@ export default function MemoriesModal({
                     />
                   </div>
                 ))}
-                <div className="h-full w-full flex-none snap-center">{addFrame}</div>
+                <div className="h-full w-full flex-none snap-center p-3">{addFrame}</div>
               </div>
 
               {onPhotoSlide && active && (
@@ -226,7 +225,7 @@ export default function MemoriesModal({
                       savePhoto(active.url, `${item.title.replace(/\W+/g, '-')}.webp`)
                     }
                     aria-label="Save photo"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/70 text-white"
                   >
                     <Download size={16} />
                   </button>
@@ -234,7 +233,7 @@ export default function MemoriesModal({
                     type="button"
                     onClick={() => setConfirmId(active.id)}
                     aria-label="Delete photo"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/70 text-white"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -247,7 +246,7 @@ export default function MemoriesModal({
                     <span
                       key={i}
                       className={`h-1.5 rounded-full transition-all ${
-                        i === index ? 'w-4 bg-white' : 'w-1.5 bg-white/40'
+                        i === index ? 'w-4 bg-ink' : 'w-1.5 bg-ink/25'
                       }`}
                     />
                   ))}
@@ -257,14 +256,14 @@ export default function MemoriesModal({
           )}
 
           {onPhotoSlide && uploader && (
-            <div className="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-white/55">
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-muted">
               <Avatar name={uploader.name} src={uploader.avatar_url} size={18} />
               taken by {uploader.name}
             </div>
           )}
 
           {error && (
-            <p className="mt-3 rounded-lg bg-saigon/20 px-3 py-2 text-center text-[12px] text-[#f0b4a4]">
+            <p className="mt-3 rounded-lg bg-saigon/10 px-3 py-2 text-center text-[12px] text-saigon">
               {error}
             </p>
           )}
