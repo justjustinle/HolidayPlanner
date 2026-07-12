@@ -81,7 +81,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 `ItineraryTab` writes the selected day's accent to CSS var `--city-accent`:
 Bangkok gold `#c9992e`, Phuket teal `#2f97a6`, Saigon red `#b0472f`, Nha Trang jade `#3f9b8a`. Drives active day chip, Add button, sheet submit button, tab-bar highlight, and the pastel app background (`.city-tint` = `color-mix(in srgb, var(--city-accent) 12%, cream)`).
 
-## 7. Notifications (built, NOT yet live)
+## 7. Notifications (built; env configured — verify + enable)
 
 Batched web-push digests for ambient activity.
 - **Rule:** push when EITHER ≥5 unnotified events for a recipient OR oldest unnotified event > 2h. Never notified about own actions; opening the app advances `last_seen_at` so seen events never push.
@@ -90,7 +90,7 @@ Batched web-push digests for ambient activity.
 - **Cron:** `.github/workflows/notifications-cron.yml` hits `/cron` every 15 min (Vercel Hobby crons are daily-only). `notifications-e2e.yml` + `scripts/notifications-e2e.mjs` = manual smoke test.
 - **Subscribe UI:** "Enable notifications" in the avatar menu.
 
-**Pending go-live:** GitHub Actions secrets are set; the Vercel env vars are not, so `/dispatch` and `/cron` return 503. To finish: set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` in Vercel (CRON_SECRET must match the GitHub secret), redeploy (the `NEXT_PUBLIC_` var is inlined at build), then re-run the `notifications-e2e` workflow.
+**Status:** Both stores are configured — GitHub Actions secrets (`APP_URL`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`) and the Vercel env vars (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`; `CRON_SECRET` matches the GitHub secret). A **redeploy after adding the vars is required** for the inlined `NEXT_PUBLIC_` public key to take effect. Confirm end-to-end by running the `notifications-e2e` workflow (expect 13/13; an earlier run was 3/13 only because the Vercel vars were missing). Then enable per device from the avatar menu (iOS needs the PWA installed to the home screen, 16.4+).
 
 ## 8. Settle Up (live)
 
@@ -111,7 +111,7 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 
 ## 10. Backlog
 
-- Finish notifications go-live (§7).
+- Verify notifications live: redeploy (for the inlined VAPID public key) + run the `notifications-e2e` workflow to confirm 13/13 (§7).
 - `.env.example` GEMINI → Anthropic tidy-up.
 - Per-trip notification **preferences** (mute / important-only) — schema (`notification_state`) accommodates it; UI not built.
 - Activity feed only emits add events (no edit/delete events).
