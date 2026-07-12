@@ -166,7 +166,7 @@ export default function UploadReceiptSheet({
             }}
             className="w-full rounded-xl border border-black/10 py-3 text-[14px] text-ink"
           >
-            Skip scan — enter items manually
+            Enter items manually
           </button>
         </>
       )}
