@@ -55,3 +55,13 @@ export function timeToMinutes(label: string | null | undefined): number {
   }
   return h * 60 + min;
 }
+
+// Compact paid-on date for settle-up rows (e.g. "12/07"). Uses local calendar day.
+export function formatDayMonth(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
+}
