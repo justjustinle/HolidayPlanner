@@ -58,7 +58,6 @@ const NowMarker = forwardRef<
           >
             Now
           </span>
-          <span className="text-[13px] text-muted">You are here</span>
         </div>
       </div>
     </div>
