@@ -182,7 +182,14 @@ export default function TripDataProvider({
     ]);
     if (p.data) setProfiles(p.data as Profile[]);
     if (s.data) setSettings(s.data as TripSettings);
-    if (it.data) setItinerary(it.data as ItineraryItem[]);
+    if (it.data) {
+      setItinerary(
+        (it.data as ItineraryItem[]).map((row) => ({
+          ...row,
+          notes: row.notes ?? null,
+        }))
+      );
+    }
     if (ph.data) setPhotos(ph.data as Photo[]);
     if (ex.data) setExpenses(ex.data as Expense[]);
     if (sp.data) setSplits(sp.data as ExpenseSplit[]);
@@ -475,7 +482,7 @@ export default function TripDataProvider({
     [demoMode, recordActivity, refetchAll]
   );
 
-  // Anyone can edit any activity (no ownership). Updates title/time/location/day;
+  // Anyone can edit any activity (no ownership). Updates title/time/location/notes/day;
   // photos stay attached via activity_id. No notification — feed is add-only.
   const updateItineraryItem = useCallback<TripDataValue['updateItineraryItem']>(
     async (id, input) => {
@@ -492,6 +499,7 @@ export default function TripDataProvider({
           time_label: input.time_label,
           title: input.title,
           location: input.location,
+          notes: input.notes,
         })
         .eq('id', id);
       await refetchAll();

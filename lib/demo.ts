@@ -34,6 +34,7 @@ export const DEMO_ITINERARY: ItineraryItem[] = [
     time_label: '5:30 PM',
     title: 'Land BKK, taxi to hotel',
     location: 'Suvarnabhumi → Sukhumvit',
+    notes: 'Grab Grab taxi; hotel under Justin',
     photo_url: null,
   },
   {
@@ -42,6 +43,7 @@ export const DEMO_ITINERARY: ItineraryItem[] = [
     time_label: '8:00 PM',
     title: 'Street food at Chinatown',
     location: 'Yaowarat Road',
+    notes: null,
     photo_url: null,
   },
   {
@@ -50,6 +52,7 @@ export const DEMO_ITINERARY: ItineraryItem[] = [
     time_label: '1:00 PM',
     title: 'Phi Phi island boat trip',
     location: 'Rassada Pier',
+    notes: 'Bring sunscreen + waterproof pouch',
     photo_url: null,
   },
   {
@@ -58,6 +61,7 @@ export const DEMO_ITINERARY: ItineraryItem[] = [
     time_label: '2:00 PM',
     title: 'War Remnants Museum',
     location: 'District 3',
+    notes: null,
     photo_url: null,
   },
   {
@@ -66,6 +70,7 @@ export const DEMO_ITINERARY: ItineraryItem[] = [
     time_label: '9:00 AM',
     title: 'Snorkeling trip',
     location: 'Hon Mun Island',
+    notes: null,
     photo_url: null,
   },
 ];
