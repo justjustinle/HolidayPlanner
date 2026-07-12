@@ -20,7 +20,7 @@ export default function AppShell() {
   const [tab, setTab] = useState<TabKey>('itinerary');
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col bg-cream">
+    <div className="city-tint mx-auto flex min-h-[100dvh] max-w-app flex-col">
       {demoMode && (
         <div className="bg-ink/90 px-4 py-1.5 text-center text-[11px] text-cream">
           Demo mode — add Supabase keys in <code>.env.local</code> for realtime group sync
