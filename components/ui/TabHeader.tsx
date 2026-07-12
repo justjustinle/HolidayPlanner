@@ -44,19 +44,22 @@ export default function TabHeader({
 
   return (
     <header className="px-5 pt-5">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           {eyebrow && <div className="text-[12px] text-muted">{eyebrow}</div>}
-          <h1 className="mt-1 font-serif text-[26px] font-semibold leading-tight text-ink">
-            {title}
-            {/* Inline so extras (flags) flow with the text and land at the end
-                of the last line when the title wraps on narrow screens. */}
+          {/* One flex row so the title, extras (flags), and the avatar column
+              all sit on the same line, vertically centered. The title
+              truncates rather than wrapping if space ever runs out. */}
+          <div className="mt-1 flex items-center gap-2">
+            <h1 className="truncate font-serif text-[26px] font-semibold leading-tight text-ink">
+              {title}
+            </h1>
             {titleExtra && (
-              <span className="ml-2 inline-flex translate-y-[3px] items-center whitespace-nowrap">
+              <span className="flex flex-none items-center whitespace-nowrap">
                 {titleExtra}
               </span>
             )}
-          </h1>
+          </div>
         </div>
 
         <div className="flex flex-none items-center gap-2.5">
