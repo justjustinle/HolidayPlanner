@@ -1,7 +1,16 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowRight, Check, ChevronDown, PartyPopper, Receipt, ScanLine, Undo2 } from 'lucide-react';
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Download,
+  PartyPopper,
+  Receipt,
+  ScanLine,
+  Undo2,
+} from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import TabHeader from '../ui/TabHeader';
 import RateSettings from '../finance/RateSettings';
@@ -11,6 +20,7 @@ import LogExpenseSheet from '../finance/LogExpenseSheet';
 import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { formatGbp, round2 } from '@/lib/currency';
+import { downloadExpensesCsv } from '@/lib/exportExpensesCsv';
 import { computeNetBalances, listSettlements, minimizeTransfers, totalSpend } from '@/lib/settle';
 import { defaultDayNumber } from '@/lib/trip';
 import { formatDayMonth } from '@/lib/time';
@@ -125,6 +135,23 @@ export default function FinanceTab() {
                 {visible.map((e) => (
                   <ExpenseCard key={e.id} expense={e} />
                 ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadExpensesCsv(
+                      expenses,
+                      splits,
+                      receipts,
+                      receiptItems,
+                      profiles,
+                      `planr-expenses-${new Date().toISOString().slice(0, 10)}.csv`
+                    )
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/10 bg-cream-card py-2.5 text-[13px] font-medium text-ink transition-colors hover:border-ink/20 active:bg-black/[.03]"
+                >
+                  <Download size={15} />
+                  Export CSV
+                </button>
               </div>
             ))}
         </div>
