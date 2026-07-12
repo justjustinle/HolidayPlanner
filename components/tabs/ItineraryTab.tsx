@@ -40,8 +40,8 @@ export default function ItineraryTab() {
         title="Thailand & Vietnam"
         titleExtra={
           <span className="flex items-center gap-1.5">
-            <ThaiFlag size={22} />
-            <VietnamFlag size={22} />
+            <ThaiFlag size={28} />
+            <VietnamFlag size={28} />
           </span>
         }
       />
@@ -68,7 +68,7 @@ export default function ItineraryTab() {
               style={{ background: selected.accentHex }}
             >
               <Plus size={15} />
-              Add
+              Add activity
             </button>
           </div>
         )}

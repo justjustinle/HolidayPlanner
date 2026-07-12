@@ -28,6 +28,15 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* App surface tinted by the current city: a pale pastel wash of the accent
+   over the cream base. The plain background line is the fallback for
+   browsers without color-mix support. */
+.city-tint {
+  background: #f7f1e6;
+  background: color-mix(in srgb, var(--city-accent) 12%, #f7f1e6);
+  transition: background 0.5s ease;
+}
+
 /* Hide scrollbars for the chromeless mobile feel */
 .no-scrollbar {
   scrollbar-width: none;
