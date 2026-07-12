@@ -3,8 +3,8 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { HOURS, MINUTES, PERIODS, type TimeValue } from '@/lib/time';
 
-const ITEM_H = 40; // px per row
-const VISIBLE = 5; // rows shown (odd → one centered)
+const ITEM_H = 32; // px per row
+const VISIBLE = 3; // one above + selected + one below
 const PAD = (ITEM_H * (VISIBLE - 1)) / 2;
 
 interface Item {
@@ -75,7 +75,7 @@ function WheelColumn({
               key={String(it.value)}
               onClick={() => onSelect(it.value)}
               className={`flex snap-center items-center justify-center transition-all ${
-                active ? 'text-[19px] font-semibold text-ink' : 'text-[16px] text-muted/60'
+                active ? 'text-[16px] font-semibold text-ink' : 'text-[13px] text-muted/55'
               }`}
               style={{ height: ITEM_H }}
             >
@@ -107,7 +107,7 @@ export default function TimeWheel({
     <div className="relative rounded-xl border border-black/10 bg-cream-card">
       {/* centered selection band */}
       <div
-        className="pointer-events-none absolute inset-x-2 z-10 rounded-lg border-y border-black/10 bg-black/[0.03]"
+        className="pointer-events-none absolute inset-x-2 z-10 rounded-md border-y border-black/10 bg-black/[0.03]"
         style={{ top: PAD, height: ITEM_H }}
       />
       <div className="grid grid-cols-[1fr_auto_1fr_1fr] items-center px-2">
@@ -116,7 +116,7 @@ export default function TimeWheel({
           value={value.hour12}
           onSelect={(v) => onChange({ ...value, hour12: Number(v) })}
         />
-        <div className="text-[19px] font-semibold text-muted">:</div>
+        <div className="text-[16px] font-semibold text-muted">:</div>
         <WheelColumn
           items={minItems}
           value={value.minute}
