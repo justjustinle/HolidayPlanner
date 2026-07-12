@@ -4,23 +4,25 @@ import { useState } from 'react';
 import Sheet from '../ui/Sheet';
 import TimeWheel from '../ui/TimeWheel';
 import { useTripData } from '../TripDataProvider';
-import { TRIP_DAYS } from '@/lib/trip';
+import { dayByNumber } from '@/lib/trip';
 import { buildTimeLabel, type TimeValue } from '@/lib/time';
 
-// Add a new itinerary card to a chosen day, with a fixed scrollable time wheel.
+// Add a new itinerary card to the day currently selected in the itinerary,
+// with a fixed scrollable time wheel.
 export default function AddCardSheet({
-  defaultDay,
+  day,
   onClose,
 }: {
-  defaultDay: number;
+  day: number;
   onClose: () => void;
 }) {
   const { addItineraryItem } = useTripData();
-  const [day, setDay] = useState(defaultDay);
   const [time, setTime] = useState<TimeValue>({ hour12: 9, minute: 0, period: 'AM' });
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const d = dayByNumber(day);
 
   const save = async () => {
     if (!title.trim() || busy) return;
@@ -43,18 +45,16 @@ export default function AddCardSheet({
 
   return (
     <Sheet title="New activity" onClose={onClose}>
-      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Day</label>
-      <select
-        value={day}
-        onChange={(e) => setDay(Number(e.target.value))}
-        className={`${inputCls} mb-3 appearance-none`}
-      >
-        {TRIP_DAYS.map((d) => (
-          <option key={d.dayNumber} value={d.dayNumber}>
-            {d.label} · {d.destination} · {d.dateLabel}
-          </option>
-        ))}
-      </select>
+      {d && (
+        <div className="mb-3 flex items-center gap-2 rounded-xl bg-black/[.04] px-4 py-2.5 text-[13px] text-muted">
+          <span
+            className="inline-block h-2 w-2 flex-none rounded-full"
+            style={{ background: d.accentHex }}
+          />
+          Adding to <span className="font-medium text-ink">{d.label}</span> · {d.destination} ·{' '}
+          {d.dateLabel}
+        </div>
+      )}
 
       <input
         value={title}
@@ -79,7 +79,8 @@ export default function AddCardSheet({
       <button
         onClick={save}
         disabled={!title.trim() || busy}
-        className="w-full rounded-xl bg-ink py-3 text-[15px] font-medium text-white disabled:opacity-40"
+        className="w-full rounded-xl py-3 text-[15px] font-medium text-white disabled:opacity-40"
+        style={{ background: 'var(--city-accent, #3a352c)' }}
       >
         Add to itinerary
       </button>

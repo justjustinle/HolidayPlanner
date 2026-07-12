@@ -21,9 +21,10 @@ export default function DayPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Active chips take their day's city color; the "All" chip stays ink.
   const chip = (active: boolean) =>
     `flex flex-none flex-col items-center rounded-xl border px-3 py-1.5 leading-tight ${
-      active ? 'border-ink bg-ink text-white' : 'border-black/10 bg-cream-card text-ink'
+      active ? 'border-transparent text-white' : 'border-black/10 bg-cream-card text-ink'
     }`;
 
   return (
@@ -33,6 +34,7 @@ export default function DayPicker({
           onClick={() => onChange(0)}
           ref={value === 0 ? activeRef : undefined}
           className={chip(value === 0)}
+          style={value === 0 ? { background: '#3a352c' } : undefined}
         >
           <span className="text-[13px] font-semibold">All</span>
           <span className={`text-[10px] ${value === 0 ? 'text-white/70' : 'text-muted'}`}>
@@ -48,11 +50,12 @@ export default function DayPicker({
             onClick={() => onChange(d.dayNumber)}
             ref={active ? activeRef : undefined}
             className={chip(active)}
+            style={active ? { background: d.accentHex } : undefined}
           >
             <span className="flex items-center gap-1.5 text-[13px] font-semibold">
               <span
                 className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{ background: d.accentHex }}
+                style={{ background: active ? '#ffffff' : d.accentHex }}
               />
               {d.label}
             </span>

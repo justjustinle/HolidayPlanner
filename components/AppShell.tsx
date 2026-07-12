@@ -43,13 +43,17 @@ export default function AppShell() {
                 key={key}
                 onClick={() => setTab(key)}
                 className={`relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] ${
-                  active ? 'text-ink' : 'text-muted'
+                  active ? '' : 'text-muted'
                 }`}
+                style={active ? { color: 'var(--city-accent)' } : undefined}
               >
                 <Icon size={22} strokeWidth={active ? 2.4 : 1.8} />
                 <span className={active ? 'font-semibold' : ''}>{label}</span>
                 {active && (
-                  <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-ink" />
+                  <span
+                    className="absolute inset-x-6 top-0 h-0.5 rounded-full"
+                    style={{ background: 'var(--city-accent)' }}
+                  />
                 )}
               </button>
             );
