@@ -90,6 +90,10 @@ interface TripDataValue {
   signOut: () => void;
 
   addItineraryItem: (input: Omit<ItineraryItem, 'id' | 'photo_url'>) => Promise<void>;
+  updateItineraryItem: (
+    id: string,
+    input: Omit<ItineraryItem, 'id' | 'photo_url' | 'created_at'>
+  ) => Promise<void>;
   deleteItineraryItem: (id: string) => Promise<void>;
 
   addPhotos: (activityId: string, files: File[]) => Promise<void>;
@@ -430,6 +434,30 @@ export default function TripDataProvider({
       await refetchAll();
     },
     [demoMode, recordActivity, refetchAll]
+  );
+
+  // Anyone can edit any activity (no ownership). Updates title/time/location/day;
+  // photos stay attached via activity_id. No notification — feed is add-only.
+  const updateItineraryItem = useCallback<TripDataValue['updateItineraryItem']>(
+    async (id, input) => {
+      if (demoMode) {
+        setItinerary((prev) =>
+          prev.map((i) => (i.id === id ? { ...i, ...input } : i))
+        );
+        return;
+      }
+      await supabase!
+        .from('itinerary_items')
+        .update({
+          day_number: input.day_number,
+          time_label: input.time_label,
+          title: input.title,
+          location: input.location,
+        })
+        .eq('id', id);
+      await refetchAll();
+    },
+    [demoMode, refetchAll]
   );
 
   const deleteItineraryItem = useCallback<TripDataValue['deleteItineraryItem']>(
@@ -894,6 +922,7 @@ export default function TripDataProvider({
       setMyPhoto,
       signOut,
       addItineraryItem,
+      updateItineraryItem,
       deleteItineraryItem,
       addPhotos,
       deletePhoto,
@@ -924,6 +953,7 @@ export default function TripDataProvider({
       setMyPhoto,
       signOut,
       addItineraryItem,
+      updateItineraryItem,
       deleteItineraryItem,
       addPhotos,
       deletePhoto,
