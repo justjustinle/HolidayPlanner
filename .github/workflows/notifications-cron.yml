@@ -1,0 +1,30 @@
+# Ticks the notification flush endpoint every ~15 minutes (Vercel Hobby crons
+# only run daily, so GitHub Actions is the scheduler). Sends any batch whose
+# oldest unnotified event is older than BATCH_MAX_AGE_MINUTES.
+#
+# Requires two repository secrets (Settings → Secrets and variables → Actions):
+#   APP_URL      e.g. https://holiday-planner-ruby.vercel.app
+#   CRON_SECRET  same value as the CRON_SECRET env var in Vercel
+name: notifications-cron
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  flush:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Flush overdue notification batches
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL / CRON_SECRET secrets not configured yet — skipping."
+            exit 0
+          fi
+          curl -fsS --max-time 30 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/notifications/cron"

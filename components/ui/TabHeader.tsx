@@ -1,9 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { LogOut, Camera } from 'lucide-react';
+import { LogOut, Camera, Bell, BellRing, Loader2 } from 'lucide-react';
 import Avatar from './Avatar';
 import { useTripData } from '../TripDataProvider';
+import { enablePush, pushPermission } from '@/lib/notifications/client';
 
 // Shared header: optional eyebrow, serif title (with optional inline extras,
 // e.g. flags), and the signed-in user's avatar (photo or initial). Tap it to
@@ -21,7 +22,17 @@ export default function TabHeader({
 }) {
   const { me, signOut, setMyPhoto } = useTripData();
   const [open, setOpen] = useState(false);
+  const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
+    () => (typeof window !== 'undefined' && pushPermission() === 'granted' ? 'on' : 'idle')
+  );
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const onEnablePush = async () => {
+    if (!me || pushState === 'busy') return;
+    setPushState('busy');
+    const result = await enablePush(me.id);
+    setPushState(result.ok ? 'on' : 'error');
+  };
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,6 +78,24 @@ export default function TabHeader({
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
                     >
                       <Camera size={15} /> {me.avatar_url ? 'Change photo' : 'Add photo'}
+                    </button>
+                    <button
+                      onClick={onEnablePush}
+                      disabled={pushState === 'busy'}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
+                    >
+                      {pushState === 'busy' ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : pushState === 'on' ? (
+                        <BellRing size={15} />
+                      ) : (
+                        <Bell size={15} />
+                      )}
+                      {pushState === 'on'
+                        ? 'Notifications on'
+                        : pushState === 'error'
+                          ? 'Notifications unavailable'
+                          : 'Enable notifications'}
                     </button>
                     <button
                       onClick={signOut}

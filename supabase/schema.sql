@@ -105,6 +105,40 @@ create table if not exists stat_entries (
   unique (user_id, day_number, category)
 );
 
+-- 10. ACTIVITY EVENTS — one row per thing that happened, feeding batched push
+--     notifications. recipient_id NULL = broadcast digest; set = targeted
+--     immediate push (e.g. added to an expense split).
+create table if not exists activity_events (
+  id uuid default uuid_generate_v4() primary key,
+  trip_id text not null default 'thailand-vietnam-2026',
+  event_type text not null,
+  actor_id uuid references profiles(id) on delete set null,
+  recipient_id uuid references profiles(id) on delete cascade,
+  payload jsonb not null default '{}',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 11. PUSH SUBSCRIPTIONS — one per browser/device; pruned on 404/410.
+create table if not exists push_subscriptions (
+  id uuid default uuid_generate_v4() primary key,
+  profile_id uuid references profiles(id) on delete cascade not null,
+  endpoint text unique not null,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 12. NOTIFICATION STATE — per person/trip watermarks; events newer than
+--     greatest(last_seen_at, last_notified_at) are "unnotified". Future home
+--     for per-trip preferences (muted, important-only).
+create table if not exists notification_state (
+  profile_id uuid references profiles(id) on delete cascade not null,
+  trip_id text not null default 'thailand-vietnam-2026',
+  last_seen_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  last_notified_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  primary key (profile_id, trip_id)
+);
+
 -- Helpful indexes
 create index if not exists itinerary_items_day_idx on itinerary_items (day_number);
 create index if not exists photos_activity_idx on photos (activity_id);
@@ -113,6 +147,8 @@ create index if not exists expense_splits_expense_idx on expense_splits (expense
 create index if not exists receipts_expense_idx on receipts (expense_id);
 create index if not exists receipt_items_receipt_idx on receipt_items (receipt_id);
 create index if not exists stat_entries_user_idx on stat_entries (user_id);
+create index if not exists activity_events_trip_created_idx on activity_events (trip_id, created_at);
+create index if not exists push_subscriptions_profile_idx on push_subscriptions (profile_id);
 
 -- Enable Row Level Security
 alter table profiles enable row level security;
@@ -124,6 +160,9 @@ alter table receipts enable row level security;
 alter table receipt_items enable row level security;
 alter table trip_settings enable row level security;
 alter table stat_entries enable row level security;
+alter table activity_events enable row level security;
+alter table push_subscriptions enable row level security;
+alter table notification_state enable row level security;
 
 -- Public read/write policies for easy group access (no auth in this build).
 -- Tighten these if you later add Supabase Auth.
@@ -136,6 +175,9 @@ create policy "Allow public access" on receipts for all using (true) with check 
 create policy "Allow public access" on receipt_items for all using (true) with check (true);
 create policy "Allow public access" on trip_settings for all using (true) with check (true);
 create policy "Allow public access" on stat_entries for all using (true) with check (true);
+create policy "Allow public access" on activity_events for all using (true) with check (true);
+create policy "Allow public access" on push_subscriptions for all using (true) with check (true);
+create policy "Allow public access" on notification_state for all using (true) with check (true);
 
 -- Realtime: broadcast row changes to subscribed clients.
 alter publication supabase_realtime add table itinerary_items;
