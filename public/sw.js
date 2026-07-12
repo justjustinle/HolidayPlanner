@@ -1,8 +1,13 @@
-// Minimal offline-first service worker: precache the app shell and serve cached
-// assets when the network is unavailable. For richer runtime caching you can
-// swap this for @ducanh2912/next-pwa (see README), but this keeps the build
-// dependency-free and fully under our control.
-const CACHE = 'sea-trip-v2';
+// Offline-capable service worker for the Planr PWA.
+//
+// Caching rules (important after deploys):
+// - Navigations / HTML → network-first. A stale document referencing purged
+//   `/_next/static/chunks/*` hashes is the usual cause of
+//   "Application error: a client-side exception has occurred" in installed PWAs.
+// - Hashed `/_next/static/*` → cache-first (immutable content hashes).
+// - Everything else → network-first with cache fallback for offline.
+// - Never cache opaque failures, non-OK responses, or `/api/*`.
+const CACHE = 'sea-trip-v3';
 const APP_SHELL = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -19,27 +24,89 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
       )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
+
+function isNavigationRequest(request) {
+  return (
+    request.mode === 'navigate' ||
+    (request.method === 'GET' &&
+      request.headers.get('accept')?.includes('text/html'))
+  );
+}
+
+function isStaticAsset(url) {
+  return url.pathname.startsWith('/_next/static/');
+}
+
+function shouldBypass(request, url) {
+  if (request.method !== 'GET') return true;
+  if (url.pathname.startsWith('/api/')) return true;
+  if (url.hostname.includes('supabase.co')) return true;
+  return false;
+}
+
+async function putOk(cache, request, response) {
+  if (!response || !response.ok) return;
+  try {
+    await cache.put(request, response.clone());
+  } catch {
+    /* ignore quota / opaque failures */
+  }
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const fresh = await fetch(request);
+    await putOk(cache, request, fresh);
+    return fresh;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    // Last resort for navigations: any cached app shell.
+    if (isNavigationRequest(request)) {
+      const shell = await cache.match('/');
+      if (shell) return shell;
+    }
+    throw new Error('network unavailable');
+  }
+}
+
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const fresh = await fetch(request);
+  await putOk(cache, request, fresh);
+  return fresh;
+}
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  // Never cache Supabase API / auth traffic — it must always hit the network.
-  if (request.method !== 'GET' || request.url.includes('supabase.co')) return;
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return;
+  }
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
-  );
+  if (shouldBypass(request, url)) return;
+  // Only handle same-origin app traffic. Third-party fonts/CDNs stay on network.
+  if (url.origin !== self.location.origin) return;
+
+  if (isNavigationRequest(request) || url.pathname === '/' || url.pathname.endsWith('.html')) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  if (isStaticAsset(url)) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+
+  event.respondWith(networkFirst(request));
 });
 
 // --- Web push -----------------------------------------------------------

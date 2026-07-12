@@ -3,7 +3,11 @@ import type { CurrencyCode, TripSettings } from './types';
 // Round to standard 2-decimal precision, avoiding binary float drift
 // (e.g. 1.005 → 1.01, not 1.00). All money in the app passes through here.
 export function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
+  // Coerce strings (Postgres numerics via supabase-js) so `"1.10" + EPSILON`
+  // doesn't concatenate into a NaN path.
+  const value = typeof n === 'number' ? n : Number(n);
+  if (!Number.isFinite(value)) return 0;
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 // Convert a local amount into the GBP base currency using the group's manually
