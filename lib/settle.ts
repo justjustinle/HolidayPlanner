@@ -9,6 +9,32 @@ import type {
 } from './types';
 import { round2 } from './currency';
 
+/** Proportional tax/service multiplier: receiptTotal ÷ itemSubtotal. */
+export function receiptTaxMultiplier(itemSubtotal: number, receiptTotal: number): number {
+  return itemSubtotal > 0 ? receiptTotal / itemSubtotal : 1;
+}
+
+/**
+ * Spread a receipt's GBP total across line items by local-amount weight.
+ * Last share absorbs any leftover penny so shares always sum to the bill.
+ */
+export function receiptLineSharesGbp(
+  items: { local_amount: number }[],
+  baseAmountGbp: number
+): number[] {
+  const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
+  if (itemSubtotal <= 0 || items.length === 0) return items.map(() => 0);
+
+  const shares = items.map((item) =>
+    round2((item.local_amount / itemSubtotal) * baseAmountGbp)
+  );
+  const allocated = round2(shares.reduce((s, n) => s + n, 0));
+  shares[shares.length - 1] = round2(
+    shares[shares.length - 1] + (baseAmountGbp - allocated)
+  );
+  return shares;
+}
+
 // Net balance for one person = total they PAID − total they OWE (their shares).
 // Positive → the group owes them (creditor). Negative → they owe (debtor).
 //
@@ -41,21 +67,13 @@ export function computeNetBalances(
     const expense = expenses.find((e) => e.id === r.expense_id);
     if (!expense) continue;
     const items = receiptItems.filter((i) => i.receipt_id === r.id);
-    const itemSum = items.reduce((sum, i) => sum + i.local_amount, 0);
-    if (itemSum <= 0) {
+    const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
+    if (itemSubtotal <= 0) {
       // No parseable lines — the payer carries the whole bill.
       add(expense.paid_by_id, -expense.base_amount_gbp);
       continue;
     }
-    // Round each line's GBP share, then put any leftover penny on the last
-    // item so claimed shares always sum to the bill (same idea as splitEqually).
-    const shares = items.map((item) =>
-      round2((item.local_amount / itemSum) * expense.base_amount_gbp)
-    );
-    const allocated = round2(shares.reduce((s, n) => s + n, 0));
-    shares[shares.length - 1] = round2(
-      shares[shares.length - 1] + (expense.base_amount_gbp - allocated)
-    );
+    const shares = receiptLineSharesGbp(items, expense.base_amount_gbp);
     for (let i = 0; i < items.length; i++) {
       const ower = items[i].claimed_by_id ?? expense.paid_by_id;
       add(ower, -shares[i]);

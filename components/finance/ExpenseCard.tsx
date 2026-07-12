@@ -1,21 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import LogExpenseSheet from './LogExpenseSheet';
 import { useTripData } from '../TripDataProvider';
-import { formatGbp, round2, toGbp } from '@/lib/currency';
+import { formatGbp, round2 } from '@/lib/currency';
+import { receiptLineSharesGbp, receiptTaxMultiplier } from '@/lib/settle';
 import { CURRENCY_SYMBOL, dayByNumber } from '@/lib/trip';
 import type { Expense } from '@/lib/types';
 
 // One expense row in the Expenses tab. Manual expenses show who's splitting;
 // receipt expenses list their line items with tap-to-claim chips: unclaimed
 // items are untagged until someone self-selects them. Tapping the card opens
-// the edit sheet.
+// the edit sheet. Claim amounts include proportional tax/service when the
+// receipt total exceeds the item subtotal.
 export default function ExpenseCard({ expense }: { expense: Expense }) {
-  const { profiles, me, splits, receipts, receiptItems, settings, setItemClaim, deleteExpense } =
+  const { profiles, me, splits, receipts, receiptItems, setItemClaim, deleteExpense } =
     useTripData();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -28,8 +30,14 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   const items = receipt ? receiptItems.filter((i) => i.receipt_id === receipt.id) : [];
   const mySplitters = splits.filter((s) => s.expense_id === expense.id);
 
-  const localGbpOf = (localAmount: number) =>
-    toGbp(localAmount, expense.local_currency, settings);
+  // Line amounts scaled so tax/service on the receipt total is included.
+  const { sharesGbp, multiplier } = useMemo(() => {
+    const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
+    return {
+      sharesGbp: receiptLineSharesGbp(items, expense.base_amount_gbp),
+      multiplier: receiptTaxMultiplier(itemSubtotal, expense.local_amount),
+    };
+  }, [items, expense.base_amount_gbp, expense.local_amount]);
 
   return (
     <div
@@ -82,10 +90,11 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
       {/* receipt expense: claimable line items */}
       {items.length > 0 && (
         <div className="mt-3 space-y-1.5 border-t border-black/5 pt-3">
-          {items.map((item) => {
+          {items.map((item, idx) => {
             const claimer = profileOf(item.claimed_by_id);
             const isMine = item.claimed_by_id != null && item.claimed_by_id === me?.id;
             const canClaim = me != null && item.claimed_by_id == null;
+            const localWithTax = round2(item.local_amount * multiplier);
             return (
               <button
                 key={item.id}
@@ -108,9 +117,9 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
                 </span>
                 <span className="flex-none text-muted">
                   {CURRENCY_SYMBOL[expense.local_currency]}
-                  {item.local_amount.toLocaleString()}
+                  {localWithTax.toLocaleString()}
                   <span className="ml-1 text-[11px]">
-                    · {formatGbp(round2(localGbpOf(item.local_amount)))}
+                    · {formatGbp(sharesGbp[idx] ?? 0)}
                   </span>
                 </span>
                 <span className="flex-none">
