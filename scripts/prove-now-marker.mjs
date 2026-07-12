@@ -3,18 +3,10 @@
  * before the trip (e.g. 12 Jul 2026). Mocks Date for helpers + Playwright UI.
  *
  * Run: node scripts/prove-now-marker.mjs
- * Requires: next dev on :3000, chromium at /opt/pw-browsers/...
+ * Requires: next dev on :3000, Chrome, playwright-core installed.
  */
-import { createRequire } from 'node:module';
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
-
-const require = createRequire(import.meta.url);
-
-// Load compiled helpers via tsx-style dynamic import of source through next's
-// path — instead reimplement the tiny pure logic inline matching lib/* so we
-// don't need a bundler. We'll ALSO import via a tiny eval of the actual modules
-// by spawning a second check against the same formulas.
 
 function dayNumberForDate(date) {
   const start = new Date(2026, 7, 28);
