@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { List, X } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
 import { useTripData } from '../TripDataProvider';
 import { toGbp, formatGbp } from '@/lib/currency';
-import { CURRENCY_SYMBOL, TRIP_DAYS } from '@/lib/trip';
-import type { CurrencyCode, Expense } from '@/lib/types';
+import { CURRENCY_SYMBOL, TRIP_DAYS, dayByNumber } from '@/lib/trip';
+import type { CurrencyCode, Expense, ItineraryItem } from '@/lib/types';
 
 const CURRENCIES: CurrencyCode[] = ['VND', 'THB', 'GBP'];
 
@@ -25,7 +26,7 @@ export default function LogExpenseSheet({
   expense?: Expense;
   onClose: () => void;
 }) {
-  const { profiles, me, settings, splits, addExpense, updateExpense } = useTripData();
+  const { profiles, me, settings, splits, itinerary, addExpense, updateExpense } = useTripData();
 
   const isReceipt = expense?.kind === 'receipt';
 
@@ -42,6 +43,7 @@ export default function LogExpenseSheet({
     return existing.length ? existing : profiles.map((p) => p.id);
   });
   const [busy, setBusy] = useState(false);
+  const [pickingActivity, setPickingActivity] = useState(false);
 
   const amount = parseFloat(amountStr) || 0;
   const gbp = useMemo(
@@ -50,10 +52,24 @@ export default function LogExpenseSheet({
   );
   const perHead = participants.length ? gbp / participants.length : 0;
 
+  const activities = useMemo(
+    () =>
+      [...itinerary].sort(
+        (a, b) => a.day_number - b.day_number || a.time_label.localeCompare(b.time_label)
+      ),
+    [itinerary]
+  );
+
   const toggleParticipant = (id: string) =>
     setParticipants((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
+
+  const pickActivity = (item: ItineraryItem) => {
+    setLabel(item.title);
+    setDay(item.day_number);
+    setPickingActivity(false);
+  };
 
   const canSave =
     label.trim() && amount > 0 && paidById && (isReceipt || participants.length > 0) && !busy;
@@ -82,14 +98,25 @@ export default function LogExpenseSheet({
     'w-full rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-[15px] text-ink outline-none focus:border-ink';
 
   return (
+    <>
     <Sheet title={expense ? 'Edit expense' : 'Log an expense'} onClose={onClose}>
-      <input
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        placeholder="What was it? e.g. Beach club taxi"
-        autoFocus={!expense}
-        className={`${inputCls} mb-3`}
-      />
+      <div className="relative mb-3">
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="What was it? Or Select from activities"
+          autoFocus={!expense}
+          className={`${inputCls} pr-12`}
+        />
+        <button
+          type="button"
+          onClick={() => setPickingActivity(true)}
+          aria-label="Select from activities"
+          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted hover:bg-black/5 hover:text-ink"
+        >
+          <List size={18} />
+        </button>
+      </div>
 
       <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Day</label>
       <select
@@ -203,5 +230,80 @@ export default function LogExpenseSheet({
         {expense ? 'Save changes' : 'Save expense'}
       </button>
     </Sheet>
+
+    {pickingActivity && (
+      <ActivityPickerSheet
+        activities={activities}
+        onPick={pickActivity}
+        onClose={() => setPickingActivity(false)}
+      />
+    )}
+    </>
+  );
+}
+
+function ActivityPickerSheet({
+  activities,
+  onPick,
+  onClose,
+}: {
+  activities: ItineraryItem[];
+  onPick: (item: ItineraryItem) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[60] mx-auto flex max-w-app items-end animate-fade-in"
+      style={{ background: 'rgba(30,20,10,.35)' }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="no-scrollbar max-h-[85%] w-full animate-sheet-up overflow-auto rounded-t-[24px] bg-cream px-5 pb-8 pt-4 shadow-sheet"
+      >
+        <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-black/15" />
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-serif text-[19px] text-ink">Select activity</h2>
+          <button onClick={onClose} aria-label="Close" className="text-muted">
+            <X size={20} />
+          </button>
+        </div>
+
+        {activities.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-black/10 px-4 py-8 text-center text-[14px] text-muted">
+            No activities logged yet. Add some on the Itinerary tab, or type a label instead.
+          </div>
+        ) : (
+          <ul className="space-y-1">
+            {activities.map((item) => {
+              const day = dayByNumber(item.day_number);
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => onPick(item)}
+                    className="flex w-full items-start gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-black/5"
+                  >
+                    <div
+                      className="mt-1 h-2.5 w-2.5 flex-none rounded-full"
+                      style={{ background: day?.accentHex ?? '#999' }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px] font-medium text-ink">{item.title}</div>
+                      <div className="truncate text-[12px] text-muted">
+                        {day?.label ?? `Day ${item.day_number}`}
+                        {day?.destination ? ` · ${day.destination}` : ''}
+                        {item.time_label ? ` · ${item.time_label}` : ''}
+                        {item.location ? ` · ${item.location}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
