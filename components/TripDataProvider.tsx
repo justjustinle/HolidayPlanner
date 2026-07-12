@@ -14,7 +14,13 @@ import {
   supabase,
   SUPABASE_BUCKET,
 } from '@/lib/supabase';
-import { formatGbp, toGbp, round2, splitEqually } from '@/lib/currency';
+import {
+  formatGbp,
+  toGbp,
+  round2,
+  splitEqually,
+  localSharesToGbp,
+} from '@/lib/currency';
 import { TRIP_ID, type EventType } from '@/lib/notifications/config';
 import { SETTLEMENT_LABEL } from '@/lib/types';
 import { compressToWebp, fileToDataUrl } from '@/lib/image';
@@ -51,6 +57,23 @@ function genId(): string {
   return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+// Build GBP amount_owed values for `parts`. Custom local shares win when they
+// cover every participant and sum to the local total; otherwise equal split.
+function resolveSharesGbp(
+  parts: string[],
+  localTotal: number,
+  baseGbp: number,
+  customSharesLocal?: { userId: string; amount: number }[]
+): number[] {
+  if (!customSharesLocal?.length) return splitEqually(baseGbp, parts.length);
+  const byUser = new Map(customSharesLocal.map((s) => [s.userId, round2(s.amount)]));
+  if (!parts.every((id) => byUser.has(id))) return splitEqually(baseGbp, parts.length);
+  const localShares = parts.map((id) => byUser.get(id)!);
+  const sum = round2(localShares.reduce((a, b) => a + b, 0));
+  if (sum !== round2(localTotal)) return splitEqually(baseGbp, parts.length);
+  return localSharesToGbp(localShares, round2(localTotal), baseGbp);
+}
+
 export interface NewExpenseInput {
   label: string;
   dayNumber: number;
@@ -58,6 +81,9 @@ export interface NewExpenseInput {
   currency: CurrencyCode;
   paidById: string;
   participantIds: string[];
+  // Optional custom local-currency amounts (same currency as `amount`), one
+  // per participant, summing to `amount`. When omitted, splits are equal.
+  customSharesLocal?: { userId: string; amount: number }[];
 }
 
 export interface NewReceiptInput {
@@ -615,10 +641,18 @@ export default function TripDataProvider({
   );
 
   const addExpense = useCallback<TripDataValue['addExpense']>(
-    async ({ label, dayNumber, amount, currency, paidById, participantIds }) => {
+    async ({
+      label,
+      dayNumber,
+      amount,
+      currency,
+      paidById,
+      participantIds,
+      customSharesLocal,
+    }) => {
       const baseGbp = toGbp(amount, currency, settings);
       const parts = participantIds.length ? participantIds : [paidById];
-      const shares = splitEqually(baseGbp, parts.length);
+      const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
 
       if (demoMode) {
         const expId = genId();
@@ -688,17 +722,20 @@ export default function TripDataProvider({
     [demoMode, me, recordActivity, refetchAll, settings]
   );
 
-  // Edit an existing expense. Manual expenses get their equal splits rebuilt
-  // from the new amount/participants; receipt expenses keep their line items
-  // (claims drive the settlement) and just sync the merchant label.
+  // Edit an existing expense. Manual expenses rebuild splits from the new
+  // amount/participants (equal or custom); receipt expenses keep their line
+  // items (claims drive the settlement) and just sync the merchant label.
   const updateExpense = useCallback<TripDataValue['updateExpense']>(
-    async (id, { label, dayNumber, amount, currency, paidById, participantIds }) => {
+    async (
+      id,
+      { label, dayNumber, amount, currency, paidById, participantIds, customSharesLocal }
+    ) => {
       const existing = expenses.find((e) => e.id === id);
       if (!existing) return;
       const isManual = existing.kind !== 'receipt';
       const baseGbp = toGbp(amount, currency, settings);
       const parts = participantIds.length ? participantIds : [paidById];
-      const shares = splitEqually(baseGbp, parts.length);
+      const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
       const patch = {
         label,
         day_number: dayNumber,
