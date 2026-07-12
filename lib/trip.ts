@@ -40,19 +40,27 @@ export function dayByNumber(n: number): TripDay | undefined {
 export const TRIP_START_ISO = '2026-08-28';
 
 export function dayNumberForDate(date: Date): number | null {
-  const start = new Date(`${TRIP_START_ISO}T00:00:00`);
-  const diff = Math.floor((date.getTime() - start.getTime()) / 86_400_000) + 1;
+  // Compare local calendar days (device timezone), not raw ms — avoids DST
+  // off-by-ones around midnight.
+  const start = new Date(2026, 7, 28); // 28 Aug 2026 local
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff =
+    Math.round((day.getTime() - start.getTime()) / 86_400_000) + 1;
   return diff >= 1 && diff <= TRIP_DAYS.length ? diff : null;
 }
 
 // Today's trip day, clamped into the trip range so pickers always land somewhere.
+// Used for expense defaults etc. After the trip ends, lands on the last day.
 export function defaultDayNumber(): number {
   const now = new Date();
   const exact = dayNumberForDate(now);
   if (exact) return exact;
-  return now.getTime() < new Date(`${TRIP_START_ISO}T00:00:00`).getTime()
-    ? 1
-    : TRIP_DAYS.length;
+  return now.getTime() < new Date(2026, 7, 28).getTime() ? 1 : TRIP_DAYS.length;
+}
+
+// Itinerary tab landing: device-local today if it matches a trip day, else Day 1.
+export function landingDayNumber(now: Date = new Date()): number {
+  return dayNumberForDate(now) ?? 1;
 }
 
 export const CURRENCY_SYMBOL: Record<string, string> = {

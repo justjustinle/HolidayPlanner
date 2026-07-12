@@ -1,25 +1,42 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import ItineraryCard from '../itinerary/ItineraryCard';
+import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
 import DayPicker from '../ui/DayPicker';
 import TravelerFacepile from '../ui/TravelerFacepile';
 import WhoIsGoingSheet from '../ui/WhoIsGoingSheet';
 import { ThaiFlag, VietnamFlag } from '../ui/Flag';
-import { dayByNumber, defaultDayNumber } from '@/lib/trip';
-import { timeToMinutes } from '@/lib/time';
+import { dayByNumber, dayNumberForDate, landingDayNumber } from '@/lib/trip';
+import { nowToMinutes, timeToMinutes } from '@/lib/time';
+import type { ItineraryItem } from '@/lib/types';
+
+type TimelineRow =
+  | { kind: 'now' }
+  | { kind: 'item'; item: ItineraryItem; past: boolean };
 
 export default function ItineraryTab() {
   const { itinerary } = useTripData();
-  const [day, setDay] = useState(defaultDayNumber);
+  const [day, setDay] = useState(landingDayNumber);
   const [adding, setAdding] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  const nowRef = useRef<HTMLDivElement>(null);
+  const didScrollToNow = useRef(false);
 
   const selected = dayByNumber(day);
+  const todayDay = dayNumberForDate(now);
+  const isToday = todayDay !== null && day === todayDay;
+
+  // Keep the "now" marker in sync with device time while this tab is open.
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   // Theme the app after the selected day's city: its dot color becomes the
   // global accent (used by the tab bar, day chips, and add buttons).
@@ -29,6 +46,7 @@ export default function ItineraryTab() {
       selected?.accentHex ?? '#c9992e'
     );
   }, [selected?.accentHex]);
+
   const items = useMemo(
     () =>
       itinerary
@@ -36,6 +54,43 @@ export default function ItineraryTab() {
         .sort((a, b) => timeToMinutes(a.time_label) - timeToMinutes(b.time_label)),
     [itinerary, day]
   );
+
+  const rows: TimelineRow[] = useMemo(() => {
+    if (!isToday) {
+      return items.map((item) => ({ kind: 'item' as const, item, past: false }));
+    }
+    const nowMins = nowToMinutes(now);
+    const out: TimelineRow[] = [];
+    let inserted = false;
+    for (const item of items) {
+      const t = timeToMinutes(item.time_label);
+      if (!inserted && nowMins < t) {
+        out.push({ kind: 'now' });
+        inserted = true;
+      }
+      out.push({ kind: 'item', item, past: t < nowMins });
+    }
+    if (!inserted) out.push({ kind: 'now' });
+    return out;
+  }, [items, isToday, now]);
+
+  // Scroll the now marker into view once when (re)landing on today.
+  useEffect(() => {
+    if (!isToday) {
+      didScrollToNow.current = false;
+      return;
+    }
+    if (didScrollToNow.current) return;
+    const el = nowRef.current;
+    if (!el) return;
+    didScrollToNow.current = true;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [isToday, rows]);
+
+  const accent = selected?.accentHex ?? '#c9992e';
+  const showEmpty = items.length === 0 && !isToday;
 
   return (
     <div>
@@ -66,6 +121,7 @@ export default function ItineraryTab() {
               <h2 className="font-serif text-[18px] text-ink">{selected.destination}</h2>
               <span className="text-[12px] text-muted">
                 {selected.label} · {selected.dateLabel}
+                {isToday && <span className="ml-1 font-medium text-ink">· Today</span>}
               </span>
             </div>
             <button
@@ -80,20 +136,40 @@ export default function ItineraryTab() {
           </div>
         )}
 
-        {items.length === 0 ? (
+        {showEmpty ? (
           <div className="mt-6 rounded-2xl border-2 border-dashed border-black/10 p-8 text-center text-muted">
             Nothing planned for {selected?.label ?? 'this day'} yet. Tap + to add an activity.
           </div>
         ) : (
           <div className="pb-24 pt-1">
-            {items.map((item, i) => (
-              <ItineraryCard
-                key={item.id}
-                item={item}
-                accentHex={selected?.accentHex ?? '#c9992e'}
-                isLast={i === items.length - 1}
-              />
-            ))}
+            {rows.map((row, i) => {
+              const isLast = i === rows.length - 1;
+              if (row.kind === 'now') {
+                return (
+                  <NowMarker
+                    key="now"
+                    ref={nowRef}
+                    now={now}
+                    accentHex={accent}
+                    isLast={isLast}
+                  />
+                );
+              }
+              return (
+                <ItineraryCard
+                  key={row.item.id}
+                  item={row.item}
+                  accentHex={accent}
+                  isLast={isLast}
+                  dimmed={row.past}
+                />
+              );
+            })}
+            {items.length === 0 && isToday && (
+              <div className="mt-2 rounded-2xl border-2 border-dashed border-black/10 p-6 text-center text-[13px] text-muted">
+                Nothing planned for today yet. Tap + to add an activity.
+              </div>
+            )}
           </div>
         )}
       </div>
