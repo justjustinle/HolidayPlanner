@@ -36,7 +36,13 @@ export interface Photo {
   created_at?: string;
 }
 
-export type ExpenseKind = 'manual' | 'receipt';
+// 'settlement' rows are peer-to-peer "Settle Up" payments: paid_by_id is the
+// debtor, and a single expense_split assigns the full amount to the receiver.
+// They flow through the normal balance math but are excluded from group spend
+// and the expenses feed.
+export type ExpenseKind = 'manual' | 'receipt' | 'settlement';
+
+export const SETTLEMENT_LABEL = 'Settle Up Payment';
 
 export interface Expense {
   id: string;
@@ -99,4 +105,12 @@ export interface Transfer {
   toId: string;
   toName: string;
   amount: number;
+}
+
+// A logged (past-tense) settlement, reconstructed from a 'settlement' expense
+// row joined to its single split (the receiver). Carries the real row id so it
+// can be reversed.
+export interface SettledPayment extends Transfer {
+  id: string; // the settlement expense id
+  created_at?: string;
 }

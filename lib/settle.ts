@@ -1,4 +1,12 @@
-import type { Expense, ExpenseSplit, Profile, Receipt, ReceiptItem, Transfer } from './types';
+import type {
+  Expense,
+  ExpenseSplit,
+  Profile,
+  Receipt,
+  ReceiptItem,
+  SettledPayment,
+  Transfer,
+} from './types';
 import { round2 } from './currency';
 
 // Net balance for one person = total they PAID − total they OWE (their shares).
@@ -93,7 +101,42 @@ export function minimizeTransfers(
   return transfers;
 }
 
-// Total group spend in GBP.
+// Total group spend in GBP. Settlements are money moving between members, not
+// group spend, so they're excluded.
 export function totalSpend(expenses: Expense[]): number {
-  return round2(expenses.reduce((sum, e) => sum + e.base_amount_gbp, 0));
+  return round2(
+    expenses
+      .filter((e) => e.kind !== 'settlement')
+      .reduce((sum, e) => sum + e.base_amount_gbp, 0)
+  );
+}
+
+// Reconstruct the log of logged settlements (newest first) from 'settlement'
+// expense rows. paid_by_id is the payer/debtor; the single split's user_id is
+// the receiver. Rows missing their split are skipped defensively.
+export function listSettlements(
+  profiles: Profile[],
+  expenses: Expense[],
+  splits: ExpenseSplit[]
+): SettledPayment[] {
+  const nameOf = (id: string) =>
+    profiles.find((p) => p.id === id)?.name ?? 'Someone';
+
+  return expenses
+    .filter((e) => e.kind === 'settlement')
+    .map((e): SettledPayment | null => {
+      const split = splits.find((s) => s.expense_id === e.id);
+      if (!split) return null;
+      return {
+        id: e.id,
+        fromId: e.paid_by_id,
+        fromName: nameOf(e.paid_by_id),
+        toId: split.user_id,
+        toName: nameOf(split.user_id),
+        amount: round2(e.base_amount_gbp),
+        created_at: e.created_at,
+      };
+    })
+    .filter((s): s is SettledPayment => s !== null)
+    .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
 }

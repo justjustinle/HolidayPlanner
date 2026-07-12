@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowRight, ChevronDown, PartyPopper, Receipt, ScanLine } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, PartyPopper, Receipt, ScanLine, Undo2 } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import TabHeader from '../ui/TabHeader';
 import RateSettings from '../finance/RateSettings';
@@ -9,18 +9,27 @@ import ExpenseCard from '../finance/ExpenseCard';
 import UploadReceiptSheet from '../finance/UploadReceiptSheet';
 import LogExpenseSheet from '../finance/LogExpenseSheet';
 import Avatar from '../ui/Avatar';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { formatGbp, round2 } from '@/lib/currency';
-import { computeNetBalances, minimizeTransfers, totalSpend } from '@/lib/settle';
+import { computeNetBalances, listSettlements, minimizeTransfers, totalSpend } from '@/lib/settle';
 import { defaultDayNumber } from '@/lib/trip';
+import type { SettledPayment, Transfer } from '@/lib/types';
 
 export default function FinanceTab() {
-  const { profiles, expenses, splits, receipts, receiptItems, me } = useTripData();
+  const { profiles, expenses, splits, receipts, receiptItems, me, settleUp, deleteExpense } =
+    useTripData();
   const [sheet, setSheet] = useState<'receipt' | 'expense' | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [settledOpen, setSettledOpen] = useState(false);
+  // Outstanding transfer awaiting settle confirmation; settlement awaiting undo.
+  const [settling, setSettling] = useState<Transfer | null>(null);
+  const [undoing, setUndoing] = useState<SettledPayment | null>(null);
 
   const avatarFor = (id: string) => profiles.find((p) => p.id === id)?.avatar_url;
 
   // Everything is trip-wide: expenses persist across all days of the trip.
+  // Settlement rows flow through net balances as ordinary expense+split, so
+  // outstanding transfers already reflect payments that have been logged.
   const { net, transfers, total } = useMemo(() => {
     const net = computeNetBalances(profiles, expenses, splits, receipts, receiptItems);
     return {
@@ -30,9 +39,18 @@ export default function FinanceTab() {
     };
   }, [profiles, expenses, splits, receipts, receiptItems]);
 
+  // The historical log of logged settlements (newest first).
+  const settledPayments = useMemo(
+    () => listSettlements(profiles, expenses, splits),
+    [profiles, expenses, splits]
+  );
+
+  // The expenses feed excludes settlements — they live in the settled log.
   const visible = useMemo(
     () =>
-      [...expenses].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')),
+      expenses
+        .filter((e) => e.kind !== 'settlement')
+        .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')),
     [expenses]
   );
 
@@ -116,6 +134,7 @@ export default function FinanceTab() {
             Who pays whom
           </h2>
 
+          {/* Outstanding debts — tap a card to log a settlement. */}
           {transfers.length === 0 ? (
             <div className="flex items-center gap-3 rounded-2xl border border-black/5 bg-cream-card p-4 text-[14px] text-muted">
               <PartyPopper size={20} className="text-nhatrang" />
@@ -124,9 +143,11 @@ export default function FinanceTab() {
           ) : (
             <div className="space-y-2">
               {transfers.map((t, i) => (
-                <div
+                <button
                   key={i}
-                  className="flex items-center justify-between rounded-2xl border border-black/5 bg-cream-card p-3"
+                  onClick={() => setSettling(t)}
+                  aria-label={`Settle up ${t.fromName} to ${t.toName}`}
+                  className="flex w-full items-center justify-between rounded-2xl border border-black/5 bg-cream-card p-3 text-left transition-colors hover:border-ink/20 active:bg-black/[.03]"
                 >
                   <div className="flex items-center gap-2 text-[14px]">
                     <Avatar name={t.fromName} src={avatarFor(t.fromId)} size={26} />
@@ -136,8 +157,59 @@ export default function FinanceTab() {
                     <span className="text-ink">{t.toName}</span>
                   </div>
                   <span className="font-semibold text-ink">{formatGbp(t.amount)}</span>
-                </div>
+                </button>
               ))}
+            </div>
+          )}
+
+          {/* Settled payments — collapsible historical log, closed by default. */}
+          {settledPayments.length > 0 && (
+            <div className="mt-3">
+              <button
+                onClick={() => setSettledOpen((o) => !o)}
+                aria-expanded={settledOpen}
+                className="flex w-full items-center justify-between py-1"
+              >
+                <span className="text-[13px] font-medium text-muted">
+                  Show Settled Payments ({settledPayments.length})
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`text-muted transition-transform ${settledOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {settledOpen && (
+                <div className="mt-2 space-y-2">
+                  {settledPayments.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between rounded-2xl border border-nhatrang/40 bg-nhatrang/[.07] p-3"
+                    >
+                      <div className="flex min-w-0 items-center gap-2 text-[14px]">
+                        <Avatar name={s.fromName} src={avatarFor(s.fromId)} size={26} />
+                        <span className="truncate text-ink">
+                          <span className="font-medium">{s.fromName}</span> paid{' '}
+                          <span className="font-medium">{s.toName}</span>{' '}
+                          {formatGbp(s.amount)}
+                        </span>
+                      </div>
+                      <div className="flex flex-none items-center gap-2">
+                        <span className="flex items-center gap-1 rounded-full bg-nhatrang/15 px-2 py-0.5 text-[11px] font-semibold text-nhatrang">
+                          <Check size={12} /> PAID
+                        </span>
+                        <button
+                          onClick={() => setUndoing(s)}
+                          aria-label="Undo settlement"
+                          className="text-muted/60 hover:text-saigon"
+                        >
+                          <Undo2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -183,6 +255,35 @@ export default function FinanceTab() {
       )}
       {sheet === 'expense' && (
         <LogExpenseSheet defaultDay={defaultDayNumber()} onClose={() => setSheet(null)} />
+      )}
+
+      {settling && (
+        <ConfirmDialog
+          title="Settle Up"
+          message={`Log a payment of ${formatGbp(settling.amount)} from ${settling.fromName} to ${settling.toName}?`}
+          confirmLabel="Confirm Payment"
+          tone="primary"
+          onCancel={() => setSettling(null)}
+          onConfirm={() => {
+            const t = settling;
+            setSettling(null);
+            void settleUp(t.fromId, t.toId, t.amount);
+          }}
+        />
+      )}
+
+      {undoing && (
+        <ConfirmDialog
+          title="Undo settlement?"
+          message={`This reverses ${undoing.fromName}'s ${formatGbp(undoing.amount)} payment to ${undoing.toName} and restores the outstanding balance.`}
+          confirmLabel="Undo"
+          onCancel={() => setUndoing(null)}
+          onConfirm={() => {
+            const s = undoing;
+            setUndoing(null);
+            void deleteExpense(s.id);
+          }}
+        />
       )}
     </div>
   );
