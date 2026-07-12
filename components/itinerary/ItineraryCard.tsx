@@ -123,7 +123,7 @@ export default function ItineraryCard({
               className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-cream px-2.5 py-1 text-[12px] font-medium text-ink transition-colors hover:border-black/15 active:scale-[0.98]"
             >
               <span aria-hidden>📸</span>
-              <span>Add/View Memories</span>
+              <span>Photos</span>
               {photoCount > 0 && (
                 <span
                   className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
