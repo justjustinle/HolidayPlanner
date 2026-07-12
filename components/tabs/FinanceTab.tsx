@@ -80,7 +80,7 @@ export default function FinanceTab() {
     <div>
       <TabHeader eyebrow="Shared expenses" title="Expenses" />
 
-      <div className="space-y-6 px-5 pb-24 pt-4">
+      <div className="space-y-6 px-5 pb-8 pt-4">
         {/* personal summary — high-visibility balance for the logged-in user */}
         {me && (
           <div
@@ -92,24 +92,21 @@ export default function FinanceTab() {
                   : 'rounded-2xl border border-black/5 bg-cream-card px-4 py-3.5'
             }
           >
-            <div className="flex items-center gap-3">
-              <Avatar name={me.name} src={me.avatar_url} size={36} />
-              {myStatus === 'owed' && (
-                <p className="min-w-0 font-serif text-[22px] font-semibold leading-tight text-nhatrang">
-                  You are owed {formatGbp(myBalance)}
-                </p>
-              )}
-              {myStatus === 'owe' && (
-                <p className="min-w-0 font-serif text-[22px] font-semibold leading-tight text-saigon">
-                  You owe {formatGbp(Math.abs(myBalance))}
-                </p>
-              )}
-              {myStatus === 'settled' && (
-                <p className="min-w-0 font-serif text-[22px] font-semibold leading-tight text-ink">
-                  You are all settled up!
-                </p>
-              )}
-            </div>
+            {myStatus === 'owed' && (
+              <p className="font-serif text-[22px] font-semibold leading-tight text-nhatrang">
+                You are owed {formatGbp(myBalance)}
+              </p>
+            )}
+            {myStatus === 'owe' && (
+              <p className="font-serif text-[22px] font-semibold leading-tight text-saigon">
+                You owe {formatGbp(Math.abs(myBalance))}
+              </p>
+            )}
+            {myStatus === 'settled' && (
+              <p className="font-serif text-[22px] font-semibold leading-tight text-ink">
+                You are all settled up!
+              </p>
+            )}
           </div>
         )}
 
@@ -326,11 +323,9 @@ export default function FinanceTab() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* compact floating total — sits above the sticky tab bar */}
-      <div className="pointer-events-none fixed bottom-20 right-4 z-50">
-        <div className="pointer-events-auto rounded-2xl bg-ink px-3.5 py-2.5 text-cream shadow-lg shadow-black/20">
+        {/* total group spend — compact pill below balances */}
+        <div className="w-fit rounded-2xl bg-ink px-3.5 py-2.5 text-cream">
           <div className="text-[10px] uppercase tracking-wide text-cream/55">
             Total group spend
           </div>
