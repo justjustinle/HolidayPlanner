@@ -32,6 +32,7 @@ export default function FinanceTab() {
   const [sheet, setSheet] = useState<'receipt' | 'expense' | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [settledOpen, setSettledOpen] = useState(false);
+  const [balancesOpen, setBalancesOpen] = useState(false);
   // Outstanding transfer awaiting settle confirmation; settlement awaiting undo.
   const [settling, setSettling] = useState<Transfer | null>(null);
   const [undoing, setUndoing] = useState<SettledPayment | null>(null);
@@ -70,20 +71,50 @@ export default function FinanceTab() {
     [receiptItems]
   );
 
+  // Personal summary for the logged-in user (positive = owed, negative = owes).
+  const myBalance = me ? round2(net.get(me.id) ?? 0) : 0;
+  const myStatus =
+    myBalance > 0.005 ? 'owed' : myBalance < -0.005 ? 'owe' : 'settled';
+
   return (
     <div>
       <TabHeader eyebrow="Shared expenses" title="Expenses" />
 
-      <div className="space-y-6 px-5 pt-4">
-        {/* total */}
-        <div className="rounded-2xl bg-ink px-5 py-4 text-cream">
-          <div className="text-[12px] uppercase tracking-wide text-cream/60">
-            Total group spend
+      <div className="space-y-6 px-5 pb-24 pt-4">
+        {/* personal summary — high-visibility balance for the logged-in user */}
+        {me && (
+          <div
+            className={
+              myStatus === 'owed'
+                ? 'rounded-2xl border border-nhatrang/30 bg-nhatrang/[.1] px-4 py-3.5'
+                : myStatus === 'owe'
+                  ? 'rounded-2xl border border-saigon/30 bg-saigon/[.1] px-4 py-3.5'
+                  : 'rounded-2xl border border-black/5 bg-cream-card px-4 py-3.5'
+            }
+          >
+            <div className="flex items-center gap-3">
+              <Avatar name={me.name} src={me.avatar_url} size={36} />
+              <div className="min-w-0">
+                <p className="text-[12px] text-muted">Hi {me.name}</p>
+                {myStatus === 'owed' && (
+                  <p className="font-serif text-[22px] font-semibold leading-tight text-nhatrang">
+                    You are owed {formatGbp(myBalance)}
+                  </p>
+                )}
+                {myStatus === 'owe' && (
+                  <p className="font-serif text-[22px] font-semibold leading-tight text-saigon">
+                    You owe {formatGbp(Math.abs(myBalance))}
+                  </p>
+                )}
+                {myStatus === 'settled' && (
+                  <p className="font-serif text-[22px] font-semibold leading-tight text-ink">
+                    You are all settled up!
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="mt-1 font-serif text-[30px] font-semibold">
-            {formatGbp(total)}
-          </div>
-        </div>
+        )}
 
         {/* add actions */}
         <div className="grid grid-cols-2 gap-2">
@@ -252,38 +283,65 @@ export default function FinanceTab() {
           )}
         </div>
 
-        {/* per-person balances */}
-        <div className="pb-8">
-          <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted">
-            Balances
-          </h2>
-          <div className="space-y-1.5">
-            {profiles.map((p) => {
-              const bal = round2(net.get(p.id) ?? 0);
-              const positive = bal > 0.005;
-              const negative = bal < -0.005;
-              return (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between rounded-xl px-1 py-1.5 text-[14px]"
-                >
-                  <span className="flex items-center gap-2 text-ink">
-                    <Avatar name={p.name} src={p.avatar_url} size={24} />
-                    {p.name}
-                    {me?.id === p.id && <span className="text-[12px] text-muted">(you)</span>}
-                  </span>
-                  <span
-                    className={
-                      positive ? 'text-nhatrang' : negative ? 'text-saigon' : 'text-muted'
-                    }
+        {/* per-person balances — collapsed by default to save vertical space */}
+        <div>
+          <button
+            onClick={() => setBalancesOpen((o) => !o)}
+            aria-expanded={balancesOpen}
+            className="flex w-full items-center justify-between rounded-xl border border-black/5 bg-cream-card px-3.5 py-3"
+          >
+            <span className="text-[14px] font-medium text-ink">
+              View Individual Balances
+              <span className="ml-1.5 text-[13px] font-normal text-muted">
+                ({profiles.length})
+              </span>
+            </span>
+            <ChevronDown
+              size={16}
+              className={`text-muted transition-transform ${balancesOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {balancesOpen && (
+            <div className="mt-2 space-y-1.5 px-1">
+              {profiles.map((p) => {
+                const bal = round2(net.get(p.id) ?? 0);
+                const positive = bal > 0.005;
+                const negative = bal < -0.005;
+                return (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-xl py-1.5 text-[14px]"
                   >
-                    {positive && 'gets back '}
-                    {negative && 'owes '}
-                    {positive || negative ? formatGbp(Math.abs(bal)) : 'settled'}
-                  </span>
-                </div>
-              );
-            })}
+                    <span className="flex items-center gap-2 text-ink">
+                      <Avatar name={p.name} src={p.avatar_url} size={24} />
+                      {p.name}
+                      {me?.id === p.id && <span className="text-[12px] text-muted">(you)</span>}
+                    </span>
+                    <span
+                      className={
+                        positive ? 'text-nhatrang' : negative ? 'text-saigon' : 'text-muted'
+                      }
+                    >
+                      {positive && 'gets back '}
+                      {negative && 'owes '}
+                      {positive || negative ? formatGbp(Math.abs(bal)) : 'settled'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* compact floating total — sits above the sticky tab bar */}
+      <div className="pointer-events-none fixed bottom-20 right-4 z-50">
+        <div className="pointer-events-auto rounded-2xl bg-ink px-3.5 py-2.5 text-cream shadow-lg shadow-black/20">
+          <div className="text-[10px] uppercase tracking-wide text-cream/55">
+            Total group spend
+          </div>
+          <div className="font-serif text-[18px] font-semibold leading-tight">
+            {formatGbp(total)}
           </div>
         </div>
       </div>
