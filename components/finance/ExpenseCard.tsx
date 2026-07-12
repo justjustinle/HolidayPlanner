@@ -8,7 +8,7 @@ import LogExpenseSheet from './LogExpenseSheet';
 import UploadReceiptSheet from './UploadReceiptSheet';
 import { useTripData } from '../TripDataProvider';
 import { formatGbp, round2 } from '@/lib/currency';
-import { receiptLineSharesGbp, receiptTaxMultiplier } from '@/lib/settle';
+import { receiptTaxMultiplier } from '@/lib/settle';
 import { CURRENCY_SYMBOL, dayByNumber } from '@/lib/trip';
 import type { Expense } from '@/lib/types';
 
@@ -34,15 +34,14 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   const isReceipt = expense.kind === 'receipt';
 
   // Line amounts scaled so tax/service on the receipt total is included.
-  const { sharesGbp, multiplier, taxGapLocal } = useMemo(() => {
+  const { multiplier, taxGapLocal } = useMemo(() => {
     const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
     const mult = receiptTaxMultiplier(itemSubtotal, expense.local_amount);
     return {
-      sharesGbp: receiptLineSharesGbp(items, expense.base_amount_gbp),
       multiplier: mult,
       taxGapLocal: round2(expense.local_amount - itemSubtotal),
     };
-  }, [items, expense.base_amount_gbp, expense.local_amount]);
+  }, [items, expense.local_amount]);
 
   const hasTaxGap = taxGapLocal > 0.005 && items.length > 0;
 
@@ -107,7 +106,9 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
             const claimer = profileOf(item.claimed_by_id);
             const isMine = item.claimed_by_id != null && item.claimed_by_id === me?.id;
             const canClaim = me != null && item.claimed_by_id == null;
-            const localWithTax = round2(item.local_amount * multiplier);
+            const menuPrice = item.local_amount;
+            const priceWithTax = round2(menuPrice * multiplier);
+            const sym = CURRENCY_SYMBOL[expense.local_currency];
             return (
               <button
                 key={item.id}
@@ -128,11 +129,14 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
                   {item.name}
                   {item.quantity > 1 && <span className="text-muted"> ×{item.quantity}</span>}
                 </span>
-                <span className="flex-none text-muted">
-                  {CURRENCY_SYMBOL[expense.local_currency]}
-                  {localWithTax.toLocaleString()}
-                  <span className="ml-1 text-[11px]">
-                    · {formatGbp(sharesGbp[idx] ?? 0)}
+                <span className="flex-none text-right">
+                  <span className="font-medium text-ink">
+                    {sym}
+                    {priceWithTax.toLocaleString()}
+                  </span>
+                  <span className="ml-1 text-[11px] text-muted">
+                    · {sym}
+                    {menuPrice.toLocaleString()}
                   </span>
                 </span>
                 <span className="flex-none">
