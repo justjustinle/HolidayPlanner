@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { MapPin, Trash2 } from 'lucide-react';
 import PolaroidCarousel from './PolaroidCarousel';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { useTripData } from '../TripDataProvider';
 import type { ItineraryItem } from '@/lib/types';
 
@@ -13,6 +15,7 @@ export default function ItineraryCard({
   accentHex: string;
 }) {
   const { deleteItineraryItem } = useTripData();
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <div className="rounded-2xl border border-black/5 bg-cream-card p-4 shadow-card">
@@ -39,7 +42,7 @@ export default function ItineraryCard({
           )}
         </div>
         <button
-          onClick={() => deleteItineraryItem(item.id)}
+          onClick={() => setConfirming(true)}
           aria-label="Delete activity"
           className="flex-none text-muted/60 hover:text-saigon"
         >
@@ -50,6 +53,18 @@ export default function ItineraryCard({
       <div className="mx-auto mt-3 w-full">
         <PolaroidCarousel item={item} />
       </div>
+
+      {confirming && (
+        <ConfirmDialog
+          title="Delete activity?"
+          message={`"${item.title}" and its photos will be removed for everyone.`}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            deleteItineraryItem(item.id);
+          }}
+        />
+      )}
     </div>
   );
 }
