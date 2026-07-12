@@ -95,6 +95,11 @@ export default function ItineraryCard({
                     <span className="truncate">{item.location}</span>
                   </a>
                 )}
+                {item.notes && (
+                  <p className="mt-1.5 whitespace-pre-wrap text-[12px] leading-snug text-muted">
+                    {item.notes}
+                  </p>
+                )}
               </div>
               <div className="mt-0.5 flex flex-none items-center gap-2">
                 <span className="text-muted/55" aria-hidden>

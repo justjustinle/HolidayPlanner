@@ -9,7 +9,7 @@ import { buildTimeLabel, parseTimeLabel, type TimeValue } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
 // Add or edit an itinerary card. Pass `item` to edit — anyone can change any
-// activity (title, time, location). Day stays the one currently selected /
+// activity (title, time, location, notes). Day stays the one currently selected /
 // the item's existing day.
 export default function AddCardSheet({
   day,
@@ -27,6 +27,7 @@ export default function AddCardSheet({
   );
   const [title, setTitle] = useState(item?.title ?? '');
   const [location, setLocation] = useState(item?.location ?? '');
+  const [notes, setNotes] = useState(item?.notes ?? '');
   const [busy, setBusy] = useState(false);
 
   const dayNumber = item?.day_number ?? day;
@@ -41,6 +42,7 @@ export default function AddCardSheet({
         time_label: buildTimeLabel(time),
         title: title.trim(),
         location: location.trim() || null,
+        notes: notes.trim() || null,
       };
       if (item) {
         await updateItineraryItem(item.id, payload);
@@ -87,7 +89,16 @@ export default function AddCardSheet({
         value={location}
         onChange={(e) => setLocation(e.target.value)}
         placeholder="Location or Google Maps link"
-        className={`${inputCls} mb-6`}
+        className={`${inputCls} mb-3`}
+      />
+
+      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Notes</label>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Booking ref, meet point, bring sunscreen…"
+        rows={3}
+        className={`${inputCls} mb-6 resize-none`}
       />
 
       <button

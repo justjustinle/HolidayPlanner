@@ -36,6 +36,7 @@ create table if not exists itinerary_items (
   time_label text not null,    -- e.g., "8:00 AM", "Evening"
   title text not null,         -- e.g., "Train Street Coffee"
   location text,               -- Address or Google Maps link
+  notes text,                  -- misc notes (booking ref, meet point, bring X)
   photo_url text,              -- legacy single-photo column (superseded by photos)
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

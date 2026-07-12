@@ -22,6 +22,7 @@ export interface ItineraryItem {
   time_label: string;
   title: string;
   location: string | null;
+  notes: string | null; // misc notes — booking refs, meet points, etc.
   photo_url: string | null; // legacy single-photo column, superseded by `photos`
   created_at?: string;
 }
