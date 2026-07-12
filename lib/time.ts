@@ -56,6 +56,21 @@ export function timeToMinutes(label: string | null | undefined): number {
   return h * 60 + min;
 }
 
+// Device-local minutes since midnight (for the "now" timeline marker).
+export function nowToMinutes(now: Date = new Date()): number {
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+// e.g. "3:42 PM" from a Date — matches itinerary time style.
+export function formatClock(now: Date = new Date()): string {
+  const minutes = now.getMinutes();
+  let hour24 = now.getHours();
+  const period: 'AM' | 'PM' = hour24 >= 12 ? 'PM' : 'AM';
+  let hour12 = hour24 % 12;
+  if (hour12 === 0) hour12 = 12;
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`;
+}
+
 // Compact paid-on date for settle-up rows (e.g. "12/07"). Uses local calendar day.
 export function formatDayMonth(iso: string | null | undefined): string | null {
   if (!iso) return null;

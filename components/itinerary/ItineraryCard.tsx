@@ -13,10 +13,12 @@ export default function ItineraryCard({
   item,
   accentHex,
   isLast = false,
+  dimmed = false,
 }: {
   item: ItineraryItem;
   accentHex: string;
   isLast?: boolean;
+  dimmed?: boolean;
 }) {
   const { photos, deleteItineraryItem } = useTripData();
   const [confirming, setConfirming] = useState(false);
@@ -33,7 +35,9 @@ export default function ItineraryCard({
 
   return (
     <>
-      <div className="relative flex gap-3">
+      <div
+        className={`relative flex gap-3 transition-opacity ${dimmed ? 'opacity-45' : ''}`}
+      >
         {/* Time column — primary scan target */}
         <div className="w-[52px] flex-none pt-0.5 text-right">
           <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
