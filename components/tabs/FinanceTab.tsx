@@ -175,9 +175,9 @@ export default function FinanceTab() {
                       `planr-expenses-${new Date().toISOString().slice(0, 10)}.csv`
                     )
                   }
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/10 bg-cream-card py-2.5 text-[13px] font-medium text-ink transition-colors hover:border-ink/20 active:bg-black/[.03]"
+                  className="flex w-full items-center justify-center gap-1.5 py-1 text-[13px] font-semibold uppercase tracking-wide text-muted"
                 >
-                  <Download size={15} />
+                  <Download size={14} />
                   Export CSV
                 </button>
               </div>
@@ -224,9 +224,9 @@ export default function FinanceTab() {
               <button
                 onClick={() => setSettledOpen((o) => !o)}
                 aria-expanded={settledOpen}
-                className="flex w-full items-center justify-between py-1"
+                className="flex w-full items-center justify-between"
               >
-                <span className="text-[13px] font-medium text-muted">
+                <span className="text-[13px] font-semibold uppercase tracking-wide text-muted">
                   Show Settled Payments ({settledPayments.length})
                 </span>
                 <ChevronDown
@@ -285,13 +285,10 @@ export default function FinanceTab() {
           <button
             onClick={() => setBalancesOpen((o) => !o)}
             aria-expanded={balancesOpen}
-            className="flex w-full items-center justify-between rounded-xl border border-black/5 bg-cream-card px-3.5 py-3"
+            className="flex w-full items-center justify-between"
           >
-            <span className="text-[14px] font-medium text-ink">
-              View Individual Balances
-              <span className="ml-1.5 text-[13px] font-normal text-muted">
-                ({profiles.length})
-              </span>
+            <span className="text-[13px] font-semibold uppercase tracking-wide text-muted">
+              View Individual Balances ({profiles.length})
             </span>
             <ChevronDown
               size={16}
