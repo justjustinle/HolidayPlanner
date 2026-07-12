@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Camera, Loader2, Plus, ScanLine, Trash2 } from 'lucide-react';
+import { Camera, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
 import { useTripData } from '../TripDataProvider';
@@ -156,8 +156,8 @@ export default function UploadReceiptSheet({
             disabled={!preview || scanning}
             className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3 text-[15px] font-medium text-white disabled:opacity-40"
           >
-            {scanning ? <Loader2 size={17} className="animate-spin" /> : <ScanLine size={17} />}
-            {scanning ? 'Reading receipt…' : 'Scan with Gemini'}
+            {scanning ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+            {scanning ? 'Reading receipt…' : 'Upload'}
           </button>
           <button
             onClick={() => {

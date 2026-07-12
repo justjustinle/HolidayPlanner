@@ -1,14 +1,15 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { LogOut, Camera, BellOff, BellRing, Loader2 } from 'lucide-react';
+import { LogOut, Camera, BellOff, BellRing, Loader2, Users } from 'lucide-react';
 import Avatar from './Avatar';
+import WhoIsGoingSheet from './WhoIsGoingSheet';
 import { useTripData } from '../TripDataProvider';
 import { enablePush, pushPermission } from '@/lib/notifications/client';
 
 // Shared header: optional eyebrow, serif title (with optional inline extras,
 // e.g. flags), and the signed-in user's avatar (photo or initial). Tap it to
-// change your photo or switch person.
+// change your photo, see who's going, or switch person.
 export default function TabHeader({
   eyebrow,
   title,
@@ -22,6 +23,7 @@ export default function TabHeader({
 }) {
   const { me, signOut, setMyPhoto } = useTripData();
   const [open, setOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
   const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
     () => (typeof window !== 'undefined' && pushPermission() === 'granted' ? 'on' : 'idle')
   );
@@ -73,15 +75,25 @@ export default function TabHeader({
               {open && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-                  <div className="absolute right-0 z-30 mt-2 w-48 rounded-xl border border-black/5 bg-cream-card p-1 shadow-polaroid">
+                  <div className="absolute right-0 z-30 mt-2 w-52 rounded-xl border border-black/5 bg-cream-card p-1 shadow-polaroid">
                     <div className="px-3 py-2 text-[13px] text-muted">
                       Signed in as <span className="font-medium text-ink">{me.name}</span>
                     </div>
                     <button
+                      onClick={() => {
+                        setOpen(false);
+                        setRosterOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
+                    >
+                      <Users size={15} /> Who&apos;s going
+                    </button>
+                    <button
                       onClick={() => fileRef.current?.click()}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
                     >
-                      <Camera size={15} /> {me.avatar_url ? 'Change photo' : 'Add photo'}
+                      <Camera size={15} />{' '}
+                      {me.avatar_url ? 'Change profile picture' : 'Add profile picture'}
                     </button>
                     <button
                       onClick={onEnablePush}
@@ -101,7 +113,7 @@ export default function TabHeader({
                       onClick={signOut}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
                     >
-                      <LogOut size={15} /> Switch person
+                      <LogOut size={15} /> Log out
                     </button>
                   </div>
                 </>
@@ -118,6 +130,8 @@ export default function TabHeader({
           />
         </div>
       </div>
+
+      {rosterOpen && <WhoIsGoingSheet onClose={() => setRosterOpen(false)} />}
     </header>
   );
 }

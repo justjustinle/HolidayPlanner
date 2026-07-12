@@ -7,6 +7,8 @@ import ItineraryCard from '../itinerary/ItineraryCard';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
 import DayPicker from '../ui/DayPicker';
+import TravelerFacepile from '../ui/TravelerFacepile';
+import WhoIsGoingSheet from '../ui/WhoIsGoingSheet';
 import { ThaiFlag, VietnamFlag } from '../ui/Flag';
 import { dayByNumber, defaultDayNumber } from '@/lib/trip';
 import { timeToMinutes } from '@/lib/time';
@@ -15,6 +17,7 @@ export default function ItineraryTab() {
   const { itinerary } = useTripData();
   const [day, setDay] = useState(defaultDayNumber);
   const [adding, setAdding] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
 
   const selected = dayByNumber(day);
 
@@ -45,6 +48,10 @@ export default function ItineraryTab() {
           </span>
         }
       />
+
+      <div className="px-5 pt-2">
+        <TravelerFacepile onOpen={() => setRosterOpen(true)} />
+      </div>
 
       <div className="px-5">
         <DayPicker value={day} onChange={setDay} />
@@ -94,6 +101,8 @@ export default function ItineraryTab() {
       {adding && (
         <AddCardSheet day={day} onClose={() => setAdding(false)} />
       )}
+
+      {rosterOpen && <WhoIsGoingSheet onClose={() => setRosterOpen(false)} />}
     </div>
   );
 }
