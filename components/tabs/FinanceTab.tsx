@@ -13,6 +13,7 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import { formatGbp, round2 } from '@/lib/currency';
 import { computeNetBalances, listSettlements, minimizeTransfers, totalSpend } from '@/lib/settle';
 import { defaultDayNumber } from '@/lib/trip';
+import { formatDayMonth } from '@/lib/time';
 import type { SettledPayment, Transfer } from '@/lib/types';
 
 export default function FinanceTab() {
@@ -181,33 +182,43 @@ export default function FinanceTab() {
 
               {settledOpen && (
                 <div className="mt-2 space-y-2">
-                  {settledPayments.map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between rounded-2xl border border-nhatrang/40 bg-nhatrang/[.07] p-3"
-                    >
-                      <div className="flex min-w-0 items-center gap-2 text-[14px]">
-                        <Avatar name={s.fromName} src={avatarFor(s.fromId)} size={26} />
-                        <span className="truncate text-ink">
-                          <span className="font-medium">{s.fromName}</span> paid{' '}
-                          <span className="font-medium">{s.toName}</span>{' '}
-                          {formatGbp(s.amount)}
-                        </span>
+                  {settledPayments.map((s) => {
+                    const paidOn = formatDayMonth(s.created_at);
+                    return (
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between rounded-2xl border border-nhatrang/40 bg-nhatrang/[.07] p-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-[14px]">
+                            <Avatar name={s.fromName} src={avatarFor(s.fromId)} size={26} />
+                            <span className="truncate text-ink">
+                              <span className="font-medium">{s.fromName}</span> paid{' '}
+                              <span className="font-medium">{s.toName}</span>{' '}
+                              {formatGbp(s.amount)}
+                            </span>
+                          </div>
+                          {paidOn && (
+                            <p className="mt-0.5 pl-8 text-[11px] text-muted">
+                              Paid {paidOn}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-none items-center gap-2">
+                          <span className="flex items-center gap-1 rounded-full bg-nhatrang/15 px-2 py-0.5 text-[11px] font-semibold text-nhatrang">
+                            <Check size={12} /> PAID
+                          </span>
+                          <button
+                            onClick={() => setUndoing(s)}
+                            aria-label="Undo settlement"
+                            className="text-muted/60 hover:text-saigon"
+                          >
+                            <Undo2 size={16} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-none items-center gap-2">
-                        <span className="flex items-center gap-1 rounded-full bg-nhatrang/15 px-2 py-0.5 text-[11px] font-semibold text-nhatrang">
-                          <Check size={12} /> PAID
-                        </span>
-                        <button
-                          onClick={() => setUndoing(s)}
-                          aria-label="Undo settlement"
-                          className="text-muted/60 hover:text-saigon"
-                        >
-                          <Undo2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
