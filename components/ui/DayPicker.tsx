@@ -57,10 +57,10 @@ export default function DayPicker({
                 className="inline-block h-1.5 w-1.5 rounded-full"
                 style={{ background: active ? '#ffffff' : d.accentHex }}
               />
-              {d.label}
+              {d.destination}
             </span>
             <span className={`text-[10px] ${active ? 'text-white/70' : 'text-muted'}`}>
-              {d.dateLabel.slice(4)} · {d.destination}
+              {d.dateLabel.slice(4)} · {d.label}
             </span>
           </button>
         );
