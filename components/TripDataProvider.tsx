@@ -247,6 +247,45 @@ export default function TripDataProvider({
     };
   }, [demoMode, refetchAll]);
 
+  // Keep `me` aligned with the live profiles list. localStorage can hold a
+  // stale id (old project, deleted row, demo→live switch) that then breaks
+  // FKs like photos.uploaded_by_id on insert.
+  useEffect(() => {
+    if (!ready || !me || profiles.length === 0) return;
+    const byId = profiles.find((p) => p.id === me.id);
+    if (byId) {
+      const sameAvatar = (byId.avatar_url ?? null) === (me.avatar_url ?? null);
+      if (byId.name !== me.name || !sameAvatar) {
+        setMe(byId);
+        try {
+          localStorage.setItem(ME_KEY, JSON.stringify(byId));
+        } catch {
+          /* ignore */
+        }
+      }
+      return;
+    }
+    const byName = profiles.find(
+      (p) => p.name.toLowerCase() === me.name.toLowerCase()
+    );
+    if (byName) {
+      setMe(byName);
+      try {
+        localStorage.setItem(ME_KEY, JSON.stringify(byName));
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    // Unknown identity — send them back through the welcome gate.
+    setMe(null);
+    try {
+      localStorage.removeItem(ME_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, [ready, profiles, me]);
+
   // --- profile / login ------------------------------------------------------
   const persistMe = (profile: Profile | null) => {
     setMe(profile);
@@ -450,7 +489,13 @@ export default function TripDataProvider({
   // first (see lib/image.ts) and tagged with the uploader by default.
   const addPhotos = useCallback<TripDataValue['addPhotos']>(
     async (activityId, files) => {
-      const tagged = me ? [me.id] : [];
+      // Only credit an uploader when `me` resolves to a real profiles row —
+      // otherwise Postgres rejects the insert (photos_uploaded_by_id_fkey).
+      const uploader =
+        me && profiles.some((p) => p.id === me.id) ? me : null;
+      const uploaded_by_id = uploader?.id ?? null;
+      const tagged = uploader ? [uploader.id] : [];
+
       if (demoMode) {
         const added: Photo[] = [];
         for (const file of files) {
@@ -459,7 +504,7 @@ export default function TripDataProvider({
             id: genId(),
             activity_id: activityId,
             url,
-            uploaded_by_id: me?.id ?? null,
+            uploaded_by_id,
             tagged_user_ids: tagged,
             created_at: new Date().toISOString(),
           });
@@ -481,15 +526,19 @@ export default function TripDataProvider({
           id,
           activity_id: activityId,
           url: pub.publicUrl,
-          uploaded_by_id: me?.id ?? null,
+          uploaded_by_id,
           tagged_user_ids: tagged,
         });
-        if (ins.error) throw ins.error;
+        if (ins.error) {
+          // Don't leave an orphan object if the row insert failed.
+          await supabase!.storage.from(SUPABASE_BUCKET).remove([path]);
+          throw ins.error;
+        }
         void recordActivity('photo_added', { activity_id: activityId });
       }
       await refetchAll();
     },
-    [demoMode, me, recordActivity, refetchAll]
+    [demoMode, me, profiles, recordActivity, refetchAll]
   );
 
   const deletePhoto = useCallback<TripDataValue['deletePhoto']>(
