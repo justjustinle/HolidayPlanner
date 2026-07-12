@@ -46,13 +46,10 @@ export default function StatsTab() {
 
   return (
     <div>
-      <TabHeader eyebrow="Trip Olympics" title="Stats" />
+      <TabHeader title="My Stats" />
 
       <div className="px-5 pb-10 pt-4">
         {/* cumulative self counters */}
-        <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">
-          My trip log
-        </h2>
         {!me && (
           <p className="mb-3 rounded-xl bg-black/5 px-3 py-2 text-[13px] text-muted">
             Sign in from the avatar menu to log your stats.
