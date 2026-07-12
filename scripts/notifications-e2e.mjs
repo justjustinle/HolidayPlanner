@@ -49,6 +49,23 @@ const postJson = (path, body) =>
     body: JSON.stringify(body),
   });
 
+// Parse a response body without ever throwing on empty / non-JSON output
+// (e.g. a 500 with no body). Prints a readable diagnostic for error responses
+// so a misconfiguration surfaces as a clear line instead of a crash.
+async function readBody(res) {
+  const text = await res.text();
+  let parsed = {};
+  try {
+    parsed = text ? JSON.parse(text) : {};
+  } catch {
+    parsed = {};
+  }
+  if (res.status >= 400 || !text) {
+    console.log(`  ↳ ${res.status} ${text ? text.slice(0, 200) : '(empty body)'}`);
+  }
+  return parsed;
+}
+
 // A syntactically valid subscription whose endpoint the push service will
 // reject with 404/410 — exercises delivery *and* the pruning path.
 const deadSub = (suffix) => ({
@@ -88,10 +105,10 @@ try {
     )[0];
   for (let i = 0; i < 3; i++) await mkEvent('expense_added', { label: `e2e ${i}` });
   await mkEvent('photo_added');
-  let d = await (await postJson('dispatch', {})).json();
+  let d = readBody(await postJson('dispatch', {}));
   check('4 events do not trigger a digest', d.notified === 0);
   await mkEvent('photo_added');
-  d = await (await postJson('dispatch', {})).json();
+  d = readBody(await postJson('dispatch', {}));
   check('5th event triggers the digest (count rule)', d.notified === 1);
 
   // 3. dead subscription pruned on 404/410, watermark advanced
@@ -106,7 +123,7 @@ try {
   // 4. never notified about own actions
   await postJson('subscribe', { profileId: actor.id, subscription: deadSub('actor') });
   for (let i = 0; i < 6; i++) await mkEvent('expense_added', { label: `own ${i}` });
-  d = await (await postJson('dispatch', {})).json();
+  d = readBody(await postJson('dispatch', {}));
   check('actor never notified about own events', d.notified === 0);
 
   // 5. age rule via cron (backdate watermark + event past the 2h threshold)
@@ -119,13 +136,13 @@ try {
   });
   const aged = await mkEvent('activity_added', { title: 'aged e2e event' });
   await rest('PATCH', `activity_events?id=eq.${aged.id}`, { created_at: threeHrsAgo });
-  d = await (await postJson('dispatch', {})).json();
+  d = readBody(await postJson('dispatch', {}));
   check('single aged event does not flush via dispatch (count rule only)', d.notified === 0);
   r = await api('cron');
   check('cron rejects a missing secret (401)', r.status === 401);
-  d = await (
+  d = await readBody(
     await api('cron', { headers: { Authorization: `Bearer ${CRON_SECRET}` } })
-  ).json();
+  );
   check('cron flushes the >2h-old batch (age rule)', d.notified === 1);
 
   // 6. seen-in-app events never push
@@ -134,7 +151,7 @@ try {
   await rest('PATCH', `notification_state?profile_id=eq.${recip.id}`, {
     last_seen_at: new Date().toISOString(),
   });
-  d = await (await postJson('dispatch', {})).json();
+  d = readBody(await postJson('dispatch', {}));
   check('events seen in-app never push (last_seen_at watermark)', d.notified === 0);
 
   // 7. immediate tier: targeted event is attempted instantly, not batched
@@ -143,7 +160,7 @@ try {
     { label: 'E2E dinner', amount_gbp: '£5.00', actor_name: 'E2E' },
     recip.id
   );
-  d = await (await postJson('dispatch', { eventId: imm.id })).json();
+  d = await readBody(await postJson('dispatch', { eventId: imm.id }));
   check('immediate event handled without a digest', d.notified === 0);
 } finally {
   // Cleanup: cascades delete subscriptions, state, and targeted events.

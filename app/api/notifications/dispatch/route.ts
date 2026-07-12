@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   dispatchBatched,
+  NotificationConfigError,
   notificationsConfigured,
   sendImmediate,
 } from '@/lib/notifications/server';
@@ -31,8 +32,20 @@ export async function POST(req: Request) {
     // No body is fine — just run the batch pass.
   }
 
-  const immediate = eventId ? await sendImmediate(eventId) : false;
-  const { notified } = await dispatchBatched(false);
-
-  return NextResponse.json({ ok: true, immediate, notified: notified.length });
+  try {
+    const immediate = eventId ? await sendImmediate(eventId) : false;
+    const { notified } = await dispatchBatched(false);
+    return NextResponse.json({ ok: true, immediate, notified: notified.length });
+  } catch (err) {
+    // Never leak an empty-body 500 — return a readable JSON error so callers
+    // (and the E2E) can see what went wrong. Config problems get a distinct
+    // 500 code path for clarity.
+    return NextResponse.json(
+      {
+        error: (err as Error).message,
+        kind: err instanceof NotificationConfigError ? 'config' : 'runtime',
+      },
+      { status: 500 }
+    );
+  }
 }

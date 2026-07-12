@@ -56,12 +56,28 @@ function serverClient(): SupabaseClient {
   );
 }
 
+// Thrown when the VAPID env values are present but malformed (e.g. a public
+// key that isn't clean URL-safe base64). Routes turn this into a readable
+// JSON 500 instead of an empty-body crash.
+export class NotificationConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NotificationConfigError';
+  }
+}
+
 function configureWebPush() {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string,
-    process.env.VAPID_PRIVATE_KEY as string
-  );
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string,
+      process.env.VAPID_PRIVATE_KEY as string
+    );
+  } catch (err) {
+    throw new NotificationConfigError(
+      `Invalid VAPID configuration — check NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT: ${(err as Error).message}`
+    );
+  }
 }
 
 // Send one payload to every device a profile has registered. Subscriptions the
