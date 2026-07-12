@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   dispatchBatched,
+  NotificationConfigError,
   notificationsConfigured,
 } from '@/lib/notifications/server';
 
@@ -26,6 +27,16 @@ export async function GET(req: Request) {
     );
   }
 
-  const { notified } = await dispatchBatched(true);
-  return NextResponse.json({ ok: true, notified: notified.length });
+  try {
+    const { notified } = await dispatchBatched(true);
+    return NextResponse.json({ ok: true, notified: notified.length });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: (err as Error).message,
+        kind: err instanceof NotificationConfigError ? 'config' : 'runtime',
+      },
+      { status: 500 }
+    );
+  }
 }
