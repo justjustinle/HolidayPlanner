@@ -78,12 +78,13 @@ export default function ItineraryTab() {
             Nothing planned for {selected?.label ?? 'this day'} yet. Tap + to add an activity.
           </div>
         ) : (
-          <div className="space-y-3 pb-24">
-            {items.map((item) => (
+          <div className="pb-24 pt-1">
+            {items.map((item, i) => (
               <ItineraryCard
                 key={item.id}
                 item={item}
                 accentHex={selected?.accentHex ?? '#c9992e'}
+                isLast={i === items.length - 1}
               />
             ))}
           </div>

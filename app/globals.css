@@ -64,9 +64,23 @@ body {
   }
 }
 
+@keyframes modal-up {
+  from {
+    transform: translateY(18%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .animate-sheet-up {
   animation: sheet-up 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 .animate-fade-in {
   animation: fade-in 0.2s ease;
+}
+.animate-modal-up {
+  animation: modal-up 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
