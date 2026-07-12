@@ -94,24 +94,21 @@ export default function FinanceTab() {
           >
             <div className="flex items-center gap-3">
               <Avatar name={me.name} src={me.avatar_url} size={36} />
-              <div className="min-w-0">
-                <p className="text-[12px] text-muted">Hi {me.name}</p>
-                {myStatus === 'owed' && (
-                  <p className="font-serif text-[22px] font-semibold leading-tight text-nhatrang">
-                    You are owed {formatGbp(myBalance)}
-                  </p>
-                )}
-                {myStatus === 'owe' && (
-                  <p className="font-serif text-[22px] font-semibold leading-tight text-saigon">
-                    You owe {formatGbp(Math.abs(myBalance))}
-                  </p>
-                )}
-                {myStatus === 'settled' && (
-                  <p className="font-serif text-[22px] font-semibold leading-tight text-ink">
-                    You are all settled up!
-                  </p>
-                )}
-              </div>
+              {myStatus === 'owed' && (
+                <p className="min-w-0 font-serif text-[22px] font-semibold leading-tight text-nhatrang">
+                  You are owed {formatGbp(myBalance)}
+                </p>
+              )}
+              {myStatus === 'owe' && (
+                <p className="min-w-0 font-serif text-[22px] font-semibold leading-tight text-saigon">
+                  You owe {formatGbp(Math.abs(myBalance))}
+                </p>
+              )}
+              {myStatus === 'settled' && (
+                <p className="min-w-0 font-serif text-[22px] font-semibold leading-tight text-ink">
+                  You are all settled up!
+                </p>
+              )}
             </div>
           </div>
         )}
