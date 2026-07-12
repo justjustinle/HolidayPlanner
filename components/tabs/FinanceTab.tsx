@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowRight, PartyPopper, Receipt, ScanLine } from 'lucide-react';
+import { ArrowRight, ChevronDown, PartyPopper, Receipt, ScanLine } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import TabHeader from '../ui/TabHeader';
 import RateSettings from '../finance/RateSettings';
@@ -16,6 +16,7 @@ import { defaultDayNumber } from '@/lib/trip';
 export default function FinanceTab() {
   const { profiles, expenses, splits, receipts, receiptItems, me } = useTripData();
   const [sheet, setSheet] = useState<'receipt' | 'expense' | null>(null);
+  const [listOpen, setListOpen] = useState(false);
 
   const avatarFor = (id: string) => profiles.find((p) => p.id === id)?.avatar_url;
 
@@ -71,29 +72,42 @@ export default function FinanceTab() {
           </button>
         </div>
 
-        {/* expense list */}
+        <RateSettings />
+
+        {/* expense list — collapsed by default so it doesn't swamp the page */}
         <div>
-          <div className="mb-3 flex items-baseline justify-between">
+          <button
+            onClick={() => setListOpen((o) => !o)}
+            aria-expanded={listOpen}
+            className="flex w-full items-center justify-between"
+          >
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted">
-              Expenses
+              Expenses{visible.length > 0 ? ` (${visible.length})` : ''}
             </h2>
-            {unclaimedCount > 0 && (
-              <span className="text-[12px] text-saigon">
-                {unclaimedCount} unclaimed item{unclaimedCount === 1 ? '' : 's'}
-              </span>
-            )}
-          </div>
-          {visible.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-black/10 p-6 text-center text-[13px] text-muted">
-              No expenses yet. Upload a receipt or log one above.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {visible.map((e) => (
-                <ExpenseCard key={e.id} expense={e} />
-              ))}
-            </div>
-          )}
+            <span className="flex items-center gap-2">
+              {unclaimedCount > 0 && (
+                <span className="text-[12px] text-saigon">
+                  {unclaimedCount} unclaimed item{unclaimedCount === 1 ? '' : 's'}
+                </span>
+              )}
+              <ChevronDown
+                size={16}
+                className={`text-muted transition-transform ${listOpen ? 'rotate-180' : ''}`}
+              />
+            </span>
+          </button>
+          {listOpen &&
+            (visible.length === 0 ? (
+              <div className="mt-3 rounded-2xl border-2 border-dashed border-black/10 p-6 text-center text-[13px] text-muted">
+                No expenses yet. Upload a receipt or log one above.
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2.5">
+                {visible.map((e) => (
+                  <ExpenseCard key={e.id} expense={e} />
+                ))}
+              </div>
+            ))}
         </div>
 
         {/* settlement */}
@@ -129,7 +143,7 @@ export default function FinanceTab() {
         </div>
 
         {/* per-person balances */}
-        <div>
+        <div className="pb-8">
           <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted">
             Balances
           </h2>
@@ -161,10 +175,6 @@ export default function FinanceTab() {
               );
             })}
           </div>
-        </div>
-
-        <div className="pb-8">
-          <RateSettings />
         </div>
       </div>
 
