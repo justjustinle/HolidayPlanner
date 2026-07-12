@@ -8,6 +8,10 @@
   --font-spectral: 'Spectral', Georgia, serif;
   --font-work-sans: 'Work Sans', system-ui, -apple-system, sans-serif;
   --font-caveat: 'Caveat', 'Segoe Script', cursive;
+
+  /* Accent of the city currently selected in the itinerary (its day-dot
+     color). Updated at runtime by ItineraryTab; Bangkok gold by default. */
+  --city-accent: #c9992e;
 }
 
 html,

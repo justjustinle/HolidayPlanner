@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import ItineraryCard from '../itinerary/ItineraryCard';
@@ -17,6 +17,15 @@ export default function ItineraryTab() {
   const [adding, setAdding] = useState(false);
 
   const selected = dayByNumber(day);
+
+  // Theme the app after the selected day's city: its dot color becomes the
+  // global accent (used by the tab bar, day chips, and add buttons).
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--city-accent',
+      selected?.accentHex ?? '#c9992e'
+    );
+  }, [selected?.accentHex]);
   const items = useMemo(
     () =>
       itinerary
@@ -35,31 +44,32 @@ export default function ItineraryTab() {
             <VietnamFlag size={22} />
           </span>
         }
-        action={
-          <button
-            onClick={() => setAdding(true)}
-            aria-label="Add activity"
-            className="flex h-9 items-center gap-1.5 rounded-full bg-ink pl-3 pr-3.5 text-[13px] font-medium text-white shadow-polaroid"
-          >
-            <Plus size={16} />
-            Add
-          </button>
-        }
       />
 
       <div className="px-5">
         <DayPicker value={day} onChange={setDay} />
 
         {selected && (
-          <div className="mb-3 flex items-baseline gap-2">
-            <span
-              className="inline-block h-2 w-2 flex-none rounded-full"
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <span
+                className="inline-block h-2 w-2 flex-none self-center rounded-full"
+                style={{ background: selected.accentHex }}
+              />
+              <h2 className="font-serif text-[18px] text-ink">{selected.destination}</h2>
+              <span className="text-[12px] text-muted">
+                {selected.label} · {selected.dateLabel}
+              </span>
+            </div>
+            <button
+              onClick={() => setAdding(true)}
+              aria-label="Add activity"
+              className="flex h-8 flex-none items-center gap-1 rounded-full pl-2.5 pr-3 text-[13px] font-medium text-white shadow-card"
               style={{ background: selected.accentHex }}
-            />
-            <h2 className="font-serif text-[18px] text-ink">{selected.destination}</h2>
-            <span className="text-[12px] text-muted">
-              {selected.label} · {selected.dateLabel}
-            </span>
+            >
+              <Plus size={15} />
+              Add
+            </button>
           </div>
         )}
 
@@ -81,7 +91,7 @@ export default function ItineraryTab() {
       </div>
 
       {adding && (
-        <AddCardSheet defaultDay={day} onClose={() => setAdding(false)} />
+        <AddCardSheet day={day} onClose={() => setAdding(false)} />
       )}
     </div>
   );
