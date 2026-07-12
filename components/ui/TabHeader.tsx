@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { LogOut, Camera, Bell, BellRing, Loader2, Users } from 'lucide-react';
+import { LogOut, Camera, BellOff, BellRing, Loader2, Users } from 'lucide-react';
 import Avatar from './Avatar';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
 import { useTripData } from '../TripDataProvider';
@@ -28,6 +28,7 @@ export default function TabHeader({
     () => (typeof window !== 'undefined' && pushPermission() === 'granted' ? 'on' : 'idle')
   );
   const fileRef = useRef<HTMLInputElement>(null);
+  const notificationsOn = pushState === 'on';
 
   const onEnablePush = async () => {
     if (!me || pushState === 'busy') return;
@@ -101,16 +102,12 @@ export default function TabHeader({
                     >
                       {pushState === 'busy' ? (
                         <Loader2 size={15} className="animate-spin" />
-                      ) : pushState === 'on' ? (
+                      ) : notificationsOn ? (
                         <BellRing size={15} />
                       ) : (
-                        <Bell size={15} />
+                        <BellOff size={15} />
                       )}
-                      {pushState === 'on'
-                        ? 'Notifications on'
-                        : pushState === 'error'
-                          ? 'Notifications unavailable'
-                          : 'Enable notifications'}
+                      {notificationsOn ? 'Notifications on' : 'Notifications off'}
                     </button>
                     <button
                       onClick={signOut}
