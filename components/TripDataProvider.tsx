@@ -16,6 +16,7 @@ import {
 } from '@/lib/supabase';
 import { formatGbp, toGbp, round2, splitEqually } from '@/lib/currency';
 import { TRIP_ID, type EventType } from '@/lib/notifications/config';
+import { SETTLEMENT_LABEL } from '@/lib/types';
 import { compressToWebp, fileToDataUrl } from '@/lib/image';
 import {
   DEMO_EXPENSES,
@@ -100,6 +101,9 @@ interface TripDataValue {
   addReceiptExpense: (input: NewReceiptInput) => Promise<void>;
   setItemClaim: (itemId: string, userId: string | null) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
+  // Log a peer-to-peer "Settle Up" payment: `fromId` (debtor) pays `toId`
+  // (creditor) `amount` GBP. Stored as a 'settlement' expense + one split.
+  settleUp: (fromId: string, toId: string, amount: number) => Promise<void>;
 
   setStat: (dayNumber: number, category: StatCategory, count: number) => Promise<void>;
 }
@@ -780,6 +784,61 @@ export default function TripDataProvider({
     [demoMode, receipts, refetchAll]
   );
 
+  // Log a peer-to-peer settlement. Modeled as a GBP 'settlement' expense paid
+  // by the debtor with a single split assigning the full amount to the
+  // receiver, so the existing net-balance math clears both sides. No activity
+  // notification — this isn't ambient group spend. Reverse it with
+  // deleteExpense (cascades the split).
+  const settleUp = useCallback<TripDataValue['settleUp']>(
+    async (fromId, toId, amount) => {
+      const value = round2(amount);
+      if (value <= 0 || fromId === toId) return;
+
+      if (demoMode) {
+        const expId = genId();
+        setExpenses((prev) => [
+          ...prev,
+          {
+            id: expId,
+            activity_id: null,
+            label: SETTLEMENT_LABEL,
+            day_number: null,
+            kind: 'settlement',
+            local_amount: value,
+            local_currency: 'GBP',
+            base_amount_gbp: value,
+            paid_by_id: fromId,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        setSplits((prev) => [
+          ...prev,
+          { id: genId(), expense_id: expId, user_id: toId, amount_owed: value },
+        ]);
+        return;
+      }
+
+      const { data: exp, error } = await supabase!
+        .from('expenses')
+        .insert({
+          label: SETTLEMENT_LABEL,
+          kind: 'settlement',
+          local_amount: value,
+          local_currency: 'GBP',
+          base_amount_gbp: value,
+          paid_by_id: fromId,
+        })
+        .select()
+        .single();
+      if (error || !exp) throw error ?? new Error('Could not log settlement');
+      await supabase!
+        .from('expense_splits')
+        .insert({ expense_id: (exp as Expense).id, user_id: toId, amount_owed: value });
+      await refetchAll();
+    },
+    [demoMode, refetchAll]
+  );
+
   // --- stats ------------------------------------------------------------
   // Upsert my count for one category on one day (poop/drink/mosquito/coffee).
   const setStat = useCallback<TripDataValue['setStat']>(
@@ -844,6 +903,7 @@ export default function TripDataProvider({
       addReceiptExpense,
       setItemClaim,
       deleteExpense,
+      settleUp,
       setStat,
     }),
     [
@@ -873,6 +933,7 @@ export default function TripDataProvider({
       addReceiptExpense,
       setItemClaim,
       deleteExpense,
+      settleUp,
       setStat,
     ]
   );
