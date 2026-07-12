@@ -1,0 +1,23 @@
+# On-demand smoke test for the notification system against the deployed app.
+# Uses the same APP_URL / CRON_SECRET secrets as notifications-cron.yml, plus
+# SUPABASE_URL and SUPABASE_ANON_KEY (the public anon key).
+name: notifications-e2e
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run notification E2E checks
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node scripts/notifications-e2e.mjs

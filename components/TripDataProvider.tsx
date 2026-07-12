@@ -14,7 +14,8 @@ import {
   supabase,
   SUPABASE_BUCKET,
 } from '@/lib/supabase';
-import { toGbp, round2, splitEqually } from '@/lib/currency';
+import { formatGbp, toGbp, round2, splitEqually } from '@/lib/currency';
+import { TRIP_ID, type EventType } from '@/lib/notifications/config';
 import { compressToWebp, fileToDataUrl } from '@/lib/image';
 import {
   DEMO_EXPENSES,
@@ -353,6 +354,63 @@ export default function TripDataProvider({
 
   const signOut = useCallback(() => persistMe(null), []);
 
+  // --- activity events --------------------------------------------------
+  // Best-effort log feeding batched push notifications: record the event,
+  // then poke the dispatcher (which sends immediate-tier pushes and flushes
+  // any batch that hit the count threshold). A logging failure must never
+  // break the user's action, so everything is swallowed.
+  const recordActivity = useCallback(
+    async (
+      eventType: EventType,
+      payload: Record<string, unknown>,
+      recipientId?: string
+    ) => {
+      if (demoMode || !me) return;
+      try {
+        const { data } = await supabase!
+          .from('activity_events')
+          .insert({
+            trip_id: TRIP_ID,
+            event_type: eventType,
+            actor_id: me.id,
+            recipient_id: recipientId ?? null,
+            payload,
+          })
+          .select('id')
+          .single();
+        void fetch('/api/notifications/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: data?.id }),
+        }).catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    },
+    [demoMode, me]
+  );
+
+  // Opening or returning to the app marks the trip's activity as seen, so
+  // already-viewed events can never trigger a push later.
+  useEffect(() => {
+    if (demoMode || !me) return;
+    const markSeen = () => {
+      supabase!
+        .from('notification_state')
+        .upsert(
+          { profile_id: me.id, trip_id: TRIP_ID, last_seen_at: new Date().toISOString() },
+          { onConflict: 'profile_id,trip_id' }
+        )
+        .then(() => {});
+    };
+    markSeen();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') markSeen();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [demoMode, me]);
+
   // --- itinerary ------------------------------------------------------------
   const addItineraryItem = useCallback<TripDataValue['addItineraryItem']>(
     async (input) => {
@@ -361,9 +419,13 @@ export default function TripDataProvider({
         return;
       }
       await supabase!.from('itinerary_items').insert(input);
+      void recordActivity('activity_added', {
+        title: input.title,
+        day_number: input.day_number,
+      });
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, recordActivity, refetchAll]
   );
 
   const deleteItineraryItem = useCallback<TripDataValue['deleteItineraryItem']>(
@@ -419,10 +481,11 @@ export default function TripDataProvider({
           tagged_user_ids: tagged,
         });
         if (ins.error) throw ins.error;
+        void recordActivity('photo_added', { activity_id: activityId });
       }
       await refetchAll();
     },
-    [demoMode, me, refetchAll]
+    [demoMode, me, recordActivity, refetchAll]
   );
 
   const deletePhoto = useCallback<TripDataValue['deletePhoto']>(
@@ -517,9 +580,23 @@ export default function TripDataProvider({
           amount_owed: shares[i],
         }))
       );
+      void recordActivity('expense_added', {
+        label,
+        amount_gbp: formatGbp(baseGbp),
+      });
+      // Immediate tier: everyone pulled into the split (except the actor,
+      // filtered server-side too) gets a targeted push right away.
+      parts.forEach((uid, i) => {
+        if (uid === me?.id) return;
+        void recordActivity(
+          'expense_split_added',
+          { label, amount_gbp: formatGbp(shares[i]), actor_name: me?.name },
+          uid
+        );
+      });
       await refetchAll();
     },
-    [demoMode, refetchAll, settings]
+    [demoMode, me, recordActivity, refetchAll, settings]
   );
 
   // Edit an existing expense. Manual expenses get their equal splits rebuilt
@@ -664,9 +741,14 @@ export default function TripDataProvider({
           cleanItems.map((i) => ({ receipt_id: (receipt as Receipt).id, ...i }))
         );
       }
+      void recordActivity('expense_added', {
+        label,
+        amount_gbp: formatGbp(baseGbp),
+        kind: 'receipt',
+      });
       await refetchAll();
     },
-    [demoMode, refetchAll, settings]
+    [demoMode, recordActivity, refetchAll, settings]
   );
 
   // Claim (userId) or release (null) a receipt line item.
