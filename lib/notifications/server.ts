@@ -136,40 +136,47 @@ function summarize(events: EventRow[]): string {
 
 // Evaluate the batching rule for every subscribed profile and push where due.
 // `enforceAge` is set by the cron: it also flushes batches whose oldest event
-// exceeds BATCH_MAX_AGE_MINUTES, regardless of count.
-export async function dispatchBatched(enforceAge: boolean): Promise<{
-  notified: string[];
-}> {
+// exceeds BATCH_MAX_AGE_MINUTES, regardless of count. `tripId` defaults to the
+// app's single trip; the E2E overrides it to run in an isolated namespace.
+export async function dispatchBatched(
+  enforceAge: boolean,
+  tripId: string = TRIP_ID
+): Promise<{ notified: string[] }> {
   const db = serverClient();
   configureWebPush();
 
-  // Only people with at least one push subscription can be notified.
+  // Only notify profiles that both (a) have a push subscription and (b) have a
+  // notification_state row for this trip — i.e. have engaged with it. This
+  // gives every recipient a real watermark (never an epoch fallback that would
+  // replay all history) and keeps events in one trip from ever pushing to
+  // people who haven't joined it (e.g. an isolated test trip).
   const { data: subRows } = await db
     .from('push_subscriptions')
     .select('profile_id');
-  const subscribed = [...new Set((subRows ?? []).map((r) => r.profile_id as string))];
-  if (subscribed.length === 0) return { notified: [] };
+  const subscribed = new Set((subRows ?? []).map((r) => r.profile_id as string));
+  if (subscribed.size === 0) return { notified: [] };
 
   const { data: stateRows } = await db
     .from('notification_state')
     .select('*')
-    .eq('trip_id', TRIP_ID)
-    .in('profile_id', subscribed);
+    .eq('trip_id', tripId)
+    .in('profile_id', [...subscribed]);
   const stateOf = new Map((stateRows ?? []).map((s: StateRow) => [s.profile_id, s]));
+  const engaged = [...subscribed].filter((id) => stateOf.has(id));
+  if (engaged.length === 0) return { notified: [] };
 
   // One query for everyone: broadcast batched events newer than the earliest
-  // watermark among subscribed profiles.
+  // watermark among engaged profiles.
   const watermarkOf = (profileId: string): string => {
-    const s = stateOf.get(profileId);
-    if (!s) return new Date(0).toISOString();
+    const s = stateOf.get(profileId)!;
     return s.last_seen_at > s.last_notified_at ? s.last_seen_at : s.last_notified_at;
   };
-  const earliest = subscribed.map(watermarkOf).sort()[0];
+  const earliest = engaged.map(watermarkOf).sort()[0];
 
   const { data: eventRows } = await db
     .from('activity_events')
     .select('*')
-    .eq('trip_id', TRIP_ID)
+    .eq('trip_id', tripId)
     .is('recipient_id', null)
     .in('event_type', BATCHED_EVENT_TYPES)
     .gt('created_at', earliest)
@@ -180,7 +187,7 @@ export async function dispatchBatched(enforceAge: boolean): Promise<{
   const cutoff = Date.now() - BATCH_MAX_AGE_MINUTES * 60_000;
   const notified: string[] = [];
 
-  for (const profileId of subscribed) {
+  for (const profileId of engaged) {
     const watermark = watermarkOf(profileId);
     const mine = events.filter(
       (e) => e.created_at > watermark && e.actor_id !== profileId
@@ -195,7 +202,7 @@ export async function dispatchBatched(enforceAge: boolean): Promise<{
     const delivered = await sendToProfile(db, profileId, {
       title: TRIP_NAME,
       body: `${mine.length} update${mine.length === 1 ? '' : 's'} in ${TRIP_NAME} — ${summarize(mine)}`,
-      tag: TRIP_ID, // newer digest replaces the older one instead of stacking
+      tag: tripId, // newer digest replaces the older one instead of stacking
       url: '/',
     });
 
@@ -207,7 +214,7 @@ export async function dispatchBatched(enforceAge: boolean): Promise<{
       await db.from('notification_state').upsert(
         {
           profile_id: profileId,
-          trip_id: TRIP_ID,
+          trip_id: tripId,
           last_notified_at: mine[mine.length - 1].created_at,
         },
         { onConflict: 'profile_id,trip_id' }

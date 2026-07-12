@@ -27,9 +27,16 @@ export async function GET(req: Request) {
     );
   }
 
+  // Optional trip override (isolated E2E); defaults to the app's trip.
+  const tripId = new URL(req.url).searchParams.get('tripId') ?? undefined;
+
   try {
-    const { notified } = await dispatchBatched(true);
-    return NextResponse.json({ ok: true, notified: notified.length });
+    const { notified } = await dispatchBatched(true, tripId);
+    return NextResponse.json({
+      ok: true,
+      notified: notified.length,
+      notifiedIds: notified,
+    });
   } catch (err) {
     return NextResponse.json(
       {
