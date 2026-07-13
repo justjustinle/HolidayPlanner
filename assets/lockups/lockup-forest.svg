@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 100" fill="none" role="img" aria-label="Yarn lockup">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Varela+Round&amp;display=swap');
+      .yarn-wordmark { font-family: 'Varela Round', system-ui, sans-serif; font-size: 44px; font-weight: 400; letter-spacing: -0.02em; }
+    </style>
+    <mask id="lockup-ball-mask">
+      <circle cx="50" cy="50" r="30" fill="white"/>
+      <path d="M 21 50 C 31 34, 61 34, 71 50 C 61 66, 31 66, 21 50" fill="none" stroke="black" stroke-width="6.5" stroke-linecap="round"/>
+      <path d="M 50 22 C 68 34, 68 66, 50 78" fill="none" stroke="black" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 28 62 C 50 52, 72 62" fill="none" stroke="black" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M 32 38 C 50 50, 68 38" fill="none" stroke="black" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M 36 68 C 50 58, 64 68" fill="none" stroke="black" stroke-width="5" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <rect width="280" height="100" fill="#F7F1E6" rx="16"/>
+  <circle cx="50" cy="50" r="30" fill="#2F5A42" mask="url(#lockup-ball-mask)"/>
+  <path d="M 24 64 C 14 70, 8 80, 4 90" stroke="#2F5A42" stroke-width="7.5" stroke-linecap="round"/>
+  <text class="yarn-wordmark" x="108" y="62" fill="#2F5A42">Yarn</text>
+</svg>

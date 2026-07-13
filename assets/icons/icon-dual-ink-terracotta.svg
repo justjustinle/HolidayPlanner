@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-label="Yarn">
+  <defs>
+    <mask id="dual-mask">
+      <circle cx="56" cy="44" r="30" fill="white"/>
+      <path d="M 27 44 C 37 28, 67 28, 77 44 C 67 60, 37 60, 27 44" fill="none" stroke="black" stroke-width="6.5" stroke-linecap="round"/>
+      <path d="M 56 16 C 74 28, 74 60, 56 72" fill="none" stroke="black" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 34 56 C 56 46, 78 56" fill="none" stroke="black" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M 38 32 C 56 44, 74 32" fill="none" stroke="black" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M 42 62 C 56 52, 70 62" fill="none" stroke="black" stroke-width="5" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <circle cx="56" cy="44" r="30" fill="#3A352C" mask="url(#dual-mask)"/>
+  <path d="M 30 58 C 20 64, 13 76, 7 88" stroke="#C4613A" stroke-width="7.5" stroke-linecap="round"/>
+</svg>
