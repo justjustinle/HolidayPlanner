@@ -69,7 +69,7 @@ brand/yarn/
 
 ## Mark construction
 
-The yarn-ball icon matches the original reference: **thick stroke line art** with an outer ring, intersecting winding curves inside the ball, and a trailing strand with rounded caps. Each colour variant is single-tone; the dual-tone file reproduces the black ball + terracotta strand from the reference sheet.
+The yarn-ball icon matches the reference sheet: **outer ring + three intersecting interior curves + S-wave strand**. Geometry lives in `lib/brand/yarn-icon.ts` (single source for SVG, React `YarnLogo`, and PNG export via resvg).
 
 ## Next steps (when ready to rebrand)
 
