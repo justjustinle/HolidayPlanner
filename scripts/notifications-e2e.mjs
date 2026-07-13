@@ -133,6 +133,25 @@ try {
   const stateRows = await rest('GET', `notification_state?profile_id=eq.${recip.id}&select=*`);
   check('notification_state row created on subscribe', stateRows.length >= 1);
 
+  // 1b. unsubscribe (DELETE) removes the device row
+  const [subRow] = await rest(
+    'GET',
+    `push_subscriptions?profile_id=eq.${recip.id}&select=endpoint&limit=1`
+  );
+  r = await api('subscribe', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profileId: recip.id, endpoint: subRow.endpoint }),
+  });
+  check('unsubscribe deletes the subscription (200)', r.status === 200);
+  const afterUnsub = await rest(
+    'GET',
+    `push_subscriptions?profile_id=eq.${recip.id}&select=id`
+  );
+  check('no push_subscriptions rows after unsubscribe', afterUnsub.length === 0);
+  // Re-subscribe for the remaining phases.
+  await subscribeRecip(recip.id, 'a2');
+
   // 2. count rule: 4 events → no digest; 5th → digest (recipient-scoped)
   await resetEvents();
   await setWatermark(recip.id, iso(), iso());
