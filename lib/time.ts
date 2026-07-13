@@ -1,59 +1,52 @@
-// Time helpers for the itinerary. Times are stored as a canonical 12-hour
-// label (e.g. "8:30 AM") produced by the wheel picker, so parsing for sort is
-// reliable.
+// Time helpers for the itinerary. Canonical storage is 24-hour "HH:MM"
+// (e.g. "17:30"). Legacy 12-hour labels ("5:30 PM") still parse for old rows.
 
 export interface TimeValue {
-  hour12: number; // 1–12
+  hour24: number; // 0–23
   minute: number; // 0–59
-  period: 'AM' | 'PM';
 }
 
-export const HOURS = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
+export const HOURS_24 = Array.from({ length: 24 }, (_, i) => i); // 0..23
 export const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0,5,..,55
-export const PERIODS: Array<'AM' | 'PM'> = ['AM', 'PM'];
 
-export function buildTimeLabel({ hour12, minute, period }: TimeValue): string {
-  return `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
+export function buildTimeLabel({ hour24, minute }: TimeValue): string {
+  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+/** Display form — always 24h, even when the stored label is legacy 12h. */
+export function formatTimeLabel(label: string | null | undefined): string {
+  return buildTimeLabel(parseTimeLabel(label));
 }
 
 export function parseTimeLabel(label: string | null | undefined): TimeValue {
-  const fallback: TimeValue = { hour12: 9, minute: 0, period: 'AM' };
+  const fallback: TimeValue = { hour24: 9, minute: 0 };
   if (!label) return fallback;
   const m = label.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
   if (!m) return fallback;
-  let hour12 = parseInt(m[1], 10);
+  let hour = parseInt(m[1], 10);
   let minute = parseInt(m[2], 10);
-  let period = (m[3]?.toUpperCase() as 'AM' | 'PM') ?? 'AM';
-  // Normalise a 24-hour value into 12-hour + period.
-  if (!m[3]) {
-    if (hour12 === 0) {
-      hour12 = 12;
-      period = 'AM';
-    } else if (hour12 === 12) {
-      period = 'PM';
-    } else if (hour12 > 12) {
-      hour12 -= 12;
-      period = 'PM';
-    }
+  const ap = m[3]?.toUpperCase() as 'AM' | 'PM' | undefined;
+  if (ap === 'AM') {
+    if (hour === 12) hour = 0;
+  } else if (ap === 'PM') {
+    if (hour !== 12) hour += 12;
+  } else {
+    // No period: treat as 24-hour (0–23). Clamp odd values.
+    if (hour > 23) hour = 23;
   }
   minute = Math.min(59, Math.max(0, minute));
-  return { hour12, minute, period };
+  hour = Math.min(23, Math.max(0, hour));
+  return { hour24: hour, minute };
 }
 
 // Minutes since midnight, for ordering. Unparseable labels sort to the end.
 export function timeToMinutes(label: string | null | undefined): number {
   if (!label) return Number.MAX_SAFE_INTEGER;
-  const m = label.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-  if (!m) return Number.MAX_SAFE_INTEGER;
-  let h = parseInt(m[1], 10);
-  const min = parseInt(m[2], 10);
-  const ap = m[3]?.toUpperCase();
-  if (ap === 'AM') {
-    if (h === 12) h = 0;
-  } else if (ap === 'PM') {
-    if (h !== 12) h += 12;
-  }
-  return h * 60 + min;
+  const { hour24, minute } = parseTimeLabel(label);
+  // Detect total parse failure: empty/garbage falls back to 09:00 — only treat
+  // as unparseable when the raw string doesn't look like a time at all.
+  if (!/^\d{1,2}:\d{2}/.test(label.trim())) return Number.MAX_SAFE_INTEGER;
+  return hour24 * 60 + minute;
 }
 
 // Device-local minutes since midnight (for the "now" timeline marker).
@@ -61,14 +54,12 @@ export function nowToMinutes(now: Date = new Date()): number {
   return now.getHours() * 60 + now.getMinutes();
 }
 
-// e.g. "3:42 PM" from a Date — matches itinerary time style.
+// e.g. "15:42" from a Date — matches itinerary 24-hour style.
 export function formatClock(now: Date = new Date()): string {
-  const minutes = now.getMinutes();
-  let hour24 = now.getHours();
-  const period: 'AM' | 'PM' = hour24 >= 12 ? 'PM' : 'AM';
-  let hour12 = hour24 % 12;
-  if (hour12 === 0) hour12 = 12;
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`;
+  return buildTimeLabel({
+    hour24: now.getHours(),
+    minute: now.getMinutes(),
+  });
 }
 
 // Compact paid-on date for settle-up rows (e.g. "12/07"). Uses local calendar day.

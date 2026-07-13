@@ -39,12 +39,9 @@ function timeToMinutes(label) {
 }
 
 function formatClock(now = new Date()) {
-  const minutes = now.getMinutes();
-  let hour24 = now.getHours();
-  const period = hour24 >= 12 ? 'PM' : 'AM';
-  let hour12 = hour24 % 12;
-  if (hour12 === 0) hour12 = 12;
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`;
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
 }
 
 // Mirror ItineraryTab row builder
@@ -68,8 +65,8 @@ function buildRows(items, isToday, now) {
 }
 
 const DAY1_ITEMS = [
-  { id: 'a', time_label: '5:30 PM', title: 'Land BKK, taxi to hotel' },
-  { id: 'b', time_label: '8:00 PM', title: 'Street food at Chinatown' },
+  { id: 'a', time_label: '17:30', title: 'Land BKK, taxi to hotel' },
+  { id: 'b', time_label: '20:00', title: 'Street food at Chinatown' },
 ];
 
 let passed = 0;
@@ -120,15 +117,15 @@ for (const [iso, expectLand, expectExact, note] of cases) {
 console.log('\n=== B. Helper: now marker insert + dim past ===\n');
 
 {
-  const now = new Date(2026, 7, 28, 18, 30); // 6:30 PM Day 1
+  const now = new Date(2026, 7, 28, 18, 30); // 18:30 Day 1
   const rows = buildRows(DAY1_ITEMS, true, now);
   const kinds = rows.map((r) => (r.kind === 'now' ? 'NOW' : `${r.item.time_label}${r.past ? '(dim)' : ''}`));
   assert(
-    '6:30 PM sits between 5:30 and 8:00',
-    kinds.join(' | ') === '5:30 PM(dim) | NOW | 8:00 PM',
+    '18:30 sits between 17:30 and 20:00',
+    kinds.join(' | ') === '17:30(dim) | NOW | 20:00',
     kinds.join(' | ')
   );
-  assert('formatClock(18:30) === 6:30 PM', formatClock(now) === '6:30 PM', formatClock(now));
+  assert('formatClock(18:30) === 18:30', formatClock(now) === '18:30', formatClock(now));
 }
 
 {
@@ -136,8 +133,8 @@ console.log('\n=== B. Helper: now marker insert + dim past ===\n');
   const rows = buildRows(DAY1_ITEMS, true, now);
   const kinds = rows.map((r) => (r.kind === 'now' ? 'NOW' : `${r.item.time_label}${r.past ? '(dim)' : ''}`));
   assert(
-    '4:00 PM before first activity → Now on top, none dimmed',
-    kinds.join(' | ') === 'NOW | 5:30 PM | 8:00 PM',
+    '16:00 before first activity → Now on top, none dimmed',
+    kinds.join(' | ') === 'NOW | 17:30 | 20:00',
     kinds.join(' | ')
   );
 }
@@ -147,8 +144,8 @@ console.log('\n=== B. Helper: now marker insert + dim past ===\n');
   const rows = buildRows(DAY1_ITEMS, true, now);
   const kinds = rows.map((r) => (r.kind === 'now' ? 'NOW' : `${r.item.time_label}${r.past ? '(dim)' : ''}`));
   assert(
-    '9:00 PM after last → both dimmed, Now at bottom',
-    kinds.join(' | ') === '5:30 PM(dim) | 8:00 PM(dim) | NOW',
+    '21:00 after last → both dimmed, Now at bottom',
+    kinds.join(' | ') === '17:30(dim) | 20:00(dim) | NOW',
     kinds.join(' | ')
   );
 }
@@ -302,7 +299,7 @@ async function runUiCase({ name, fakeIso, expectTodayBadge, expectNow, expectDim
   }
 }
 
-// Day 1 demo activities: Dinner 5:30 PM, Night market 8:00 PM
+// Day 1 demo activities: 17:30 land, 20:00 Chinatown
 await runUiCase({
   name: 'Jul12-before-trip',
   fakeIso: '2026-07-12T15:00:00',
@@ -316,7 +313,7 @@ await runUiCase({
   name: 'Aug28-1830-between',
   fakeIso: '2026-08-28T18:30:00',
   expectTodayBadge: true,
-  expectNow: '6:30 PM',
+  expectNow: '18:30',
   expectDimTitles: ['Land BKK, taxi to hotel'],
   expectNotDimTitles: ['Street food at Chinatown'],
 });
@@ -325,7 +322,7 @@ await runUiCase({
   name: 'Aug28-1600-before-first',
   fakeIso: '2026-08-28T16:00:00',
   expectTodayBadge: true,
-  expectNow: '4:00 PM',
+  expectNow: '16:00',
   expectDimTitles: [],
   expectNotDimTitles: ['Land BKK, taxi to hotel', 'Street food at Chinatown'],
 });
@@ -334,7 +331,7 @@ await runUiCase({
   name: 'Aug28-2100-after-last',
   fakeIso: '2026-08-28T21:00:00',
   expectTodayBadge: true,
-  expectNow: '9:00 PM',
+  expectNow: '21:00',
   expectDimTitles: ['Land BKK, taxi to hotel', 'Street food at Chinatown'],
   expectNotDimTitles: [],
 });
@@ -343,7 +340,7 @@ await runUiCase({
   name: 'Aug29-lands-day2-with-now',
   fakeIso: '2026-08-29T12:00:00',
   expectTodayBadge: true, // lands on Day 2 which is today
-  expectNow: '12:00 PM',
+  expectNow: '12:00',
   expectDimTitles: [],
 });
 

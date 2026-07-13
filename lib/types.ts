@@ -19,7 +19,7 @@ export interface TripSettings {
 export interface ItineraryItem {
   id: string;
   day_number: number;
-  time_label: string;
+  time_label: string; // 24h "HH:MM"; legacy "h:mm AM/PM" still displays
   title: string;
   location: string | null;
   notes: string | null; // misc notes — booking refs, meet points, etc.

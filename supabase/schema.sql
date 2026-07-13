@@ -33,7 +33,7 @@ on conflict (id) do nothing;
 create table if not exists itinerary_items (
   id uuid default uuid_generate_v4() primary key,
   day_number integer not null,
-  time_label text not null,    -- e.g., "8:00 AM", "Evening"
+  time_label text not null,    -- e.g., "17:30" (24h); legacy "8:00 AM" still parsed
   title text not null,         -- e.g., "Train Street Coffee"
   location text,               -- Address or Google Maps link
   notes text,                  -- misc notes (booking ref, meet point, bring X)

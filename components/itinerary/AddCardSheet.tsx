@@ -23,7 +23,7 @@ export default function AddCardSheet({
   const { addItineraryItem, updateItineraryItem } = useTripData();
   const editing = Boolean(item);
   const [time, setTime] = useState<TimeValue>(() =>
-    item ? parseTimeLabel(item.time_label) : { hour12: 9, minute: 0, period: 'AM' }
+    item ? parseTimeLabel(item.time_label) : { hour24: 9, minute: 0 }
   );
   const [title, setTitle] = useState(item?.title ?? '');
   const [location, setLocation] = useState(item?.location ?? '');
