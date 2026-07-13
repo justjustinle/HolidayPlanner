@@ -104,10 +104,10 @@ export default function ItineraryTab() {
     <div>
       <TabHeader
         title={
-          <>
+          <span className="inline-flex items-center gap-[0.22em] leading-none">
             Yarn
             <YarnLogo color={accent} />
-          </>
+          </span>
         }
       />
 
