@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { MapPin, Pencil, Trash2 } from 'lucide-react';
+import { Camera, MapPin, Pencil, Trash2 } from 'lucide-react';
 import MemoriesModal from './MemoriesModal';
 import AddCardSheet from './AddCardSheet';
 import ConfirmDialog from '../ui/ConfirmDialog';
+import { YarnTimelineNode } from './YarnTimelineRail';
 import { useTripData } from '../TripDataProvider';
+import { YARN_BRAND } from '@/lib/brand/yarn';
 import { parseTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
@@ -51,20 +53,8 @@ export default function ItineraryCard({
           </div>
         </div>
 
-        {/* Timeline rail */}
-        <div className="relative flex w-3 flex-none flex-col items-center">
-          <span
-            className="mt-1.5 h-2.5 w-2.5 flex-none rounded-full ring-2 ring-cream"
-            style={{ background: accentHex }}
-            aria-hidden
-          />
-          {!isLast && (
-            <span
-              className="mt-1 w-px flex-1 bg-black/10"
-              aria-hidden
-            />
-          )}
-        </div>
+        {/* Yarn thread timeline */}
+        <YarnTimelineNode isLast={isLast} accentHex={accentHex} />
 
         {/* Compact activity card — tap to edit (anyone) */}
         <div className="min-w-0 flex-1 pb-4">
@@ -106,6 +96,27 @@ export default function ItineraryCard({
                 )}
               </div>
               <div className="mt-0.5 flex flex-none items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMemoriesOpen(true);
+                  }}
+                  aria-label={
+                    photoCount > 0 ? `Photos, ${photoCount}` : 'Photos'
+                  }
+                  className="relative text-muted/55 hover:text-ink"
+                >
+                  <Camera size={15} />
+                  {photoCount > 0 && (
+                    <span
+                      className="absolute -right-1.5 -top-1.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-0.5 text-[9px] font-semibold leading-none text-white"
+                      style={{ background: YARN_BRAND.colors.gold }}
+                    >
+                      {photoCount}
+                    </span>
+                  )}
+                </button>
                 <span className="text-muted/55" aria-hidden>
                   <Pencil size={14} />
                 </span>
@@ -122,26 +133,6 @@ export default function ItineraryCard({
                 </button>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMemoriesOpen(true);
-              }}
-              className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-cream px-2.5 py-1 text-[12px] font-medium text-ink transition-colors hover:border-black/15 active:scale-[0.98]"
-            >
-              <span aria-hidden>📸</span>
-              <span>Photos</span>
-              {photoCount > 0 && (
-                <span
-                  className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
-                  style={{ background: accentHex }}
-                >
-                  {photoCount}
-                </span>
-              )}
-            </button>
           </div>
         </div>
       </div>

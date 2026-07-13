@@ -7,11 +7,12 @@ import ItineraryCard from '../itinerary/ItineraryCard';
 import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
+import YarnLogo from '../brand/YarnLogo';
 import DayPicker from '../ui/DayPicker';
 import TravelerFacepile from '../ui/TravelerFacepile';
 import WhoIsGoingSheet from '../ui/WhoIsGoingSheet';
-import { ThaiFlag, VietnamFlag } from '../ui/Flag';
 import { dayByNumber, dayNumberForDate, landingDayNumber } from '@/lib/trip';
+import { YARN_DEFAULT_ACCENT, setYarnFavicon } from '@/lib/brand/setYarnFavicon';
 import { nowToMinutes, timeToMinutes } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
@@ -43,9 +44,17 @@ export default function ItineraryTab() {
   useEffect(() => {
     document.documentElement.style.setProperty(
       '--city-accent',
-      selected?.accentHex ?? '#c9992e'
+      selected?.accentHex ?? YARN_DEFAULT_ACCENT
     );
   }, [selected?.accentHex]);
+
+  const accent = selected?.accentHex ?? YARN_DEFAULT_ACCENT;
+
+  // Themed yarn mark in the browser tab while this view is open.
+  useEffect(() => {
+    setYarnFavicon(accent);
+    return () => setYarnFavicon(YARN_DEFAULT_ACCENT);
+  }, [accent]);
 
   const items = useMemo(
     () =>
@@ -89,18 +98,16 @@ export default function ItineraryTab() {
     });
   }, [isToday, rows]);
 
-  const accent = selected?.accentHex ?? '#c9992e';
   const showEmpty = items.length === 0 && !isToday;
 
   return (
     <div>
       <TabHeader
-        title="Thailand & Vietnam"
-        titleExtra={
-          <span className="flex items-center gap-1.5">
-            <ThaiFlag size={24} />
-            <VietnamFlag size={24} />
-          </span>
+        title={
+          <>
+            Yarn
+            <YarnLogo size={28} color={accent} />
+          </>
         }
       />
 

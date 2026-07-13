@@ -13,7 +13,10 @@ export const metadata: Metadata = {
     title: 'Yarn',
   },
   icons: {
-    icon: '/icons/icon-192.png',
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/icons/icon-192.png',
   },
 };

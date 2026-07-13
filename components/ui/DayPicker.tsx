@@ -52,15 +52,15 @@ export default function DayPicker({
             className={chip(active)}
             style={active ? { background: d.accentHex } : undefined}
           >
-            <span className="flex items-center gap-1.5 text-[13px] font-semibold">
+            <span className="text-[13px] font-semibold">{d.dateLabel}</span>
+            <span
+              className={`flex items-center gap-1 text-[10px] ${active ? 'text-white/70' : 'text-muted'}`}
+            >
               <span
                 className="inline-block h-1.5 w-1.5 rounded-full"
                 style={{ background: active ? '#ffffff' : d.accentHex }}
               />
-              {d.destination}
-            </span>
-            <span className={`text-[10px] ${active ? 'text-white/70' : 'text-muted'}`}>
-              {d.dateLabel.slice(4)} · {d.label}
+              {d.label}. {d.destination}
             </span>
           </button>
         );

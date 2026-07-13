@@ -1,11 +1,11 @@
 # Yarn — Brand Assets
 
-Standalone branding package for the **Yarn** rebrand. These files are **not wired into the app yet** — existing `/public/icons/` and manifest graphics are untouched.
+Standalone branding package for the **Yarn** rebrand. Live app surfaces (`/public/icons/`, manifest, itinerary header) use the gold mark; regenerate here when geometry or palette changes.
 
 Regenerate everything:
 
 ```bash
-node scripts/gen-yarn-brand.mjs
+npx tsx scripts/gen-yarn-brand.ts
 ```
 
 Open `brand/yarn/preview.html` in a browser to review the full set.
@@ -69,7 +69,7 @@ brand/yarn/
 
 ## Mark construction
 
-The yarn-ball icon matches the original reference: **thick stroke line art** with an outer ring, intersecting winding curves inside the ball, and a trailing strand with rounded caps. Each colour variant is single-tone; the dual-tone file reproduces the black ball + terracotta strand from the reference sheet.
+The yarn-ball icon matches the reference sheet: **outer ring + winding interior curves + trailing strand**. Geometry lives in `lib/brand/yarn-icon.ts` (single source for SVG, React `YarnLogo`, and PNG export via resvg).
 
 ## Next steps (when ready to rebrand)
 
