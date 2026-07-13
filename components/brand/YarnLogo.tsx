@@ -10,7 +10,7 @@ const INLINE_ASPECT = 205 / 155;
 
 /** Inline yarn-ball mark from the proposed SVG (single filled path). */
 export default function YarnLogo({
-  /** Pixel height. Omit to size with the parent font (`1.15em`). */
+  /** Pixel height. Omit to size with the parent font (`1em`). */
   size,
   color = YARN_DEFAULT_ACCENT,
   className = '',
