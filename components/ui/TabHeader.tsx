@@ -28,14 +28,14 @@ export default function TabHeader({ action }: { action?: React.ReactNode }) {
         </button>
 
         <div className="min-w-0 flex-1">
-          <h1 className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-serif text-[28px] font-semibold leading-[1.15] text-ink">
-            <span className="min-w-0">{TRIP_TITLE}</span>
+          <h1 className="flex min-w-0 items-center gap-2 font-serif text-[26px] font-semibold leading-tight text-ink">
+            <span className="min-w-0 truncate">{TRIP_TITLE}</span>
             <span
-              className="inline-flex flex-none items-center gap-1 self-center"
+              className="inline-flex shrink-0 items-center gap-1"
               aria-label="Thailand and Vietnam"
             >
-              <ThaiFlag size={22} />
-              <VietnamFlag size={22} />
+              <ThaiFlag size={20} />
+              <VietnamFlag size={20} />
             </span>
           </h1>
           <p className="mt-1 text-[13px] leading-snug text-muted">{dates}</p>
