@@ -106,7 +106,7 @@ export default function ItineraryTab() {
         title={
           <>
             Yarn
-            <YarnLogo size={28} color={accent} />
+            <YarnLogo color={accent} />
           </>
         }
       />

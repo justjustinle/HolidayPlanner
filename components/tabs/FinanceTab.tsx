@@ -78,7 +78,7 @@ export default function FinanceTab() {
 
   return (
     <div>
-      <TabHeader eyebrow="Shared expenses" title="Expenses" />
+      <TabHeader title="Expenses" />
 
       <div className="space-y-6 px-5 pb-8 pt-4">
         {/* personal summary — high-visibility balance for the logged-in user */}

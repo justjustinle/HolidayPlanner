@@ -54,7 +54,7 @@ export default function TabHeader({
               all sit on the same line, vertically centered. The title
               truncates rather than wrapping if space ever runs out. */}
           <div className="mt-1 flex items-center gap-2">
-            <h1 className="flex min-w-0 items-center gap-2 truncate font-serif text-[26px] font-semibold leading-tight text-ink">
+            <h1 className="flex min-w-0 items-center gap-2.5 truncate font-serif text-[36px] font-semibold leading-none text-ink">
               {title}
             </h1>
             {titleExtra && (

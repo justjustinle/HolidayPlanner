@@ -1,9 +1,17 @@
 import { YARN_ICON } from '@/lib/brand/yarn-icon';
 import { YARN_DEFAULT_ACCENT } from '@/lib/brand/setYarnFavicon';
 
+/**
+ * Crop around the ball + loose end so the mark fills the box.
+ * Sized in `em` by default so it tracks the parent header text.
+ */
+const INLINE_VIEWBOX = '55 88 205 155';
+const INLINE_ASPECT = 205 / 155;
+
 /** Inline yarn-ball mark from the proposed SVG (single filled path). */
 export default function YarnLogo({
-  size = 28,
+  /** Pixel height. Omit to size with the parent font (`1.15em`). */
+  size,
   color = YARN_DEFAULT_ACCENT,
   className = '',
 }: {
@@ -11,17 +19,24 @@ export default function YarnLogo({
   color?: string;
   className?: string;
 }) {
-  // Preserve artboard aspect (328×308) so the mark isn't squashed.
-  const height = Math.round((size * YARN_ICON.height) / YARN_ICON.width);
+  // Slightly over 1em so the ball optically matches the serif capitals.
+  const em = 1.2;
 
   return (
     <svg
-      width={size}
-      height={height}
-      viewBox={YARN_ICON.viewBox}
+      width={size != null ? Math.round(size * INLINE_ASPECT) : undefined}
+      height={size}
+      viewBox={INLINE_VIEWBOX}
       fill="none"
       aria-hidden
-      className={className}
+      className={['inline-block shrink-0 align-middle', className]
+        .filter(Boolean)
+        .join(' ')}
+      style={
+        size == null
+          ? { width: `${INLINE_ASPECT * em}em`, height: `${em}em` }
+          : undefined
+      }
     >
       <path
         d={YARN_ICON.path}
