@@ -1,7 +1,7 @@
 {
-  "name": "Vietnam & Thailand Trip Planner",
-  "short_name": "SEA Trip",
-  "description": "Collaborative travel planner — itinerary, memories, expenses, and packing.",
+  "name": "Yarn",
+  "short_name": "Yarn",
+  "description": "Collaborative travel planner — itinerary, memories, shared expenses, and stats.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
