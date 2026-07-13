@@ -69,7 +69,7 @@ brand/yarn/
 
 ## Mark construction
 
-The yarn-ball icon matches the reference sheet: **outer ring + winding interior curves + trailing strand**. Geometry lives in `lib/brand/yarn-icon.ts` (single source for SVG, React `YarnLogo`, and PNG export via resvg).
+The yarn-ball icon matches the proposed mark: **outer ring + parallel wrapping strands (bowing down left→right) + U-shaped loose end**. Geometry lives in `lib/brand/yarn-icon.ts` (single source for SVG, React `YarnLogo`, and PNG export via resvg).
 
 ## Next steps (when ready to rebrand)
 
