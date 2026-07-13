@@ -8,13 +8,23 @@ import { TRIP_ID } from '@/lib/notifications/config';
 // device); re-subscribing from the same device updates the existing row, and
 // a device previously registered to another profile is re-owned (shared iPad
 // scenario — last person to enable push on it wins).
+//
+// DELETE /api/notifications/subscribe
+//   { profileId, endpoint }
+// Removes this device's row so digests stop. Safe if the row is already gone.
 
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+function supabaseOr503() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
+  if (!url || !anonKey) return null;
+  return createClient(url, anonKey, { auth: { persistSession: false } });
+}
+
+export async function POST(req: Request) {
+  const db = supabaseOr503();
+  if (!db) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 
@@ -41,8 +51,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const db = createClient(url, anonKey, { auth: { persistSession: false } });
-
   const { error } = await db.from('push_subscriptions').upsert(
     {
       profile_id: profileId,
@@ -64,4 +72,38 @@ export async function POST(req: Request) {
   );
 
   return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: Request) {
+  const db = supabaseOr503();
+  if (!db) {
+    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  }
+
+  let body: { profileId?: string; endpoint?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+  }
+
+  const { profileId, endpoint } = body;
+  if (!profileId || !endpoint) {
+    return NextResponse.json(
+      { error: 'profileId and endpoint are required.' },
+      { status: 400 }
+    );
+  }
+
+  const { error, count } = await db
+    .from('push_subscriptions')
+    .delete({ count: 'exact' })
+    .eq('profile_id', profileId)
+    .eq('endpoint', endpoint);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, deleted: count ?? 0 });
 }
