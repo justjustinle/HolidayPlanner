@@ -78,12 +78,9 @@ export default function FinanceTab() {
 
   return (
     <div>
-      <TabHeader />
+      <TabHeader variant="section" title="Expenses" />
 
       <div className="space-y-6 px-5 pb-8 pt-4">
-        <h2 className="font-serif text-[28px] font-semibold leading-none text-ink">
-          Expenses
-        </h2>
         {me && (
           <div
             className={
