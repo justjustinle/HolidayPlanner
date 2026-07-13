@@ -9,7 +9,7 @@ export const YARN_BRAND = {
   },
   colors: {
     black: '#1A1A1A',
-    gold: '#B8963E',
+    gold: '#c59837',
     terracotta: '#C4613A',
     teal: '#2A6875',
     forest: '#2F5A42',
