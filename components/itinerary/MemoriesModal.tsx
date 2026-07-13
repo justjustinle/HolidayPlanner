@@ -182,7 +182,7 @@ export default function MemoriesModal({
                 <p className="mt-0.5 text-[13px] text-muted">
                   {formatTimeLabel(item.time_label)}
                   {item.end_time_label
-                    ? `–${formatTimeLabel(item.end_time_label)}`
+                    ? ` TO ${formatTimeLabel(item.end_time_label)}`
                     : ''}
                 </p>
               )}

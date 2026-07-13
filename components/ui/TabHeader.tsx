@@ -1,176 +1,56 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { LogOut, Camera, BellOff, BellRing, Loader2, Users } from 'lucide-react';
-import Avatar from './Avatar';
+import { useState } from 'react';
+import { Menu } from 'lucide-react';
+import AppDrawer from './AppDrawer';
+import TravelerFacepile from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
-import YarnLogo from '../brand/YarnLogo';
-import { useTripData } from '../TripDataProvider';
-import {
-  disablePush,
-  enablePush,
-  isPushEnabled,
-} from '@/lib/notifications/client';
+import { ThaiFlag, VietnamFlag } from './Flag';
+import { TRIP_TITLE, tripDateRangeLabel } from '@/lib/trip';
 
-// Shared header: Yarn mark top-left, title beside it; account avatar top-right.
-// Same layout on Itinerary / Expenses / Stats.
-export default function TabHeader({
-  eyebrow,
-  title,
-  titleExtra,
-  action,
-}: {
-  eyebrow?: string;
-  title: React.ReactNode;
-  titleExtra?: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  const { me, signOut, setMyPhoto } = useTripData();
-  const [open, setOpen] = useState(false);
+// Shared trip identity header on every tab: hamburger → left drawer, trip
+// title with inline flags, date meta, and overlapping traveler facepile.
+export default function TabHeader({ action }: { action?: React.ReactNode }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
-  // 'idle' = off / unknown; do not treat Notification.permission alone as on —
-  // permission stays "granted" after unsubscribe and would fake a stuck "on".
-  const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
-    'idle'
-  );
-  const fileRef = useRef<HTMLInputElement>(null);
-  const notificationsOn = pushState === 'on';
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const enabled = await isPushEnabled();
-      if (!cancelled) setPushState(enabled ? 'on' : 'idle');
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [me?.id]);
-
-  const onTogglePush = async () => {
-    if (!me || pushState === 'busy') return;
-    const turningOff = pushState === 'on';
-    setPushState('busy');
-    const result = turningOff
-      ? await disablePush(me.id)
-      : await enablePush(me.id);
-    if (result.ok) {
-      setPushState(turningOff ? 'idle' : 'on');
-    } else {
-      // Keep prior on/off when possible; only fall to error if we can't tell.
-      const stillOn = await isPushEnabled();
-      setPushState(stillOn ? 'on' : result.reason === 'denied' ? 'idle' : 'error');
-    }
-  };
-
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setOpen(false);
-    await setMyPhoto(file);
-  };
+  const dates = tripDateRangeLabel();
 
   return (
-    <header className="px-5 pt-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          {/* Brand mark — top-left on every tab, follows city accent. */}
-          <span
-            className="flex flex-none items-center text-[var(--city-accent)]"
-            aria-hidden
-          >
-            <YarnLogo size={36} color="currentColor" />
-          </span>
+    <header className="px-5 pt-4">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open menu"
+          className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-full text-ink hover:bg-black/5"
+        >
+          <Menu size={22} strokeWidth={2} />
+        </button>
 
-          <div className="min-w-0">
-            {eyebrow && <div className="text-[12px] text-muted">{eyebrow}</div>}
-            <div className={`${eyebrow ? 'mt-1' : ''} flex items-center gap-2`}>
-              <h1 className="min-w-0 truncate font-serif text-[36px] font-semibold leading-none text-ink">
-                {title}
-              </h1>
-              {titleExtra && (
-                <span className="flex flex-none items-center whitespace-nowrap">
-                  {titleExtra}
-                </span>
-              )}
-            </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="flex min-w-0 items-center gap-2 font-serif text-[26px] font-semibold leading-tight text-ink">
+            <span className="min-w-0 truncate">{TRIP_TITLE}</span>
+            <span
+              className="inline-flex shrink-0 items-center gap-1"
+              aria-label="Thailand and Vietnam"
+            >
+              <ThaiFlag size={20} />
+              <VietnamFlag size={20} />
+            </span>
+          </h1>
+          <p className="mt-1 text-[13px] leading-snug text-muted">{dates}</p>
+          <div className="mt-2.5 flex items-center gap-3">
+            <TravelerFacepile onOpen={() => setRosterOpen(true)} size={26} />
+            {action}
           </div>
-        </div>
-
-        <div className="flex flex-none items-center gap-2.5">
-          {action}
-          {me && (
-            <div className="relative">
-              <button onClick={() => setOpen((o) => !o)} aria-label="Account">
-                <Avatar name={me.name} src={me.avatar_url} size={38} />
-              </button>
-              {open && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-                  <div className="absolute right-0 z-30 mt-2 w-52 rounded-xl border border-black/5 bg-cream-card p-1 shadow-polaroid">
-                    <div className="px-3 py-2 text-[13px] text-muted">
-                      Signed in as <span className="font-medium text-ink">{me.name}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setOpen(false);
-                        setRosterOpen(true);
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
-                    >
-                      <Users size={15} /> Who&apos;s going
-                    </button>
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
-                    >
-                      <Camera size={15} />{' '}
-                      {me.avatar_url ? 'Change profile picture' : 'Add profile picture'}
-                    </button>
-                    <button
-                      onClick={onTogglePush}
-                      disabled={pushState === 'busy'}
-                      aria-pressed={notificationsOn}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
-                    >
-                      {pushState === 'busy' ? (
-                        <Loader2 size={15} className="animate-spin" />
-                      ) : notificationsOn ? (
-                        <BellRing size={15} />
-                      ) : (
-                        <BellOff size={15} />
-                      )}
-                      {pushState === 'busy'
-                        ? 'Updating…'
-                        : pushState === 'error'
-                          ? 'Notifications failed — retry'
-                          : notificationsOn
-                            ? 'Notifications on'
-                            : 'Notifications off'}
-                    </button>
-                    <button
-                      onClick={signOut}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
-                    >
-                      <LogOut size={15} /> Log out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="user"
-            onChange={onPick}
-            className="hidden"
-          />
         </div>
       </div>
 
+      <AppDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onOpenRoster={() => setRosterOpen(true)}
+      />
       {rosterOpen && <WhoIsGoingSheet onClose={() => setRosterOpen(false)} />}
     </header>
   );

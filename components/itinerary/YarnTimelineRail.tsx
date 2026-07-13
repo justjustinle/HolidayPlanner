@@ -2,7 +2,7 @@
 function YarnThreadSegment({ accentHex }: { accentHex: string }) {
   return (
     <svg
-      className="mt-0.5 min-h-[20px] w-4 flex-1"
+      className="mt-0.5 max-h-[56px] min-h-[20px] w-4 flex-1"
       preserveAspectRatio="none"
       viewBox="0 0 16 100"
       aria-hidden

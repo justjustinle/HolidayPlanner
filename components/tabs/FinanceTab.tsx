@@ -78,10 +78,12 @@ export default function FinanceTab() {
 
   return (
     <div>
-      <TabHeader title="Expenses" />
+      <TabHeader />
 
       <div className="space-y-6 px-5 pb-8 pt-4">
-        {/* personal summary — high-visibility balance for the logged-in user */}
+        <h2 className="font-serif text-[28px] font-semibold leading-none text-ink">
+          Expenses
+        </h2>
         {me && (
           <div
             className={

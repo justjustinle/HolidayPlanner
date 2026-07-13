@@ -46,13 +46,16 @@ export default function StatsTab() {
 
   return (
     <div>
-      <TabHeader title="My Stats" />
+      <TabHeader />
 
       <div className="px-5 pb-10 pt-4">
+        <h2 className="mb-4 font-serif text-[28px] font-semibold leading-none text-ink">
+          My Stats
+        </h2>
         {/* cumulative self counters */}
         {!me && (
           <p className="mb-3 rounded-xl bg-black/5 px-3 py-2 text-[13px] text-muted">
-            Sign in from the avatar menu to log your stats.
+            Sign in from the menu to log your stats.
           </p>
         )}
         <div className="mb-4 grid grid-cols-2 gap-2">
