@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yarn — Brand Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --cream: #f7f1e6;
+        --ink: #3a352c;
+        --gold: #b8963e;
+        --terracotta: #c4613a;
+        --teal: #2a6875;
+        --forest: #2f5a42;
+        --font-yarn: 'Varela Round', system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 32px 20px 64px;
+        font-family: system-ui, sans-serif;
+        background: #efe7d7;
+        color: var(--ink);
+      }
+      h1,
+      h2 {
+        font-family: var(--font-yarn);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+      }
+      h1 {
+        font-size: 2.5rem;
+        margin: 0 0 8px;
+      }
+      .subtitle {
+        color: #8a8172;
+        margin-bottom: 32px;
+      }
+      section {
+        margin-bottom: 40px;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      }
+      .card {
+        background: var(--cream);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 1px 2px rgba(60, 40, 20, 0.05);
+      }
+      .card img {
+        width: 96px;
+        height: 96px;
+        object-fit: contain;
+      }
+      .card p {
+        margin: 12px 0 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .card code {
+        font-size: 0.75rem;
+        color: #8a8172;
+      }
+      .wordmark-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .wordmark-row img {
+        height: 72px;
+        border-radius: 12px;
+      }
+      .lockup-row img {
+        height: 80px;
+        border-radius: 12px;
+      }
+      .palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .swatch {
+        width: 120px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 1px 2px rgba(60, 40, 20, 0.08);
+      }
+      .swatch-color {
+        height: 64px;
+      }
+      .swatch-label {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+      }
+      .swatch-label strong {
+        display: block;
+      }
+      .type-sample {
+        font-family: var(--font-yarn);
+        font-size: 3rem;
+        letter-spacing: -0.02em;
+        color: var(--forest);
+        background: var(--cream);
+        padding: 24px 32px;
+        border-radius: 16px;
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Yarn</h1>
+    <p class="subtitle">Brand asset preview — existing app graphics unchanged</p>
+
+    <section>
+      <h2>Typeface</h2>
+      <p>
+        <strong>Varela Round</strong> (Google Fonts) — rounded geometric sans
+        that pairs with the organic yarn-ball mark.
+      </p>
+      <div class="type-sample">Yarn</div>
+    </section>
+
+    <section>
+      <h2>Palette</h2>
+      <div class="palette">
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--gold)"></div>
+          <div class="swatch-label"><strong>Gold</strong>#B8963E</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--terracotta)"></div>
+          <div class="swatch-label"><strong>Terracotta</strong>#C4613A</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--teal)"></div>
+          <div class="swatch-label"><strong>Teal</strong>#2A6875</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--forest)"></div>
+          <div class="swatch-label"><strong>Forest</strong>#2F5A42</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--cream)"></div>
+          <div class="swatch-label"><strong>Cream</strong>#F7F1E6</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background: var(--ink)"></div>
+          <div class="swatch-label"><strong>Ink</strong>#3A352C</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Icons</h2>
+      <div class="grid">
+        <div class="card">
+          <img src="icons/icon-gold.svg" alt="Gold icon" />
+          <p>Gold</p>
+          <code>#B8963E</code>
+        </div>
+        <div class="card">
+          <img src="icons/icon-terracotta.svg" alt="Terracotta icon" />
+          <p>Terracotta</p>
+          <code>#C4613A</code>
+        </div>
+        <div class="card">
+          <img src="icons/icon-teal.svg" alt="Teal icon" />
+          <p>Teal</p>
+          <code>#2A6875</code>
+        </div>
+        <div class="card">
+          <img src="icons/icon-forest.svg" alt="Forest icon" />
+          <p>Forest</p>
+          <code>#2F5A42</code>
+        </div>
+        <div class="card">
+          <img src="icons/icon-dual-ink-terracotta.svg" alt="Dual-tone icon" />
+          <p>Dual (ink + terracotta)</p>
+          <code>Reference sheet</code>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Wordmarks</h2>
+      <div class="wordmark-row">
+        <img src="wordmarks/wordmark-gold-on-cream.svg" alt="Gold wordmark" />
+        <img src="wordmarks/wordmark-terracotta-on-cream.svg" alt="Terracotta wordmark" />
+        <img src="wordmarks/wordmark-teal-on-cream.svg" alt="Teal wordmark" />
+        <img src="wordmarks/wordmark-forest-on-cream.svg" alt="Forest wordmark" />
+      </div>
+    </section>
+
+    <section>
+      <h2>Lockups</h2>
+      <div class="lockup-row">
+        <img src="lockups/lockup-gold.svg" alt="Gold lockup" />
+        <img src="lockups/lockup-terracotta.svg" alt="Terracotta lockup" />
+        <img src="lockups/lockup-teal.svg" alt="Teal lockup" />
+        <img src="lockups/lockup-forest.svg" alt="Forest lockup" />
+      </div>
+    </section>
+  </body>
+</html>
