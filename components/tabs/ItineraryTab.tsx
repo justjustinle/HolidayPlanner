@@ -7,11 +7,12 @@ import ItineraryCard from '../itinerary/ItineraryCard';
 import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
+import YarnLogo from '../brand/YarnLogo';
 import DayPicker from '../ui/DayPicker';
 import TravelerFacepile from '../ui/TravelerFacepile';
 import WhoIsGoingSheet from '../ui/WhoIsGoingSheet';
-import { ThaiFlag, VietnamFlag } from '../ui/Flag';
 import { dayByNumber, dayNumberForDate, landingDayNumber } from '@/lib/trip';
+import { YARN_DEFAULT_ACCENT, setYarnFavicon } from '@/lib/brand/setYarnFavicon';
 import { nowToMinutes, timeToMinutes } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
@@ -43,9 +44,17 @@ export default function ItineraryTab() {
   useEffect(() => {
     document.documentElement.style.setProperty(
       '--city-accent',
-      selected?.accentHex ?? '#c9992e'
+      selected?.accentHex ?? YARN_DEFAULT_ACCENT
     );
   }, [selected?.accentHex]);
+
+  const accent = selected?.accentHex ?? YARN_DEFAULT_ACCENT;
+
+  // Themed yarn mark in the browser tab while this view is open.
+  useEffect(() => {
+    setYarnFavicon(accent);
+    return () => setYarnFavicon(YARN_DEFAULT_ACCENT);
+  }, [accent]);
 
   const items = useMemo(
     () =>
@@ -89,18 +98,16 @@ export default function ItineraryTab() {
     });
   }, [isToday, rows]);
 
-  const accent = selected?.accentHex ?? '#c9992e';
   const showEmpty = items.length === 0 && !isToday;
 
   return (
     <div>
       <TabHeader
-        title="Thailand & Vietnam"
-        titleExtra={
-          <span className="flex items-center gap-1.5">
-            <ThaiFlag size={24} />
-            <VietnamFlag size={24} />
-          </span>
+        title={
+          <>
+            Yarn
+            <YarnLogo color={accent} />
+          </>
         }
       />
 
@@ -112,17 +119,23 @@ export default function ItineraryTab() {
         <DayPicker value={day} onChange={setDay} />
 
         {selected && (
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-baseline gap-2">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-2">
               <span
-                className="inline-block h-2 w-2 flex-none self-center rounded-full"
+                className="mt-2 inline-block h-2 w-2 flex-none rounded-full"
                 style={{ background: selected.accentHex }}
               />
-              <h2 className="font-serif text-[18px] text-ink">{selected.destination}</h2>
-              <span className="text-[12px] text-muted">
-                {selected.label} · {selected.dateLabel}
-                {isToday && <span className="ml-1 font-medium text-ink">· Today</span>}
-              </span>
+              <div className="min-w-0">
+                <h2 className="font-serif text-[18px] leading-tight text-ink">
+                  {selected.destination}
+                </h2>
+                <p className="mt-0.5 text-[12px] leading-snug text-muted">
+                  {selected.label} · {selected.dateLabel}
+                  {isToday && (
+                    <span className="ml-1 font-medium text-ink">· Today</span>
+                  )}
+                </p>
+              </div>
             </div>
             <button
               onClick={() => setAdding(true)}

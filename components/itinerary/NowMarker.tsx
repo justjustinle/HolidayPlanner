@@ -2,6 +2,7 @@
 
 import { forwardRef } from 'react';
 import { formatClock, parseTimeLabel } from '@/lib/time';
+import { YarnTimelineNowNode } from './YarnTimelineRail';
 
 // "You are here" node on today's timeline. Matches the activity rail layout so
 // it slots cleanly between cards.
@@ -27,22 +28,7 @@ const NowMarker = forwardRef<
         </div>
       </div>
 
-      <div className="relative flex w-3 flex-none flex-col items-center">
-        <span
-          className="relative mt-1.5 flex h-3 w-3 flex-none items-center justify-center"
-          aria-hidden
-        >
-          <span
-            className="absolute inset-0 animate-ping rounded-full opacity-40"
-            style={{ background: accentHex }}
-          />
-          <span
-            className="relative h-3 w-3 rounded-full ring-2 ring-cream"
-            style={{ background: accentHex }}
-          />
-        </span>
-        {!isLast && <span className="mt-1 w-px flex-1 bg-black/10" aria-hidden />}
-      </div>
+      <YarnTimelineNowNode isLast={isLast} accentHex={accentHex} />
 
       <div className="min-w-0 flex-1 pb-4">
         <div
@@ -58,6 +44,7 @@ const NowMarker = forwardRef<
           >
             Now
           </span>
+          <span className="text-[13px] text-muted">You are here</span>
         </div>
       </div>
     </div>

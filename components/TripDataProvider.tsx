@@ -14,7 +14,13 @@ import {
   supabase,
   SUPABASE_BUCKET,
 } from '@/lib/supabase';
-import { formatGbp, toGbp, round2, splitEqually } from '@/lib/currency';
+import {
+  formatGbp,
+  toGbp,
+  round2,
+  splitEqually,
+  localSharesToGbp,
+} from '@/lib/currency';
 import { TRIP_ID, type EventType } from '@/lib/notifications/config';
 import { SETTLEMENT_LABEL } from '@/lib/types';
 import { compressToWebp, fileToDataUrl } from '@/lib/image';
@@ -51,6 +57,23 @@ function genId(): string {
   return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+// Build GBP amount_owed values for `parts`. Custom local shares win when they
+// cover every participant and sum to the local total; otherwise equal split.
+function resolveSharesGbp(
+  parts: string[],
+  localTotal: number,
+  baseGbp: number,
+  customSharesLocal?: { userId: string; amount: number }[]
+): number[] {
+  if (!customSharesLocal?.length) return splitEqually(baseGbp, parts.length);
+  const byUser = new Map(customSharesLocal.map((s) => [s.userId, round2(s.amount)]));
+  if (!parts.every((id) => byUser.has(id))) return splitEqually(baseGbp, parts.length);
+  const localShares = parts.map((id) => byUser.get(id)!);
+  const sum = round2(localShares.reduce((a, b) => a + b, 0));
+  if (sum !== round2(localTotal)) return splitEqually(baseGbp, parts.length);
+  return localSharesToGbp(localShares, round2(localTotal), baseGbp);
+}
+
 export interface NewExpenseInput {
   label: string;
   dayNumber: number;
@@ -58,6 +81,9 @@ export interface NewExpenseInput {
   currency: CurrencyCode;
   paidById: string;
   participantIds: string[];
+  // Optional custom local-currency amounts (same currency as `amount`), one
+  // per participant, summing to `amount`. When omitted, splits are equal.
+  customSharesLocal?: { userId: string; amount: number }[];
 }
 
 export interface NewReceiptInput {
@@ -66,7 +92,13 @@ export interface NewReceiptInput {
   currency: CurrencyCode;
   total: number;
   paidById: string;
-  items: { name: string; quantity: number; price: number }[];
+  items: {
+    id?: string;
+    name: string;
+    quantity: number;
+    price: number;
+    claimed_by_id?: string | null;
+  }[];
   imageFile?: File | null;
 }
 
@@ -103,6 +135,7 @@ interface TripDataValue {
   addExpense: (input: NewExpenseInput) => Promise<void>;
   updateExpense: (id: string, input: NewExpenseInput) => Promise<void>;
   addReceiptExpense: (input: NewReceiptInput) => Promise<void>;
+  updateReceiptExpense: (expenseId: string, input: NewReceiptInput) => Promise<void>;
   setItemClaim: (itemId: string, userId: string | null) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   // Log a peer-to-peer "Settle Up" payment: `fromId` (debtor) pays `toId`
@@ -615,10 +648,18 @@ export default function TripDataProvider({
   );
 
   const addExpense = useCallback<TripDataValue['addExpense']>(
-    async ({ label, dayNumber, amount, currency, paidById, participantIds }) => {
+    async ({
+      label,
+      dayNumber,
+      amount,
+      currency,
+      paidById,
+      participantIds,
+      customSharesLocal,
+    }) => {
       const baseGbp = toGbp(amount, currency, settings);
       const parts = participantIds.length ? participantIds : [paidById];
-      const shares = splitEqually(baseGbp, parts.length);
+      const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
 
       if (demoMode) {
         const expId = genId();
@@ -688,17 +729,20 @@ export default function TripDataProvider({
     [demoMode, me, recordActivity, refetchAll, settings]
   );
 
-  // Edit an existing expense. Manual expenses get their equal splits rebuilt
-  // from the new amount/participants; receipt expenses keep their line items
-  // (claims drive the settlement) and just sync the merchant label.
+  // Edit an existing expense. Manual expenses rebuild splits from the new
+  // amount/participants (equal or custom); receipt expenses keep their line
+  // items (claims drive the settlement) and just sync the merchant label.
   const updateExpense = useCallback<TripDataValue['updateExpense']>(
-    async (id, { label, dayNumber, amount, currency, paidById, participantIds }) => {
+    async (
+      id,
+      { label, dayNumber, amount, currency, paidById, participantIds, customSharesLocal }
+    ) => {
       const existing = expenses.find((e) => e.id === id);
       if (!existing) return;
       const isManual = existing.kind !== 'receipt';
       const baseGbp = toGbp(amount, currency, settings);
       const parts = participantIds.length ? participantIds : [paidById];
-      const shares = splitEqually(baseGbp, parts.length);
+      const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
       const patch = {
         label,
         day_number: dayNumber,
@@ -838,6 +882,132 @@ export default function TripDataProvider({
       await refetchAll();
     },
     [demoMode, recordActivity, refetchAll, settings]
+  );
+
+  // Update an existing receipt expense + its line items. Keeps claims on
+  // items that still exist (matched by id); removed lines drop their claims.
+  const updateReceiptExpense = useCallback<TripDataValue['updateReceiptExpense']>(
+    async (expenseId, { merchant, dayNumber, currency, total, paidById, items, imageFile }) => {
+      const label = merchant.trim() || 'Receipt';
+      const baseGbp = toGbp(total, currency, settings);
+      const cleanItems = items
+        .map((i) => ({
+          id: i.id,
+          name: i.name.trim() || 'Item',
+          quantity: Math.max(1, Math.round(i.quantity) || 1),
+          local_amount: round2(i.price),
+          claimed_by_id: i.claimed_by_id ?? null,
+        }))
+        .filter((i) => i.local_amount > 0);
+
+      const existingReceipt = receipts.find((r) => r.expense_id === expenseId);
+      if (!existingReceipt) throw new Error('Receipt not found');
+
+      if (demoMode) {
+        setExpenses((prev) =>
+          prev.map((e) =>
+            e.id === expenseId
+              ? {
+                  ...e,
+                  label,
+                  day_number: dayNumber,
+                  local_amount: round2(total),
+                  local_currency: currency,
+                  base_amount_gbp: baseGbp,
+                  paid_by_id: paidById,
+                }
+              : e
+          )
+        );
+        let imageUrl = existingReceipt.image_url;
+        if (imageFile) {
+          imageUrl = await fileToDataUrl(await compressToWebp(imageFile));
+        }
+        setReceipts((prev) =>
+          prev.map((r) =>
+            r.id === existingReceipt.id
+              ? { ...r, merchant: label, image_url: imageUrl }
+              : r
+          )
+        );
+        setReceiptItems((prev) => {
+          const others = prev.filter((i) => i.receipt_id !== existingReceipt.id);
+          const previous = prev.filter((i) => i.receipt_id === existingReceipt.id);
+          const next = cleanItems.map((i) => {
+            const prior = i.id ? previous.find((p) => p.id === i.id) : undefined;
+            return {
+              id: prior?.id ?? genId(),
+              receipt_id: existingReceipt.id,
+              name: i.name,
+              quantity: i.quantity,
+              local_amount: i.local_amount,
+              claimed_by_id: prior?.claimed_by_id ?? i.claimed_by_id ?? null,
+            };
+          });
+          return [...others, ...next];
+        });
+        return;
+      }
+
+      const { error } = await supabase!
+        .from('expenses')
+        .update({
+          label,
+          day_number: dayNumber,
+          local_amount: round2(total),
+          local_currency: currency,
+          base_amount_gbp: baseGbp,
+          paid_by_id: paidById,
+        })
+        .eq('id', expenseId);
+      if (error) throw error;
+
+      let image_url = existingReceipt.image_url;
+      if (imageFile) {
+        const compressed = await compressToWebp(imageFile);
+        const path = `receipts/${expenseId}.webp`;
+        const up = await supabase!.storage
+          .from(SUPABASE_BUCKET)
+          .upload(path, compressed, { upsert: true, contentType: 'image/webp' });
+        if (!up.error) {
+          image_url = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path).data.publicUrl;
+        }
+      }
+
+      await supabase!
+        .from('receipts')
+        .update({ merchant: label, image_url })
+        .eq('id', existingReceipt.id);
+
+      // Replace line items while preserving claims on surviving ids.
+      const previous = receiptItems.filter((i) => i.receipt_id === existingReceipt.id);
+      const keepIds = cleanItems.map((i) => i.id).filter(Boolean) as string[];
+      const toDelete = previous.filter((p) => !keepIds.includes(p.id)).map((p) => p.id);
+      if (toDelete.length) {
+        await supabase!.from('receipt_items').delete().in('id', toDelete);
+      }
+      for (const i of cleanItems) {
+        if (i.id && previous.some((p) => p.id === i.id)) {
+          await supabase!
+            .from('receipt_items')
+            .update({
+              name: i.name,
+              quantity: i.quantity,
+              local_amount: i.local_amount,
+            })
+            .eq('id', i.id);
+        } else {
+          await supabase!.from('receipt_items').insert({
+            receipt_id: existingReceipt.id,
+            name: i.name,
+            quantity: i.quantity,
+            local_amount: i.local_amount,
+          });
+        }
+      }
+      await refetchAll();
+    },
+    [demoMode, receipts, receiptItems, refetchAll, settings]
   );
 
   // Claim (userId) or release (null) a receipt line item.
@@ -987,6 +1157,7 @@ export default function TripDataProvider({
       addExpense,
       updateExpense,
       addReceiptExpense,
+      updateReceiptExpense,
       setItemClaim,
       deleteExpense,
       settleUp,
@@ -1018,6 +1189,7 @@ export default function TripDataProvider({
       addExpense,
       updateExpense,
       addReceiptExpense,
+      updateReceiptExpense,
       setItemClaim,
       deleteExpense,
       settleUp,

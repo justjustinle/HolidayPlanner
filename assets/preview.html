@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yarn — Brand Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --cream: #f7f1e6;
+        --cream-outer: #efe7d7;
+        --ink: #3a352c;
+        --muted: #8a8172;
+        --gold: #b8963e;
+        --terracotta: #c4613a;
+        --teal: #2a6875;
+        --forest: #2f5a42;
+        --font-yarn: 'Varela Round', system-ui, -apple-system, sans-serif;
+        --radius: 16px;
+        --shadow: 0 1px 2px rgba(60, 40, 20, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: var(--cream-outer);
+        color: var(--ink);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 28px 20px 72px;
+      }
+
+      .hero {
+        background: var(--cream);
+        border-radius: 24px;
+        padding: 36px 28px 32px;
+        box-shadow: var(--shadow);
+        text-align: center;
+        margin-bottom: 28px;
+      }
+
+      .hero-lockup {
+        width: min(100%, 280px);
+        height: auto;
+        margin: 0 auto 16px;
+        display: block;
+      }
+
+      .eyebrow {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 8px;
+      }
+
+      h1,
+      h2 {
+        font-family: var(--font-yarn);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 6vw, 2.75rem);
+      }
+
+      .hero p {
+        margin: 12px auto 0;
+        max-width: 36ch;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      section {
+        margin-bottom: 28px;
+      }
+
+      .panel {
+        background: var(--cream);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .panel h2 {
+        font-size: 1.35rem;
+        margin-bottom: 6px;
+      }
+
+      .panel > p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .type-specimen {
+        display: grid;
+        gap: 16px;
+      }
+
+      .type-hero {
+        font-family: var(--font-yarn);
+        font-size: clamp(2.5rem, 8vw, 3.5rem);
+        letter-spacing: -0.03em;
+        color: var(--forest);
+        line-height: 1.1;
+      }
+
+      .type-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .type-meta strong {
+        color: var(--ink);
+      }
+
+      .type-alphabet {
+        font-family: var(--font-yarn);
+        font-size: 1.1rem;
+        color: var(--ink);
+        letter-spacing: 0.04em;
+        word-break: break-all;
+        padding-top: 12px;
+        border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+      }
+
+      .palette {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 12px;
+      }
+
+      .swatch {
+        border-radius: 12px;
+        overflow: hidden;
+        background: white;
+        box-shadow: var(--shadow);
+      }
+
+      .swatch-fill {
+        height: 72px;
+      }
+
+      .swatch-info {
+        padding: 10px;
+      }
+
+      .swatch-info strong {
+        display: block;
+        font-size: 0.82rem;
+        margin-bottom: 2px;
+      }
+
+      .swatch-info code {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+
+      .icon-card {
+        background: white;
+        border-radius: 14px;
+        padding: 22px 16px 16px;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+
+      .icon-card img {
+        width: 88px;
+        height: 88px;
+        object-fit: contain;
+        margin: 0 auto;
+        display: block;
+      }
+
+      .icon-card p {
+        margin: 14px 0 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .icon-card code {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .icon-card--wide {
+        grid-column: 1 / -1;
+      }
+
+      .strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .strip img {
+        height: 64px;
+        width: auto;
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+      }
+
+      .lockup-strip img {
+        height: 72px;
+      }
+
+      .footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.8rem;
+        padding-top: 8px;
+      }
+
+      @media (min-width: 540px) {
+        .icon-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+
+        .icon-card--wide {
+          grid-column: auto;
+        }
+
+        .icon-card--dual {
+          grid-column: span 2;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Brand system</p>
+        <img
+          class="hero-lockup"
+          src="lockups/lockup-forest.svg"
+          alt="Yarn lockup"
+          width="280"
+          height="100"
+        />
+        <h1>Yarn</h1>
+        <p>
+          Collaborative travel, woven together. Brand assets for the rebrand —
+          existing app graphics remain unchanged.
+        </p>
+      </header>
+
+      <section class="panel">
+        <h2>Typeface</h2>
+        <p>Varela Round — rounded geometric sans for the wordmark and headings.</p>
+        <div class="type-specimen">
+          <div class="type-hero">Yarn</div>
+          <div class="type-meta">
+            <span><strong>Family</strong> Varela Round</span>
+            <span><strong>Weight</strong> 400</span>
+            <span><strong>Source</strong> Google Fonts</span>
+          </div>
+          <div class="type-alphabet">
+            Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz<br />
+            0 1 2 3 4 5 6 7 8 9
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Palette</h2>
+        <p>Four accent colours plus cream and ink neutrals.</p>
+        <div class="palette">
+          <div class="swatch">
+            <div class="swatch-fill" style="background: var(--gold)"></div>
+            <div class="swatch-info"><strong>Gold</strong><code>#c59837</code></div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-fill" style="background: var(--terracotta)"></div>
+            <div class="swatch-info"><strong>Terracotta</strong><code>#C4613A</code></div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-fill" style="background: var(--teal)"></div>
+            <div class="swatch-info"><strong>Teal</strong><code>#2A6875</code></div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-fill" style="background: var(--forest)"></div>
+            <div class="swatch-info"><strong>Forest</strong><code>#2F5A42</code></div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-fill" style="background: var(--cream); border-bottom: 1px solid #e8dfd0"></div>
+            <div class="swatch-info"><strong>Cream</strong><code>#F7F1E6</code></div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-fill" style="background: var(--ink)"></div>
+            <div class="swatch-info"><strong>Ink</strong><code>#3A352C</code></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Icon mark</h2>
+        <p>
+          Original line-art yarn ball — outer ring, winding curves, and trailing strand.
+          Four colour variants from the reference sheet.
+        </p>
+        <div class="icon-grid">
+          <div class="icon-card">
+            <img src="icons/icon-black.svg" alt="Black yarn icon" width="88" height="88" />
+            <p>Black</p>
+            <code>#1A1A1A</code>
+          </div>
+          <div class="icon-card">
+            <img src="icons/icon-gold.svg" alt="Gold yarn icon" width="88" height="88" />
+            <p>Gold</p>
+            <code>#c59837</code>
+          </div>
+          <div class="icon-card">
+            <img src="icons/icon-forest.svg" alt="Forest yarn icon" width="88" height="88" />
+            <p>Forest</p>
+            <code>#2F5A42</code>
+          </div>
+          <div class="icon-card">
+            <img src="icons/icon-teal.svg" alt="Teal yarn icon" width="88" height="88" />
+            <p>Teal</p>
+            <code>#2A6875</code>
+          </div>
+          <div class="icon-card icon-card--wide icon-card--dual">
+            <img
+              src="icons/icon-dual-black-terracotta.svg"
+              alt="Dual-tone yarn icon"
+              width="88"
+              height="88"
+            />
+            <p>Dual-tone</p>
+            <code>Black ball + terracotta strand</code>
+          </div>
+          <div class="icon-card icon-card--wide icon-card--dual">
+            <img
+              src="icons/icon-terracotta.svg"
+              alt="Terracotta yarn icon"
+              width="88"
+              height="88"
+            />
+            <p>Terracotta</p>
+            <code>#C4613A</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Wordmarks</h2>
+        <p>"Yarn" set in Varela Round on cream.</p>
+        <div class="strip">
+          <img src="wordmarks/wordmark-gold-on-cream.svg" alt="Gold wordmark" />
+          <img src="wordmarks/wordmark-terracotta-on-cream.svg" alt="Terracotta wordmark" />
+          <img src="wordmarks/wordmark-teal-on-cream.svg" alt="Teal wordmark" />
+          <img src="wordmarks/wordmark-forest-on-cream.svg" alt="Forest wordmark" />
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Lockups</h2>
+        <p>Icon and wordmark paired on cream cards.</p>
+        <div class="strip lockup-strip">
+          <img src="lockups/lockup-gold.svg" alt="Gold lockup" />
+          <img src="lockups/lockup-terracotta.svg" alt="Terracotta lockup" />
+          <img src="lockups/lockup-teal.svg" alt="Teal lockup" />
+          <img src="lockups/lockup-forest.svg" alt="Forest lockup" />
+        </div>
+      </section>
+
+      <p class="footer">
+        <a href="icon-picker.html" style="color: var(--ink); font-weight: 600"
+          >Compare app icon options →</a
+        ><br />
+        Regenerate SVGs and PNGs with <code>node scripts/gen-yarn-brand.mjs</code>
+      </p>
+    </main>
+  </body>
+</html>

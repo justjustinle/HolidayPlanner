@@ -10,14 +10,17 @@ export default function Avatar({
   dim = false,
   ring = false,
 }: {
-  name: string;
+  name?: string | null;
   src?: string | null;
   size?: number;
   overlap?: boolean;
   dim?: boolean;
   ring?: boolean;
 }) {
-  const color = avatarColor(name);
+  // Defensive: localStorage / partial profile rows can omit name and would
+  // otherwise throw inside avatarColor/initialOf during render.
+  const safeName = (name ?? '').trim() || '?';
+  const color = avatarColor(safeName);
   const shared: React.CSSProperties = {
     width: size,
     height: size,
@@ -37,8 +40,8 @@ export default function Avatar({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
-        alt={name}
-        title={name}
+        alt={safeName}
+        title={safeName}
         style={shared}
         className="inline-block rounded-full object-cover"
       />
@@ -47,11 +50,11 @@ export default function Avatar({
 
   return (
     <span
-      title={name}
+      title={safeName}
       style={{ ...shared, background: color, fontSize: size * 0.44 }}
       className="inline-flex items-center justify-center rounded-full font-medium text-white"
     >
-      {initialOf(name)}
+      {initialOf(safeName)}
     </span>
   );
 }

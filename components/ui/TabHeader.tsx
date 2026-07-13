@@ -1,11 +1,15 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LogOut, Camera, BellOff, BellRing, Loader2, Users } from 'lucide-react';
 import Avatar from './Avatar';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
 import { useTripData } from '../TripDataProvider';
-import { enablePush, pushPermission } from '@/lib/notifications/client';
+import {
+  disablePush,
+  enablePush,
+  isPushEnabled,
+} from '@/lib/notifications/client';
 
 // Shared header: optional eyebrow, serif title (with optional inline extras,
 // e.g. flags), and the signed-in user's avatar (photo or initial). Tap it to
@@ -17,24 +21,46 @@ export default function TabHeader({
   action,
 }: {
   eyebrow?: string;
-  title: string;
+  title: React.ReactNode;
   titleExtra?: React.ReactNode;
   action?: React.ReactNode;
 }) {
   const { me, signOut, setMyPhoto } = useTripData();
   const [open, setOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
+  // 'idle' = off / unknown; do not treat Notification.permission alone as on —
+  // permission stays "granted" after unsubscribe and would fake a stuck "on".
   const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
-    () => (typeof window !== 'undefined' && pushPermission() === 'granted' ? 'on' : 'idle')
+    'idle'
   );
   const fileRef = useRef<HTMLInputElement>(null);
   const notificationsOn = pushState === 'on';
 
-  const onEnablePush = async () => {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const enabled = await isPushEnabled();
+      if (!cancelled) setPushState(enabled ? 'on' : 'idle');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me?.id]);
+
+  const onTogglePush = async () => {
     if (!me || pushState === 'busy') return;
+    const turningOff = pushState === 'on';
     setPushState('busy');
-    const result = await enablePush(me.id);
-    setPushState(result.ok ? 'on' : 'error');
+    const result = turningOff
+      ? await disablePush(me.id)
+      : await enablePush(me.id);
+    if (result.ok) {
+      setPushState(turningOff ? 'idle' : 'on');
+    } else {
+      // Keep prior on/off when possible; only fall to error if we can't tell.
+      const stillOn = await isPushEnabled();
+      setPushState(stillOn ? 'on' : result.reason === 'denied' ? 'idle' : 'error');
+    }
   };
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,7 +80,7 @@ export default function TabHeader({
               all sit on the same line, vertically centered. The title
               truncates rather than wrapping if space ever runs out. */}
           <div className="mt-1 flex items-center gap-2">
-            <h1 className="truncate font-serif text-[26px] font-semibold leading-tight text-ink">
+            <h1 className="flex min-w-0 items-center gap-2.5 truncate font-serif text-[36px] font-semibold leading-none text-ink">
               {title}
             </h1>
             {titleExtra && (
@@ -96,8 +122,9 @@ export default function TabHeader({
                       {me.avatar_url ? 'Change profile picture' : 'Add profile picture'}
                     </button>
                     <button
-                      onClick={onEnablePush}
+                      onClick={onTogglePush}
                       disabled={pushState === 'busy'}
+                      aria-pressed={notificationsOn}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[14px] text-ink hover:bg-black/5"
                     >
                       {pushState === 'busy' ? (
@@ -107,7 +134,13 @@ export default function TabHeader({
                       ) : (
                         <BellOff size={15} />
                       )}
-                      {notificationsOn ? 'Notifications on' : 'Notifications off'}
+                      {pushState === 'busy'
+                        ? 'Updating…'
+                        : pushState === 'error'
+                          ? 'Notifications failed — retry'
+                          : notificationsOn
+                            ? 'Notifications on'
+                            : 'Notifications off'}
                     </button>
                     <button
                       onClick={signOut}
