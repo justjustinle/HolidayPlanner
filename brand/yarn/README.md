@@ -69,7 +69,7 @@ brand/yarn/
 
 ## Mark construction
 
-The yarn-ball icon is a filled circle with curved groove cutouts (mask) and a trailing strand — matching the supplied reference sheet. Each colour variant is a single-tone mark; the dual-tone file reproduces the ink ball + terracotta strand from the reference.
+The yarn-ball icon matches the original reference: **thick stroke line art** with an outer ring, intersecting winding curves inside the ball, and a trailing strand with rounded caps. Each colour variant is single-tone; the dual-tone file reproduces the black ball + terracotta strand from the reference sheet.
 
 ## Next steps (when ready to rebrand)
 

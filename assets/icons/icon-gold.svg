@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-label="Yarn">
-  <defs>
-    <mask id="gold-mask">
-      <circle cx="56" cy="44" r="30" fill="white"/>
-      <path d="M 27 44 C 37 28, 67 28, 77 44 C 67 60, 37 60, 27 44" fill="none" stroke="black" stroke-width="6.5" stroke-linecap="round"/>
-      <path d="M 56 16 C 74 28, 74 60, 56 72" fill="none" stroke="black" stroke-width="6" stroke-linecap="round"/>
-      <path d="M 34 56 C 56 46, 78 56" fill="none" stroke="black" stroke-width="5.5" stroke-linecap="round"/>
-      <path d="M 38 32 C 56 44, 74 32" fill="none" stroke="black" stroke-width="5.5" stroke-linecap="round"/>
-      <path d="M 42 62 C 56 52, 70 62" fill="none" stroke="black" stroke-width="5" stroke-linecap="round"/>
-    </mask>
-  </defs>
-  <circle cx="56" cy="44" r="30" fill="#B8963E" mask="url(#gold-mask)"/>
-  <path d="M 30 58 C 20 64, 13 76, 7 88" stroke="#B8963E" stroke-width="7.5" stroke-linecap="round"/>
+  <g stroke="#B8963E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="52" cy="44" r="28"/>
+    <path d="M 26 44 C 32 28, 72 28, 78 44 C 72 60, 32 60, 26 44"/>
+    <path d="M 52 16 C 68 28, 68 60, 52 72"/>
+    <path d="M 34 54 C 52 44, 70 54"/>
+    <path d="M 34 36 C 52 46, 70 36"/>
+  </g>
+  <g stroke="#B8963E" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M 24 54 C 14 58, 8 70, 4 82"/>
+  </g>
 </svg>

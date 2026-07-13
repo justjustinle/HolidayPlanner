@@ -8,6 +8,7 @@ export const YARN_BRAND = {
       'https://fonts.googleapis.com/css2?family=Varela+Round&display=swap',
   },
   colors: {
+    black: '#1A1A1A',
     gold: '#B8963E',
     terracotta: '#C4613A',
     teal: '#2A6875',
