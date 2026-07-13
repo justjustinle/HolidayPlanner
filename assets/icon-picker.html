@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yarn — Pick your app icon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --cream: #f7f1e6;
+        --cream-outer: #efe7d7;
+        --ink: #3a352c;
+        --muted: #8a8172;
+        --font-yarn: 'Varela Round', system-ui, sans-serif;
+        --radius: 16px;
+        --shadow: 0 2px 8px rgba(60, 40, 20, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 28px 16px 64px;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: var(--cream-outer);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+
+      h1,
+      h2 {
+        font-family: var(--font-yarn);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+      }
+
+      h1 {
+        font-size: clamp(1.8rem, 5vw, 2.4rem);
+        margin: 0 0 8px;
+      }
+
+      .lead {
+        color: var(--muted);
+        margin: 0 0 28px;
+        max-width: 52ch;
+        line-height: 1.5;
+      }
+
+      .back {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-decoration: none;
+      }
+
+      .back:hover {
+        color: var(--ink);
+      }
+
+      .current {
+        background: white;
+        border: 2px dashed #d4c9b8;
+        border-radius: var(--radius);
+        padding: 20px;
+        margin-bottom: 28px;
+      }
+
+      .current h2 {
+        font-size: 1rem;
+        margin: 0 0 4px;
+        color: var(--muted);
+        font-family: system-ui, sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      }
+
+      .option {
+        background: var(--cream);
+        border-radius: var(--radius);
+        padding: 18px;
+        box-shadow: var(--shadow);
+        border: 2px solid transparent;
+        transition: border-color 0.15s ease;
+      }
+
+      .option:hover {
+        border-color: #d4c9b8;
+      }
+
+      .option-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .option-header h3 {
+        margin: 0;
+        font-family: var(--font-yarn);
+        font-size: 1.2rem;
+        font-weight: 400;
+      }
+
+      .option-header code {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .mockups {
+        display: grid;
+        gap: 12px;
+      }
+
+      /* Browser tab mockup */
+      .tab-bar {
+        background: #e8e4de;
+        border-radius: 10px 10px 0 0;
+        padding: 8px 8px 0;
+        display: flex;
+        gap: 4px;
+      }
+
+      .tab {
+        background: #f5f2ec;
+        border-radius: 8px 8px 0 0;
+        padding: 7px 12px 7px 10px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        color: #444;
+        max-width: 100%;
+        box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.04);
+      }
+
+      .tab img {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        object-fit: contain;
+      }
+
+      .tab span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tab-pane {
+        background: white;
+        border-radius: 0 0 10px 10px;
+        height: 36px;
+        border-top: 1px solid #ddd8d0;
+      }
+
+      /* Home screen / PWA mockup */
+      .phone {
+        background: linear-gradient(160deg, #1a1a2e 0%, #2d2d44 100%);
+        border-radius: 14px;
+        padding: 16px 14px 18px;
+      }
+
+      .phone-label {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.55);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 10px;
+      }
+
+      .home-icons {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .home-icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        width: 62px;
+      }
+
+      .home-icon img {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        object-fit: contain;
+        background: var(--cream);
+      }
+
+      .home-icon img.on-cream {
+        /* already on cream tile baked into PNG */
+      }
+
+      .home-icon span {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.85);
+        text-align: center;
+        font-family: var(--font-yarn);
+      }
+
+      .note {
+        margin-top: 24px;
+        padding: 16px 18px;
+        background: white;
+        border-radius: var(--radius);
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.55;
+        box-shadow: var(--shadow);
+      }
+
+      .note strong {
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <a class="back" href="preview.html">← Brand preview</a>
+      <h1>Pick your app icon</h1>
+      <p class="lead">
+        Compare how each Yarn colour looks as a <strong>browser tab favicon</strong>
+        and a <strong>PWA home-screen icon</strong> before we wire it into the app.
+        Nothing here is live yet.
+      </p>
+
+      <section class="current">
+        <h2>Current (live in app)</h2>
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))">
+          <div class="option" style="background: #f5f2ec">
+            <div class="option-header">
+              <h3>SEA Trip</h3>
+              <code>public/icons/</code>
+            </div>
+            <div class="mockups">
+              <div>
+                <div class="tab-bar">
+                  <div class="tab">
+                    <img src="png/current-app-192.png" alt="" width="16" height="16" />
+                    <span>Yarn</span>
+                  </div>
+                </div>
+                <div class="tab-pane"></div>
+              </div>
+              <div class="phone">
+                <div class="phone-label">Home screen</div>
+                <div class="home-icons">
+                  <div class="home-icon">
+                    <img src="png/current-app-192.png" alt="Current app icon" />
+                    <span>SEA Trip</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <h2 style="margin-bottom: 16px">Yarn options</h2>
+      <div class="grid" id="options"></div>
+
+      <p class="note">
+        <strong>Transparent vs on-cream:</strong> the left home-screen tile uses the
+        transparent PNG (how Android renders it on a dark wallpaper). The right tile
+        uses the on-cream 512 export — closer to how iOS rounds a filled icon. Pick a
+        colour and tell me which; I'll swap <code>/public/icons/</code> and update the
+        manifest.
+      </p>
+    </main>
+
+    <script>
+      const OPTIONS = [
+        { id: 'black', label: 'Black', hex: '#1A1A1A' },
+        { id: 'gold', label: 'Gold', hex: '#B8963E' },
+        { id: 'terracotta', label: 'Terracotta', hex: '#C4613A' },
+        { id: 'teal', label: 'Teal', hex: '#2A6875' },
+        { id: 'forest', label: 'Forest', hex: '#2F5A42' },
+      ];
+
+      const grid = document.getElementById('options');
+
+      for (const opt of OPTIONS) {
+        const el = document.createElement('article');
+        el.className = 'option';
+        el.innerHTML = `
+          <div class="option-header">
+            <h3>${opt.label}</h3>
+            <code>${opt.hex}</code>
+          </div>
+          <div class="mockups">
+            <div>
+              <div class="tab-bar">
+                <div class="tab">
+                  <img src="png/icon-${opt.id}-192.png" alt="" width="16" height="16" />
+                  <span>Yarn</span>
+                </div>
+              </div>
+              <div class="tab-pane"></div>
+            </div>
+            <div class="phone">
+              <div class="phone-label">Home screen</div>
+              <div class="home-icons">
+                <div class="home-icon">
+                  <img src="png/icon-${opt.id}-192.png" alt="${opt.label} transparent" />
+                  <span>Yarn</span>
+                </div>
+                <div class="home-icon">
+                  <img
+                    class="on-cream"
+                    src="png/icon-${opt.id}-on-cream-512.png"
+                    alt="${opt.label} on cream"
+                  />
+                  <span>on cream</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(el);
+      }
+    </script>
+  </body>
+</html>

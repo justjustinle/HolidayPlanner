@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 88" role="img" aria-label="Yarn wordmark">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Varela+Round&amp;display=swap');
+      .yarn-wordmark { font-family: 'Varela Round', system-ui, sans-serif; font-size: 56px; font-weight: 400; letter-spacing: -0.02em; }
+    </style>
+  </defs>
+  
+  <text class="yarn-wordmark" x="110" y="60" text-anchor="middle" fill="#2F5A42">Yarn</text>
+</svg>

@@ -3,14 +3,14 @@ import './globals.css';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 
 export const metadata: Metadata = {
-  title: 'Vietnam & Thailand Trip',
+  title: 'Yarn',
   description:
-    'Collaborative travel planner for our Vietnam & Thailand group trip — itinerary, Polaroid memories, shared expenses, and packing.',
+    'Collaborative travel planner — itinerary, Polaroid memories, shared expenses, and stats.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SEA Trip',
+    title: 'Yarn',
   },
   icons: {
     icon: '/icons/icon-192.png',
