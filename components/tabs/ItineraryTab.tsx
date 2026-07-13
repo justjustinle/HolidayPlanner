@@ -119,17 +119,23 @@ export default function ItineraryTab() {
         <DayPicker value={day} onChange={setDay} />
 
         {selected && (
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-baseline gap-2">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-2">
               <span
-                className="inline-block h-2 w-2 flex-none self-center rounded-full"
+                className="mt-2 inline-block h-2 w-2 flex-none rounded-full"
                 style={{ background: selected.accentHex }}
               />
-              <h2 className="font-serif text-[18px] text-ink">{selected.destination}</h2>
-              <span className="text-[12px] text-muted">
-                {selected.label} · {selected.dateLabel}
-                {isToday && <span className="ml-1 font-medium text-ink">· Today</span>}
-              </span>
+              <div className="min-w-0">
+                <h2 className="font-serif text-[18px] leading-tight text-ink">
+                  {selected.destination}
+                </h2>
+                <p className="mt-0.5 text-[12px] leading-snug text-muted">
+                  {selected.label} · {selected.dateLabel}
+                  {isToday && (
+                    <span className="ml-1 font-medium text-ink">· Today</span>
+                  )}
+                </p>
+              </div>
             </div>
             <button
               onClick={() => setAdding(true)}
