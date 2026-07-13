@@ -8,7 +8,7 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import { YarnTimelineNode } from './YarnTimelineRail';
 import { useTripData } from '../TripDataProvider';
 import { YARN_BRAND } from '@/lib/brand/yarn';
-import { parseTimeLabel } from '@/lib/time';
+import { formatTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
 export default function ItineraryCard({
@@ -32,25 +32,26 @@ export default function ItineraryCard({
     [photos, item.id]
   );
 
-  const time = parseTimeLabel(item.time_label);
-  const clock = `${time.hour12}:${String(time.minute).padStart(2, '0')}`;
+  const startClock = formatTimeLabel(item.time_label);
+  const endClock = item.end_time_label
+    ? formatTimeLabel(item.end_time_label)
+    : null;
 
   return (
     <>
       <div
         className={`relative flex gap-3 transition-opacity ${dimmed ? 'opacity-45' : ''}`}
       >
-        {/* Time column — primary scan target */}
-        <div className="w-[52px] flex-none pt-0.5 text-right">
+        {/* Time column — start primary; optional end stacked below */}
+        <div className="w-[52px] flex-none pt-0.5 text-right tabular-nums">
           <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
-            {clock}
+            {startClock}
           </div>
-          <div
-            className="mt-1 text-[11px] font-semibold uppercase tracking-wider"
-            style={{ color: accentHex }}
-          >
-            {time.period}
-          </div>
+          {endClock && (
+            <div className="mt-1.5 text-[13px] font-medium leading-none tracking-tight text-muted">
+              {endClock}
+            </div>
+          )}
         </div>
 
         {/* Yarn thread timeline */}

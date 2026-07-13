@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef } from 'react';
-import { formatClock, parseTimeLabel } from '@/lib/time';
+import { formatClock } from '@/lib/time';
 import { YarnTimelineNowNode } from './YarnTimelineRail';
 
 // "You are here" node on today's timeline. Matches the activity rail layout so
@@ -10,21 +10,13 @@ const NowMarker = forwardRef<
   HTMLDivElement,
   { now: Date; accentHex: string; isLast?: boolean }
 >(function NowMarker({ now, accentHex, isLast = false }, ref) {
-  const label = formatClock(now);
-  const time = parseTimeLabel(label);
-  const clock = `${time.hour12}:${String(time.minute).padStart(2, '0')}`;
+  const clock = formatClock(now);
 
   return (
-    <div ref={ref} className="relative flex gap-3" aria-label={`Now, ${label}`}>
-      <div className="w-[52px] flex-none pt-0.5 text-right">
+    <div ref={ref} className="relative flex gap-3" aria-label={`Now, ${clock}`}>
+      <div className="w-[52px] flex-none pt-0.5 text-right tabular-nums">
         <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
           {clock}
-        </div>
-        <div
-          className="mt-1 text-[11px] font-semibold uppercase tracking-wider"
-          style={{ color: accentHex }}
-        >
-          {time.period}
         </div>
       </div>
 

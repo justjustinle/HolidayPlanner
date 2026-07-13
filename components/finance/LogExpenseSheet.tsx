@@ -13,6 +13,7 @@ import {
   isEqualSplit,
 } from '@/lib/currency';
 import { CURRENCY_SYMBOL, TRIP_DAYS, dayByNumber } from '@/lib/trip';
+import { formatTimeLabel } from '@/lib/time';
 import type { CurrencyCode, Expense, ItineraryItem, Profile } from '@/lib/types';
 
 const CURRENCIES: CurrencyCode[] = ['VND', 'THB', 'GBP'];
@@ -625,7 +626,7 @@ function ActivityPickerSheet({
                       <div className="truncate text-[12px] text-muted">
                         {day?.label ?? `Day ${item.day_number}`}
                         {day?.destination ? ` · ${day.destination}` : ''}
-                        {item.time_label ? ` · ${item.time_label}` : ''}
+                        {item.time_label ? ` · ${formatTimeLabel(item.time_label)}` : ''}
                         {item.location ? ` · ${item.location}` : ''}
                       </div>
                     </div>

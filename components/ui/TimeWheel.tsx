@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { HOURS, MINUTES, PERIODS, type TimeValue } from '@/lib/time';
+import { HOURS_24, MINUTES, type TimeValue } from '@/lib/time';
 
 const ITEM_H = 32; // px per row
 const VISIBLE = 3; // one above + selected + one below
@@ -88,7 +88,7 @@ function WheelColumn({
   );
 }
 
-// Hour / minute / AM-PM wheel. Fixed choices, scrollable — no free text.
+// Hour / minute wheel (24-hour). Fixed choices, scrollable — no free text.
 export default function TimeWheel({
   value,
   onChange,
@@ -96,12 +96,14 @@ export default function TimeWheel({
   value: TimeValue;
   onChange: (v: TimeValue) => void;
 }) {
-  const hourItems: Item[] = HOURS.map((h) => ({ value: h, label: String(h) }));
+  const hourItems: Item[] = HOURS_24.map((h) => ({
+    value: h,
+    label: String(h).padStart(2, '0'),
+  }));
   const minItems: Item[] = MINUTES.map((m) => ({
     value: m,
     label: String(m).padStart(2, '0'),
   }));
-  const periodItems: Item[] = PERIODS.map((p) => ({ value: p, label: p }));
 
   return (
     <div className="relative rounded-xl border border-black/10 bg-cream-card">
@@ -110,22 +112,17 @@ export default function TimeWheel({
         className="pointer-events-none absolute inset-x-2 z-10 rounded-md border-y border-black/10 bg-black/[0.03]"
         style={{ top: PAD, height: ITEM_H }}
       />
-      <div className="grid grid-cols-[1fr_auto_1fr_1fr] items-center px-2">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center px-2">
         <WheelColumn
           items={hourItems}
-          value={value.hour12}
-          onSelect={(v) => onChange({ ...value, hour12: Number(v) })}
+          value={value.hour24}
+          onSelect={(v) => onChange({ ...value, hour24: Number(v) })}
         />
         <div className="text-[16px] font-semibold text-muted">:</div>
         <WheelColumn
           items={minItems}
           value={value.minute}
           onSelect={(v) => onChange({ ...value, minute: Number(v) })}
-        />
-        <WheelColumn
-          items={periodItems}
-          value={value.period}
-          onSelect={(v) => onChange({ ...value, period: v as 'AM' | 'PM' })}
         />
       </div>
     </div>

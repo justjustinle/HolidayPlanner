@@ -6,6 +6,7 @@ import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { useTripData } from '../TripDataProvider';
 import { savePhoto } from '@/lib/image';
+import { formatTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
 const SWIPE_CLOSE_PX = 100;
@@ -178,7 +179,12 @@ export default function MemoriesModal({
                 {item.title}
               </h2>
               {item.time_label && (
-                <p className="mt-0.5 text-[13px] text-muted">{item.time_label}</p>
+                <p className="mt-0.5 text-[13px] text-muted">
+                  {formatTimeLabel(item.time_label)}
+                  {item.end_time_label
+                    ? `–${formatTimeLabel(item.end_time_label)}`
+                    : ''}
+                </p>
               )}
             </div>
             <button
