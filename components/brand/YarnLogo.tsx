@@ -1,4 +1,3 @@
-import { YARN_BRAND } from '@/lib/brand/yarn';
 import { YARN_ICON } from '@/lib/brand/yarn-icon';
 import { YARN_DEFAULT_ACCENT } from '@/lib/brand/setYarnFavicon';
 

@@ -1,20 +1,24 @@
 // Canonical yarn-ball icon paths — single source for SVG, React, and PNG export.
 export const YARN_ICON = {
   viewBox: '0 0 100 100',
-  cx: 50,
-  cy: 46,
-  r: 29,
-  stroke: 5.5,
-  strandStroke: 5.5,
-  /** Three intersecting interior curves + outer ring (reference sheet). */
+  cx: 52,
+  cy: 44,
+  r: 28,
+  stroke: 6,
+  strandStroke: 6.5,
+  /** Outer ring + winding interior curves (proposed reference SVG). */
   ballPaths: [
     { type: 'circle' as const },
-    { type: 'path' as const, d: 'M 50 17 C 68 32, 68 60, 50 75' },
-    { type: 'path' as const, d: 'M 50 17 C 32 32, 32 60, 50 75' },
-    { type: 'path' as const, d: 'M 22 46 C 38 58, 62 58, 78 46' },
+    {
+      type: 'path' as const,
+      d: 'M 26 44 C 32 28, 72 28, 78 44 C 72 60, 32 60, 26 44',
+    },
+    { type: 'path' as const, d: 'M 52 16 C 68 28, 68 60, 52 72' },
+    { type: 'path' as const, d: 'M 34 54 C 52 44, 70 54' },
+    { type: 'path' as const, d: 'M 34 36 C 52 46, 70 36' },
   ],
-  /** Loose end — exits bottom-left with a gentle S-wave. */
-  strand: { type: 'path' as const, d: 'M 27 60 C 15 66, 9 78, 15 88' },
+  /** Loose end — exits bottom-left with a gentle curl. */
+  strand: { type: 'path' as const, d: 'M 24 54 C 14 58, 8 70, 4 82' },
 };
 
 export function yarnIconBallMarkup(): string {
