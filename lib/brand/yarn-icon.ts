@@ -1,24 +1,21 @@
 // Canonical yarn-ball icon paths — single source for SVG, React, and PNG export.
+// Matches the proposed mark: outer ring + parallel wrapping strands + U-shaped loose end.
 export const YARN_ICON = {
   viewBox: '0 0 100 100',
-  cx: 52,
-  cy: 44,
-  r: 28,
-  stroke: 6,
+  cx: 54,
+  cy: 40,
+  r: 30,
+  stroke: 6.5,
   strandStroke: 6.5,
-  /** Outer ring + winding interior curves (proposed reference SVG). */
+  /** Parallel wraps that bow downward left→right (wound-yarn volume). */
   ballPaths: [
     { type: 'circle' as const },
-    {
-      type: 'path' as const,
-      d: 'M 26 44 C 32 28, 72 28, 78 44 C 72 60, 32 60, 26 44',
-    },
-    { type: 'path' as const, d: 'M 52 16 C 68 28, 68 60, 52 72' },
-    { type: 'path' as const, d: 'M 34 54 C 52 44, 70 54' },
-    { type: 'path' as const, d: 'M 34 36 C 52 46, 70 36' },
+    { type: 'path' as const, d: 'M 32 24 C 42 34, 66 34, 76 24' },
+    { type: 'path' as const, d: 'M 26 36 C 40 48, 68 48, 82 36' },
+    { type: 'path' as const, d: 'M 30 50 C 42 60, 66 60, 78 50' },
   ],
-  /** Loose end — exits bottom-left with a gentle curl. */
-  strand: { type: 'path' as const, d: 'M 24 54 C 14 58, 8 70, 4 82' },
+  /** Loose end — exits bottom-left, dips, then curves slightly up (U-wave). */
+  strand: { type: 'path' as const, d: 'M 30 58 C 14 64, 10 82, 24 90' },
 };
 
 export function yarnIconBallMarkup(): string {
