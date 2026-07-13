@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LogOut, Camera, BellOff, BellRing, Loader2, Users } from 'lucide-react';
 import Avatar from './Avatar';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
+import YarnLogo from '../brand/YarnLogo';
 import { useTripData } from '../TripDataProvider';
 import {
   disablePush,
@@ -11,9 +12,8 @@ import {
   isPushEnabled,
 } from '@/lib/notifications/client';
 
-// Shared header: optional eyebrow, serif title (with optional inline extras,
-// e.g. flags), and the signed-in user's avatar (photo or initial). Tap it to
-// change your photo, see who's going, or switch person.
+// Shared header: title on the left; account avatar + Yarn mark on the right.
+// The mark sits in the top-right corner on every tab (Itinerary / Expenses / Stats).
 export default function TabHeader({
   eyebrow,
   title,
@@ -74,13 +74,10 @@ export default function TabHeader({
   return (
     <header className="px-5 pt-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 pl-2">
           {eyebrow && <div className="text-[12px] text-muted">{eyebrow}</div>}
-          {/* One flex row so the title, extras (flags), and the avatar column
-              all sit on the same line, vertically centered. The title
-              truncates rather than wrapping if space ever runs out. */}
           <div className="mt-1 flex items-center gap-2">
-            <h1 className="flex min-w-0 items-center gap-2.5 truncate font-serif text-[36px] font-semibold leading-none text-ink">
+            <h1 className="min-w-0 truncate font-serif text-[36px] font-semibold leading-none text-ink">
               {title}
             </h1>
             {titleExtra && (
@@ -153,6 +150,13 @@ export default function TabHeader({
               )}
             </div>
           )}
+          {/* Brand mark — far top-right on every tab, follows city accent. */}
+          <span
+            className="flex items-center text-[var(--city-accent)]"
+            aria-hidden
+          >
+            <YarnLogo size={36} color="currentColor" />
+          </span>
           <input
             ref={fileRef}
             type="file"

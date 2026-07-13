@@ -7,7 +7,6 @@ import ItineraryCard from '../itinerary/ItineraryCard';
 import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
-import YarnLogo from '../brand/YarnLogo';
 import DayPicker from '../ui/DayPicker';
 import TravelerFacepile from '../ui/TravelerFacepile';
 import WhoIsGoingSheet from '../ui/WhoIsGoingSheet';
@@ -102,14 +101,7 @@ export default function ItineraryTab() {
 
   return (
     <div>
-      <TabHeader
-        title={
-          <span className="inline-flex items-center gap-[0.22em] leading-none">
-            Yarn
-            <YarnLogo color={accent} />
-          </span>
-        }
-      />
+      <TabHeader title="Yarn" />
 
       <div className="px-5 pt-2">
         <TravelerFacepile onOpen={() => setRosterOpen(true)} />
