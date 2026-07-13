@@ -7,10 +7,10 @@ import ItineraryCard from '../itinerary/ItineraryCard';
 import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
+import YarnLogo from '../brand/YarnLogo';
 import DayPicker from '../ui/DayPicker';
 import TravelerFacepile from '../ui/TravelerFacepile';
 import WhoIsGoingSheet from '../ui/WhoIsGoingSheet';
-import { ThaiFlag, VietnamFlag } from '../ui/Flag';
 import { dayByNumber, dayNumberForDate, landingDayNumber } from '@/lib/trip';
 import { nowToMinutes, timeToMinutes } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
@@ -94,15 +94,7 @@ export default function ItineraryTab() {
 
   return (
     <div>
-      <TabHeader
-        title="Thailand & Vietnam"
-        titleExtra={
-          <span className="flex items-center gap-1.5">
-            <ThaiFlag size={24} />
-            <VietnamFlag size={24} />
-          </span>
-        }
-      />
+      <TabHeader title={<><YarnLogo size={28} />Yarn</>} />
 
       <div className="px-5 pt-2">
         <TravelerFacepile onOpen={() => setRosterOpen(true)} />
