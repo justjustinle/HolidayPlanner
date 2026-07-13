@@ -94,7 +94,7 @@ export default function ItineraryTab() {
 
   return (
     <div>
-      <TabHeader title={<><YarnLogo size={28} />Yarn</>} />
+      <TabHeader title={<>Yarn<YarnLogo size={28} /></>} />
 
       <div className="px-5 pt-2">
         <TravelerFacepile onOpen={() => setRosterOpen(true)} />
