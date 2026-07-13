@@ -220,6 +220,7 @@ export default function TripDataProvider({
         (it.data as ItineraryItem[]).map((row) => ({
           ...row,
           notes: row.notes ?? null,
+          end_time_label: row.end_time_label ?? null,
         }))
       );
     }
@@ -530,6 +531,7 @@ export default function TripDataProvider({
         .update({
           day_number: input.day_number,
           time_label: input.time_label,
+          end_time_label: input.end_time_label,
           title: input.title,
           location: input.location,
           notes: input.notes,

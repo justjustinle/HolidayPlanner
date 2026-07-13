@@ -62,6 +62,15 @@ export function formatClock(now: Date = new Date()): string {
   });
 }
 
+/** True when end is set and is strictly after start (same calendar day). */
+export function isEndAfterStart(
+  startLabel: string | null | undefined,
+  endLabel: string | null | undefined
+): boolean {
+  if (!endLabel) return true;
+  return timeToMinutes(endLabel) > timeToMinutes(startLabel);
+}
+
 // Compact paid-on date for settle-up rows (e.g. "12/07"). Uses local calendar day.
 export function formatDayMonth(iso: string | null | undefined): string | null {
   if (!iso) return null;
