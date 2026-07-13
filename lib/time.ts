@@ -71,6 +71,20 @@ export function isEndAfterStart(
   return timeToMinutes(endLabel) > timeToMinutes(startLabel);
 }
 
+/** Vertical padding after a timeline row. Scales gently with the gap to the
+ *  next activity, but never exceeds MAX so distant events don’t leave a void. */
+export function timelineGapPx(
+  fromLabel: string | null | undefined,
+  toLabel: string | null | undefined
+): number {
+  const MIN = 16;
+  const MAX = 56;
+  if (!fromLabel || !toLabel) return MIN;
+  const delta = timeToMinutes(toLabel) - timeToMinutes(fromLabel);
+  if (!Number.isFinite(delta) || delta <= 0) return MIN;
+  return Math.min(MAX, Math.max(MIN, Math.round(delta * 0.2)));
+}
+
 // Compact paid-on date for settle-up rows (e.g. "12/07"). Uses local calendar day.
 export function formatDayMonth(iso: string | null | undefined): string | null {
   if (!iso) return null;

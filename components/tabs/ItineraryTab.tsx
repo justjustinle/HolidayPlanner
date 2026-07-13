@@ -8,22 +8,28 @@ import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
 import DayPicker from '../ui/DayPicker';
-import TravelerFacepile from '../ui/TravelerFacepile';
-import WhoIsGoingSheet from '../ui/WhoIsGoingSheet';
 import { dayByNumber, dayNumberForDate, landingDayNumber } from '@/lib/trip';
 import { YARN_DEFAULT_ACCENT, setYarnFavicon } from '@/lib/brand/setYarnFavicon';
-import { nowToMinutes, timeToMinutes } from '@/lib/time';
+import { nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
 type TimelineRow =
   | { kind: 'now' }
   | { kind: 'item'; item: ItineraryItem; past: boolean };
 
+function rowStartLabel(row: TimelineRow, now: Date): string {
+  if (row.kind === 'now') {
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  return row.item.time_label;
+}
+
 export default function ItineraryTab() {
   const { itinerary } = useTripData();
   const [day, setDay] = useState(landingDayNumber);
   const [adding, setAdding] = useState(false);
-  const [rosterOpen, setRosterOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const nowRef = useRef<HTMLDivElement>(null);
   const didScrollToNow = useRef(false);
@@ -101,11 +107,7 @@ export default function ItineraryTab() {
 
   return (
     <div>
-      <TabHeader title="Yarn" />
-
-      <div className="px-5 pt-2">
-        <TravelerFacepile onOpen={() => setRosterOpen(true)} />
-      </div>
+      <TabHeader />
 
       <div className="px-5">
         <DayPicker value={day} onChange={setDay} />
@@ -132,8 +134,11 @@ export default function ItineraryTab() {
             <button
               onClick={() => setAdding(true)}
               aria-label="Add activity"
-              className="flex h-8 flex-none items-center gap-1 rounded-full pl-2.5 pr-3 text-[13px] font-medium text-white shadow-card"
-              style={{ background: selected.accentHex }}
+              className="flex h-8 flex-none items-center gap-1 rounded-full border bg-transparent pl-2.5 pr-3 text-[13px] font-medium"
+              style={{
+                borderColor: selected.accentHex,
+                color: selected.accentHex,
+              }}
             >
               <Plus size={15} />
               Add activity
@@ -149,6 +154,13 @@ export default function ItineraryTab() {
           <div className="pb-24 pt-1">
             {rows.map((row, i) => {
               const isLast = i === rows.length - 1;
+              const next = rows[i + 1];
+              const spacingAfter = isLast
+                ? 8
+                : timelineGapPx(
+                    rowStartLabel(row, now),
+                    next ? rowStartLabel(next, now) : null
+                  );
               if (row.kind === 'now') {
                 return (
                   <NowMarker
@@ -157,6 +169,7 @@ export default function ItineraryTab() {
                     now={now}
                     accentHex={accent}
                     isLast={isLast}
+                    spacingAfter={spacingAfter}
                   />
                 );
               }
@@ -167,6 +180,7 @@ export default function ItineraryTab() {
                   accentHex={accent}
                   isLast={isLast}
                   dimmed={row.past}
+                  spacingAfter={spacingAfter}
                 />
               );
             })}
@@ -182,8 +196,6 @@ export default function ItineraryTab() {
       {adding && (
         <AddCardSheet day={day} onClose={() => setAdding(false)} />
       )}
-
-      {rosterOpen && <WhoIsGoingSheet onClose={() => setRosterOpen(false)} />}
     </div>
   );
 }

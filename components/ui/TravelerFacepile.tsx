@@ -1,45 +1,57 @@
 'use client';
 
-import { Users } from 'lucide-react';
 import Avatar from './Avatar';
-import { ThaiFlag, VietnamFlag } from './Flag';
 import { useTripData } from '../TripDataProvider';
 
 const MAX_VISIBLE = 5;
 
-// Trip context bar: destination flags on the left, roster facepile on the right.
-export default function TravelerFacepile({ onOpen }: { onOpen: () => void }) {
+// Overlapping traveler avatars — opens the roster. Flags live in the trip
+// title now so this is faces only.
+export default function TravelerFacepile({
+  onOpen,
+  size = 26,
+}: {
+  onOpen: () => void;
+  size?: number;
+}) {
   const { profiles } = useTripData();
   if (profiles.length === 0) return null;
 
   const visible = profiles.slice(0, MAX_VISIBLE);
   const overflow = profiles.length - visible.length;
+  const overlap = Math.round(size * 0.32);
 
   return (
-    <div className="flex items-center justify-between gap-3 py-1">
-      <span className="flex flex-none items-center gap-1.5" aria-label="Thailand and Vietnam">
-        <ThaiFlag size={28} />
-        <VietnamFlag size={28} />
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Who's going — ${profiles.length} people`}
+      className="flex items-center py-0.5 text-left transition-opacity hover:opacity-80 active:opacity-70"
+    >
+      <span className="flex items-center">
+        {visible.map((p, i) => (
+          <span
+            key={p.id}
+            className="relative rounded-full ring-2 ring-cream"
+            style={{ marginLeft: i === 0 ? 0 : -overlap, zIndex: i + 1 }}
+          >
+            <Avatar name={p.name} src={p.avatar_url} size={size} />
+          </span>
+        ))}
+        {overflow > 0 && (
+          <span
+            className="relative inline-flex items-center justify-center rounded-full bg-ink/10 text-[10px] font-semibold text-ink ring-2 ring-cream"
+            style={{
+              marginLeft: -overlap,
+              zIndex: visible.length + 1,
+              width: size,
+              height: size,
+            }}
+          >
+            +{overflow}
+          </span>
+        )}
       </span>
-
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={`Who's going — ${profiles.length} people`}
-        className="flex min-w-0 items-center gap-1.5 rounded-lg py-0.5 text-left transition-opacity hover:opacity-80 active:opacity-70"
-      >
-        <Users size={15} className="flex-none text-muted" aria-hidden />
-        <span className="flex items-center gap-1">
-          {visible.map((p) => (
-            <Avatar key={p.id} name={p.name} src={p.avatar_url} size={24} />
-          ))}
-          {overflow > 0 && (
-            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-ink/10 px-1 text-[10px] font-semibold text-ink">
-              +{overflow}
-            </span>
-          )}
-        </span>
-      </button>
-    </div>
+    </button>
   );
 }

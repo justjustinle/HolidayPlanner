@@ -16,11 +16,14 @@ export default function ItineraryCard({
   accentHex,
   isLast = false,
   dimmed = false,
+  /** Extra space after this row (capped time-gap between activities). */
+  spacingAfter = 16,
 }: {
   item: ItineraryItem;
   accentHex: string;
   isLast?: boolean;
   dimmed?: boolean;
+  spacingAfter?: number;
 }) {
   const { photos, deleteItineraryItem } = useTripData();
   const [confirming, setConfirming] = useState(false);
@@ -42,13 +45,16 @@ export default function ItineraryCard({
       <div
         className={`relative flex gap-3 transition-opacity ${dimmed ? 'opacity-45' : ''}`}
       >
-        {/* Time column — start primary; optional end stacked below */}
-        <div className="w-[52px] flex-none pt-0.5 text-right tabular-nums">
+        {/* Time column — start primary; optional end stacked with TO */}
+        <div className="w-[56px] flex-none pt-0.5 text-right tabular-nums">
           <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
             {startClock}
           </div>
           {endClock && (
-            <div className="mt-1.5 text-[13px] font-medium leading-none tracking-tight text-muted">
+            <div className="mt-1.5 text-[12px] font-medium leading-snug tracking-tight text-muted">
+              <span className="text-[10px] font-semibold uppercase tracking-wider">
+                TO
+              </span>{' '}
               {endClock}
             </div>
           )}
@@ -58,7 +64,10 @@ export default function ItineraryCard({
         <YarnTimelineNode isLast={isLast} accentHex={accentHex} />
 
         {/* Compact activity card — tap to edit (anyone) */}
-        <div className="min-w-0 flex-1 pb-4">
+        <div
+          className="min-w-0 flex-1"
+          style={{ paddingBottom: isLast ? 8 : spacingAfter }}
+        >
           <div
             role="button"
             tabIndex={0}

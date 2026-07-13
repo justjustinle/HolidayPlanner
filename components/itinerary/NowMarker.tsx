@@ -8,13 +8,21 @@ import { YarnTimelineNowNode } from './YarnTimelineRail';
 // it slots cleanly between cards.
 const NowMarker = forwardRef<
   HTMLDivElement,
-  { now: Date; accentHex: string; isLast?: boolean }
->(function NowMarker({ now, accentHex, isLast = false }, ref) {
+  {
+    now: Date;
+    accentHex: string;
+    isLast?: boolean;
+    spacingAfter?: number;
+  }
+>(function NowMarker(
+  { now, accentHex, isLast = false, spacingAfter = 16 },
+  ref
+) {
   const clock = formatClock(now);
 
   return (
     <div ref={ref} className="relative flex gap-3" aria-label={`Now, ${clock}`}>
-      <div className="w-[52px] flex-none pt-0.5 text-right tabular-nums">
+      <div className="w-[56px] flex-none pt-0.5 text-right tabular-nums">
         <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
           {clock}
         </div>
@@ -22,7 +30,7 @@ const NowMarker = forwardRef<
 
       <YarnTimelineNowNode isLast={isLast} accentHex={accentHex} />
 
-      <div className="min-w-0 flex-1 pb-4">
+      <div className="min-w-0 flex-1" style={{ paddingBottom: isLast ? 8 : spacingAfter }}>
         <div
           className="flex items-center gap-2 rounded-xl border px-3.5 py-2.5"
           style={{

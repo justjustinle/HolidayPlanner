@@ -39,6 +39,18 @@ export function dayByNumber(n: number): TripDay | undefined {
 // onto trip day numbers and to preselect "today" in day pickers.
 export const TRIP_START_ISO = '2026-08-28';
 
+/** Display name for the trip identity header. */
+export const TRIP_TITLE = 'Thailand & Vietnam';
+
+/** Compact range for the header meta line, e.g. "28 Aug – 9 Sep". */
+export function tripDateRangeLabel(): string {
+  const first = TRIP_DAYS[0]?.dateLabel ?? '';
+  const last = TRIP_DAYS[TRIP_DAYS.length - 1]?.dateLabel ?? '';
+  const compact = (label: string) =>
+    label.replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+/i, '').replace(/(\d+)(st|nd|rd|th)/i, '$1');
+  return `${compact(first)} – ${compact(last)}`;
+}
+
 export function dayNumberForDate(date: Date): number | null {
   // Compare local calendar days (device timezone), not raw ms — avoids DST
   // off-by-ones around midnight.
