@@ -1,6 +1,6 @@
 # Yarn — Brand Assets
 
-Standalone branding package for the **Yarn** rebrand. These files are **not wired into the app yet** — existing `/public/icons/` and manifest graphics are untouched.
+Standalone branding package for the **Yarn** rebrand. Live app surfaces (`/public/icons/`, manifest, itinerary header) use the gold mark; regenerate here when geometry or palette changes.
 
 Regenerate everything:
 
