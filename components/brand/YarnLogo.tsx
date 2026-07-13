@@ -3,7 +3,7 @@ import { YARN_DEFAULT_ACCENT } from '@/lib/brand/setYarnFavicon';
 
 /** Inline yarn-ball mark from the proposed SVG (single filled path). */
 export default function YarnLogo({
-  /** Pixel height. Omit to size with the parent font (`1em` = cap height). */
+  /** Pixel height. Omit to size with the parent font. */
   size,
   color = YARN_DEFAULT_ACCENT,
   className = '',
@@ -13,8 +13,8 @@ export default function YarnLogo({
   className?: string;
 }) {
   const aspect = YARN_ICON.displayWidth / YARN_ICON.displayHeight;
-  // Match serif title cap height; tiny optical lift vs geometric center.
-  const em = 1;
+  // Open linework reads smaller than solid serif caps; size up for optical match.
+  const em = 1.22;
 
   return (
     <svg
@@ -23,14 +23,12 @@ export default function YarnLogo({
       viewBox={YARN_ICON.displayViewBox}
       fill="none"
       aria-hidden
-      className={['block shrink-0 self-center', className].filter(Boolean).join(' ')}
+      className={['block shrink-0', className].filter(Boolean).join(' ')}
       style={
         size == null
           ? {
               width: `${aspect * em}em`,
               height: `${em}em`,
-              // Serif caps read slightly high; nudge mark up to sit on the line.
-              transform: 'translateY(-0.04em)',
             }
           : undefined
       }
