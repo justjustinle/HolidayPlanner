@@ -17,15 +17,10 @@ export default function TravelerFacepile({ onOpen }: { onOpen: () => void }) {
 
   return (
     <div className="flex items-center justify-between gap-3 py-1">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-          Destination:
-        </span>
-        <span className="flex flex-none items-center gap-1">
-          <ThaiFlag size={22} />
-          <VietnamFlag size={22} />
-        </span>
-      </div>
+      <span className="flex flex-none items-center gap-1.5" aria-label="Thailand and Vietnam">
+        <ThaiFlag size={28} />
+        <VietnamFlag size={28} />
+      </span>
 
       <button
         type="button"
