@@ -19,8 +19,8 @@ export default function YarnLogo({
   color?: string;
   className?: string;
 }) {
-  // Slightly over 1em so the ball optically matches the serif capitals.
-  const em = 1.2;
+  // 1em = parent font-size so the mark matches the wordmark height.
+  const em = 1;
 
   return (
     <svg
