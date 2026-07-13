@@ -12,8 +12,8 @@ import {
   isPushEnabled,
 } from '@/lib/notifications/client';
 
-// Shared header: title on the left; account avatar + Yarn mark on the right.
-// The mark sits in the top-right corner on every tab (Itinerary / Expenses / Stats).
+// Shared header: Yarn mark top-left, title beside it; account avatar top-right.
+// Same layout on Itinerary / Expenses / Stats.
 export default function TabHeader({
   eyebrow,
   title,
@@ -74,17 +74,27 @@ export default function TabHeader({
   return (
     <header className="px-5 pt-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 pl-2">
-          {eyebrow && <div className="text-[12px] text-muted">{eyebrow}</div>}
-          <div className="mt-1 flex items-center gap-2">
-            <h1 className="min-w-0 truncate font-serif text-[36px] font-semibold leading-none text-ink">
-              {title}
-            </h1>
-            {titleExtra && (
-              <span className="flex flex-none items-center whitespace-nowrap">
-                {titleExtra}
-              </span>
-            )}
+        <div className="flex min-w-0 items-center gap-2.5">
+          {/* Brand mark — top-left on every tab, follows city accent. */}
+          <span
+            className="flex flex-none items-center text-[var(--city-accent)]"
+            aria-hidden
+          >
+            <YarnLogo size={36} color="currentColor" />
+          </span>
+
+          <div className="min-w-0">
+            {eyebrow && <div className="text-[12px] text-muted">{eyebrow}</div>}
+            <div className={`${eyebrow ? 'mt-1' : ''} flex items-center gap-2`}>
+              <h1 className="min-w-0 truncate font-serif text-[36px] font-semibold leading-none text-ink">
+                {title}
+              </h1>
+              {titleExtra && (
+                <span className="flex flex-none items-center whitespace-nowrap">
+                  {titleExtra}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -150,13 +160,6 @@ export default function TabHeader({
               )}
             </div>
           )}
-          {/* Brand mark — far top-right on every tab, follows city accent. */}
-          <span
-            className="flex items-center text-[var(--city-accent)]"
-            aria-hidden
-          >
-            <YarnLogo size={36} color="currentColor" />
-          </span>
           <input
             ref={fileRef}
             type="file"
