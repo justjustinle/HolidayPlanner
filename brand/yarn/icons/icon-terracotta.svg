@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-label="Yarn">
-  <g stroke="#C4613A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <circle cx="52" cy="44" r="28"/>
-    <path d="M 26 44 C 32 28, 72 28, 78 44 C 72 60, 32 60, 26 44"/>
-    <path d="M 52 16 C 68 28, 68 60, 52 72"/>
-    <path d="M 34 54 C 52 44, 70 54"/>
-    <path d="M 34 36 C 52 46, 70 36"/>
+  <g stroke="#C4613A" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="50" cy="46" r="29"/>
+    <path d="M 50 17 C 68 32, 68 60, 50 75"/>
+    <path d="M 50 17 C 32 32, 32 60, 50 75"/>
+    <path d="M 22 46 C 38 58, 62 58, 78 46"/>
   </g>
-  <g stroke="#C4613A" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M 24 54 C 14 58, 8 70, 4 82"/>
+  <g stroke="#C4613A" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M 27 60 C 15 66, 9 78, 15 88"/>
   </g>
 </svg>

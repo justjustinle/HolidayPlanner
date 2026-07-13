@@ -5,7 +5,7 @@ Standalone branding package for the **Yarn** rebrand. These files are **not wire
 Regenerate everything:
 
 ```bash
-node scripts/gen-yarn-brand.mjs
+npx tsx scripts/gen-yarn-brand.ts
 ```
 
 Open `brand/yarn/preview.html` in a browser to review the full set.
