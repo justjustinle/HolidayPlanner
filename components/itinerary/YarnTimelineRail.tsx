@@ -1,9 +1,5 @@
-import { YARN_BRAND } from '@/lib/brand/yarn';
-
-const YARN_GOLD = YARN_BRAND.colors.gold;
-
-/** Wavy gold thread segment between timeline nodes. */
-function YarnThreadSegment() {
+/** Wavy thread segment between timeline nodes. */
+function YarnThreadSegment({ accentHex }: { accentHex: string }) {
   return (
     <svg
       className="mt-0.5 min-h-[20px] w-4 flex-1"
@@ -13,7 +9,7 @@ function YarnThreadSegment() {
     >
       <path
         d="M 8 0 C 3 18, 13 36, 8 54 C 3 72, 13 90, 8 100"
-        stroke={YARN_GOLD}
+        stroke={accentHex}
         strokeWidth="3"
         fill="none"
         strokeLinecap="round"
@@ -23,16 +19,22 @@ function YarnThreadSegment() {
   );
 }
 
-/** Hollow gold ring — matches the reference yarn-thread day nodes. */
-export function YarnTimelineNode({ isLast = false }: { isLast?: boolean }) {
+/** Hollow ring on the yarn thread — one per activity. */
+export function YarnTimelineNode({
+  isLast = false,
+  accentHex,
+}: {
+  isLast?: boolean;
+  accentHex: string;
+}) {
   return (
     <div className="relative flex w-5 flex-none flex-col items-center">
       <span
         className="mt-1.5 box-border h-3 w-3 flex-none rounded-full bg-cream"
-        style={{ border: `2.5px solid ${YARN_GOLD}` }}
+        style={{ border: `2.5px solid ${accentHex}` }}
         aria-hidden
       />
-      {!isLast && <YarnThreadSegment />}
+      {!isLast && <YarnThreadSegment accentHex={accentHex} />}
     </div>
   );
 }
@@ -60,7 +62,7 @@ export function YarnTimelineNowNode({
           style={{ background: accentHex }}
         />
       </span>
-      {!isLast && <YarnThreadSegment />}
+      {!isLast && <YarnThreadSegment accentHex={accentHex} />}
     </div>
   );
 }

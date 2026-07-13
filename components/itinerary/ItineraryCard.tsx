@@ -54,7 +54,7 @@ export default function ItineraryCard({
         </div>
 
         {/* Yarn thread timeline */}
-        <YarnTimelineNode isLast={isLast} />
+        <YarnTimelineNode isLast={isLast} accentHex={accentHex} />
 
         {/* Compact activity card — tap to edit (anyone) */}
         <div className="min-w-0 flex-1 pb-4">
