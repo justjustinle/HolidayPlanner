@@ -69,7 +69,7 @@ brand/yarn/
 
 ## Mark construction
 
-The yarn-ball icon is the **exact proposed SVG** (single filled `evenodd` path, artboard 328×308). Geometry lives in `lib/brand/yarn-icon.ts` (single source for SVG, React `YarnLogo`, and PNG export via resvg). Colour is injected at render time so the mark can theme with city accents.
+The yarn-ball icon is the **exact proposed SVG** (single filled `evenodd` path, artboard 384×352). Geometry lives in `lib/brand/yarn-icon.ts` (single source for SVG, React `YarnLogo`, and PNG export via resvg). Colour is injected at render time so the mark can theme with city accents.
 
 ## Next steps (when ready to rebrand)
 
