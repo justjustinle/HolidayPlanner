@@ -31,7 +31,7 @@ export default function TravelerFacepile({ onOpen }: { onOpen: () => void }) {
         type="button"
         onClick={onOpen}
         aria-label={`Who's going — ${profiles.length} people`}
-        className="flex min-w-0 items-center gap-2 rounded-lg py-0.5 pl-1 pr-1 text-left transition-colors hover:bg-black/[.03] active:bg-black/[.05]"
+        className="flex min-w-0 items-center gap-2 rounded-lg py-0.5 text-left transition-opacity hover:opacity-80 active:opacity-70"
       >
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
           Who&apos;s going:
