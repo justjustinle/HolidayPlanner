@@ -1,10 +1,11 @@
 import { YARN_BRAND } from '@/lib/brand/yarn';
 import { YARN_ICON } from '@/lib/brand/yarn-icon';
+import { YARN_DEFAULT_ACCENT } from '@/lib/brand/setYarnFavicon';
 
 /** Small inline yarn-ball mark for headers and UI chrome. */
 export default function YarnLogo({
   size = 28,
-  color = YARN_BRAND.colors.gold,
+  color = YARN_DEFAULT_ACCENT,
   className = '',
 }: {
   size?: number;

@@ -16,6 +16,7 @@ const OUTPUT_DIRS = [
   join(__dirname, '../brand/yarn'),
   join(__dirname, '../assets'),
 ];
+const PUBLIC_ICONS = join(__dirname, '../public/icons');
 
 const COLORS = {
   black: '#1A1A1A',
@@ -109,6 +110,7 @@ for (const root of OUTPUT_DIRS) {
     mkdirSync(join(root, sub), { recursive: true });
   }
 }
+mkdirSync(PUBLIC_ICONS, { recursive: true });
 
 writeAll('icon.svg', yarnIconSvg('currentColor'));
 
@@ -214,3 +216,10 @@ writeAll(
 );
 
 console.log('Yarn brand assets written to brand/yarn/ and assets/');
+
+// Live app icons — gold default for PWA install + static fallback.
+const goldSvg = yarnIconSvg(COLORS.gold);
+writeFileSync(join(PUBLIC_ICONS, 'icon.svg'), goldSvg);
+writeFileSync(join(PUBLIC_ICONS, 'icon-192.png'), pngFromSvg(goldSvg, 192));
+writeFileSync(join(PUBLIC_ICONS, 'icon-512.png'), pngFromSvg(goldSvg, 512));
+console.log('wrote public/icons/icon.svg, icon-192.png, icon-512.png');
