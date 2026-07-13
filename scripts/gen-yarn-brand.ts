@@ -1,15 +1,10 @@
-// Generates Yarn brand SVG + PNG assets. Does not touch existing /public/icons/.
+// Generates Yarn brand SVG + PNG assets.
 // Run: npx tsx scripts/gen-yarn-brand.ts
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
-import {
-  YARN_ICON,
-  yarnIconBallMarkup,
-  yarnIconStrandMarkup,
-  yarnIconSvg,
-} from '../lib/brand/yarn-icon';
+import { YARN_ICON, yarnIconPathMarkup, yarnIconSvg } from '../lib/brand/yarn-icon';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIRS = [
@@ -20,7 +15,8 @@ const PUBLIC_ICONS = join(__dirname, '../public/icons');
 
 const COLORS = {
   black: '#1A1A1A',
-  gold: '#B8963E',
+  // Proposed SVG gold; brand token matches.
+  gold: YARN_ICON.sourceGold,
   terracotta: '#C4613A',
   teal: '#2A6875',
   forest: '#2F5A42',
@@ -28,21 +24,9 @@ const COLORS = {
   ink: '#3A352C',
 };
 
-function strokeAttrs(color: string, width: number) {
-  return `stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
-}
-
-function iconDualSvg(ballColor: string, strandColor: string) {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="${YARN_ICON.viewBox}" fill="none" role="img" aria-label="Yarn">
-  <g ${strokeAttrs(ballColor, YARN_ICON.stroke)}>
-    ${yarnIconBallMarkup()}
-  </g>
-  <g ${strokeAttrs(strandColor, YARN_ICON.strandStroke)}>
-    ${yarnIconStrandMarkup()}
-  </g>
-</svg>
-`;
+/** Dual-tone is a single path — use ball colour for the whole mark. */
+function iconDualSvg(ballColor: string, _strandColor: string) {
+  return yarnIconSvg(ballColor);
 }
 
 function wordmarkSvg(color: string, bg = 'transparent') {
@@ -65,6 +49,8 @@ function wordmarkSvg(color: string, bg = 'transparent') {
 }
 
 function lockupSvg(iconColor: string, textColor: string, bg = COLORS.cream) {
+  // Fit 328×308 artboard into ~88px tall slot beside the wordmark.
+  const scale = 88 / YARN_ICON.height;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 100" fill="none" role="img" aria-label="Yarn lockup">
   <defs>
@@ -74,23 +60,21 @@ function lockupSvg(iconColor: string, textColor: string, bg = COLORS.cream) {
     </style>
   </defs>
   <rect width="280" height="100" fill="${bg}" rx="16"/>
-  <g transform="translate(0 4)" ${strokeAttrs(iconColor, YARN_ICON.stroke)}>
-    ${yarnIconBallMarkup()}
+  <g transform="translate(6 6) scale(${scale.toFixed(4)})">
+    ${yarnIconPathMarkup(iconColor)}
   </g>
-  <g transform="translate(0 4)" ${strokeAttrs(iconColor, YARN_ICON.strandStroke)}>
-    ${yarnIconStrandMarkup()}
-  </g>
-  <text class="yarn-wordmark" x="108" y="62" fill="${textColor}">Yarn</text>
+  <text class="yarn-wordmark" x="112" y="62" fill="${textColor}">Yarn</text>
 </svg>
 `;
 }
 
 function pngFromSvg(svg: string, size: number, bg?: string) {
+  const inner = svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1] ?? svg;
   const wrapped = bg
     ? `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">
-  <rect width="100" height="100" fill="${bg}"/>
-  ${svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1] ?? svg}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="${YARN_ICON.viewBox}" width="${size}" height="${size}">
+  <rect width="${YARN_ICON.width}" height="${YARN_ICON.height}" fill="${bg}"/>
+  ${inner}
 </svg>`
     : svg;
   const resvg = new Resvg(wrapped, {
@@ -184,17 +168,17 @@ writeAll(
         black: {
           hex: COLORS.black,
           label: 'Black',
-          note: 'Reference sheet — solid black line art',
+          note: 'Solid black mark',
         },
         gold: {
           hex: COLORS.gold,
           label: 'Gold',
-          note: 'Muted ochre — live app icon',
+          note: 'Proposed SVG gold — live app icon',
         },
         terracotta: {
           hex: COLORS.terracotta,
           label: 'Terracotta',
-          note: 'Strand accent in dual-tone mark',
+          note: 'Warm secondary accent',
         },
         teal: { hex: COLORS.teal, label: 'Teal', note: 'Cool contrast accent' },
         forest: {
@@ -217,7 +201,7 @@ writeAll(
 
 console.log('Yarn brand assets written to brand/yarn/ and assets/');
 
-// Live app icons — gold default for PWA install + static fallback.
+// Live app icons — proposed gold for PWA install + static fallback.
 const goldSvg = yarnIconSvg(COLORS.gold);
 writeFileSync(join(PUBLIC_ICONS, 'icon.svg'), goldSvg);
 writeFileSync(join(PUBLIC_ICONS, 'icon-192.png'), pngFromSvg(goldSvg, 192));
