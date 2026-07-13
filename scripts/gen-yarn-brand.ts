@@ -49,7 +49,7 @@ function wordmarkSvg(color: string, bg = 'transparent') {
 }
 
 function lockupSvg(iconColor: string, textColor: string, bg = COLORS.cream) {
-  // Fit 328×308 artboard into ~88px tall slot beside the wordmark.
+  // Fit artboard into ~88px tall slot beside the wordmark.
   const scale = 88 / YARN_ICON.height;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 100" fill="none" role="img" aria-label="Yarn lockup">
