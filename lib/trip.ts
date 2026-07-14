@@ -6,7 +6,6 @@ export interface TripDay {
   destination: string;
   label: string; // e.g. "Day 1"
   dateLabel: string; // e.g. "Fri 28th Aug" (weekdays match 2026)
-  accent: string; // tailwind color token name
   accentHex: string;
 }
 
@@ -16,28 +15,24 @@ export interface TripDay {
 // Nha Trang 7 Sep → 10 Sep
 // Weekdays verified against the 2026 calendar (28 Aug 2026 = Friday).
 export const TRIP_DAYS: TripDay[] = [
-  { dayNumber: 1, destination: 'Bangkok', label: 'Day 1', dateLabel: 'Fri 28th Aug', accent: 'bangkok', accentHex: '#c9992e' },
-  { dayNumber: 2, destination: 'Bangkok', label: 'Day 2', dateLabel: 'Sat 29th Aug', accent: 'bangkok', accentHex: '#c9992e' },
-  { dayNumber: 3, destination: 'Bangkok', label: 'Day 3', dateLabel: 'Sun 30th Aug', accent: 'bangkok', accentHex: '#c9992e' },
-  { dayNumber: 4, destination: 'Phuket', label: 'Day 4', dateLabel: 'Mon 31st Aug', accent: 'phuket', accentHex: '#2f97a6' },
-  { dayNumber: 5, destination: 'Phuket', label: 'Day 5', dateLabel: 'Tue 1st Sep', accent: 'phuket', accentHex: '#2f97a6' },
-  { dayNumber: 6, destination: 'Phuket', label: 'Day 6', dateLabel: 'Wed 2nd Sep', accent: 'phuket', accentHex: '#2f97a6' },
-  { dayNumber: 7, destination: 'Saigon', label: 'Day 7', dateLabel: 'Thu 3rd Sep', accent: 'saigon', accentHex: '#b0472f' },
-  { dayNumber: 8, destination: 'Saigon', label: 'Day 8', dateLabel: 'Fri 4th Sep', accent: 'saigon', accentHex: '#b0472f' },
-  { dayNumber: 9, destination: 'Saigon', label: 'Day 9', dateLabel: 'Sat 5th Sep', accent: 'saigon', accentHex: '#b0472f' },
-  { dayNumber: 10, destination: 'Saigon', label: 'Day 10', dateLabel: 'Sun 6th Sep', accent: 'saigon', accentHex: '#b0472f' },
-  { dayNumber: 11, destination: 'Nha Trang', label: 'Day 11', dateLabel: 'Mon 7th Sep', accent: 'nhatrang', accentHex: '#3f9b8a' },
-  { dayNumber: 12, destination: 'Nha Trang', label: 'Day 12', dateLabel: 'Tue 8th Sep', accent: 'nhatrang', accentHex: '#3f9b8a' },
-  { dayNumber: 13, destination: 'Nha Trang', label: 'Day 13', dateLabel: 'Wed 9th Sep', accent: 'nhatrang', accentHex: '#3f9b8a' },
+  { dayNumber: 1, destination: 'Bangkok', label: 'Day 1', dateLabel: 'Fri 28th Aug', accentHex: '#c9992e' },
+  { dayNumber: 2, destination: 'Bangkok', label: 'Day 2', dateLabel: 'Sat 29th Aug', accentHex: '#c9992e' },
+  { dayNumber: 3, destination: 'Bangkok', label: 'Day 3', dateLabel: 'Sun 30th Aug', accentHex: '#c9992e' },
+  { dayNumber: 4, destination: 'Phuket', label: 'Day 4', dateLabel: 'Mon 31st Aug', accentHex: '#2f97a6' },
+  { dayNumber: 5, destination: 'Phuket', label: 'Day 5', dateLabel: 'Tue 1st Sep', accentHex: '#2f97a6' },
+  { dayNumber: 6, destination: 'Phuket', label: 'Day 6', dateLabel: 'Wed 2nd Sep', accentHex: '#2f97a6' },
+  { dayNumber: 7, destination: 'Saigon', label: 'Day 7', dateLabel: 'Thu 3rd Sep', accentHex: '#b0472f' },
+  { dayNumber: 8, destination: 'Saigon', label: 'Day 8', dateLabel: 'Fri 4th Sep', accentHex: '#b0472f' },
+  { dayNumber: 9, destination: 'Saigon', label: 'Day 9', dateLabel: 'Sat 5th Sep', accentHex: '#b0472f' },
+  { dayNumber: 10, destination: 'Saigon', label: 'Day 10', dateLabel: 'Sun 6th Sep', accentHex: '#b0472f' },
+  { dayNumber: 11, destination: 'Nha Trang', label: 'Day 11', dateLabel: 'Mon 7th Sep', accentHex: '#3f9b8a' },
+  { dayNumber: 12, destination: 'Nha Trang', label: 'Day 12', dateLabel: 'Tue 8th Sep', accentHex: '#3f9b8a' },
+  { dayNumber: 13, destination: 'Nha Trang', label: 'Day 13', dateLabel: 'Wed 9th Sep', accentHex: '#3f9b8a' },
 ];
 
 export function dayByNumber(n: number): TripDay | undefined {
   return TRIP_DAYS.find((d) => d.dayNumber === n);
 }
-
-// Day 1 = 28 Aug 2026. Used to map real dates (e.g. Apple Health step pushes)
-// onto trip day numbers and to preselect "today" in day pickers.
-export const TRIP_START_ISO = '2026-08-28';
 
 /** Display name for the trip identity header. */
 export const TRIP_TITLE = 'Thailand & Vietnam';

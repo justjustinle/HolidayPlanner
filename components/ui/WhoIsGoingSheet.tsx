@@ -4,7 +4,7 @@ import Sheet from './Sheet';
 import Avatar from './Avatar';
 import { useTripData } from '../TripDataProvider';
 
-// Roster of everyone on the trip. Opened from the avatar menu or the
+// Roster of everyone on the trip. Opened from the hamburger drawer or the
 // itinerary facepile — same sheet either way.
 export default function WhoIsGoingSheet({ onClose }: { onClose: () => void }) {
   const { profiles, me } = useTripData();

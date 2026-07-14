@@ -14,13 +14,11 @@ type TabHeaderProps =
       /** Itinerary-only trip identity chrome. */
       variant?: 'trip';
       title?: never;
-      action?: React.ReactNode;
     }
   | {
       /** Expenses / Stats: page title + Yarn mark top-right. */
       variant: 'section';
       title: string;
-      action?: React.ReactNode;
     };
 
 // Shared two-column trip header: 40px icon rail + flexible content.
@@ -29,7 +27,6 @@ const TRIP_HEADER_GRID = 'grid grid-cols-[40px_1fr]';
 // Itinerary: hamburger + trip title/flags/dates/facepile.
 // Expenses & Stats: hamburger + section title, Yarn logo top-right (no trip chrome).
 export default function TabHeader(props: TabHeaderProps) {
-  const { action } = props;
   const isTrip = props.variant !== 'section';
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
@@ -67,9 +64,8 @@ export default function TabHeader(props: TabHeaderProps) {
           <span className="mt-2 flex items-center justify-center text-muted" aria-hidden>
             <Users size={14} />
           </span>
-          <div className="mt-2 flex items-center gap-3">
-            <TravelerFacepile hideIcon onOpen={() => setRosterOpen(true)} size={23} />
-            {action}
+          <div className="mt-2">
+            <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
           </div>
         </div>
       ) : (
@@ -86,7 +82,6 @@ export default function TabHeader(props: TabHeaderProps) {
             <h1 className="min-w-0 truncate font-serif text-[28px] font-semibold leading-none text-ink">
               {props.title}
             </h1>
-            {action}
           </div>
           <span
             className="flex flex-none items-center text-[var(--city-accent)]"
