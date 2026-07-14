@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Calendar, Menu } from 'lucide-react';
 import AppDrawer from './AppDrawer';
-import TravelerFacepile from './TravelerFacepile';
+import TravelerFacepile, { TRIP_META_ICON_GRID } from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
 import YarnLogo from '../brand/YarnLogo';
 import { ThaiFlag, VietnamFlag } from './Flag';
@@ -55,15 +55,15 @@ export default function TabHeader(props: TabHeaderProps) {
               <VietnamFlag size={20} />
             </span>
           </h1>
-          <div className="col-start-2 row-start-2 mt-2.5 flex min-w-0 items-center gap-2.5">
-            <span className="flex shrink-0 items-center gap-1.5 text-[13px] leading-snug text-muted">
-              <Calendar size={14} className="flex-none" aria-hidden />
-              <span className="whitespace-nowrap">{dates}</span>
-            </span>
-            <div className="min-w-0 flex-1">
-              <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
+          <div className="col-start-2 row-start-2 mt-1 flex flex-col gap-2">
+            <div className={TRIP_META_ICON_GRID}>
+              <Calendar size={14} className="mx-auto flex-none text-muted" aria-hidden />
+              <p className="text-[13px] leading-snug text-muted">{dates}</p>
             </div>
-            {action}
+            <div className="flex items-center gap-3">
+              <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
+              {action}
+            </div>
           </div>
         </div>
       ) : (
