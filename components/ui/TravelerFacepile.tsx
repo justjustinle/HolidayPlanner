@@ -27,7 +27,7 @@ export default function TravelerFacepile({
       aria-label={`Who's going — ${profiles.length} people`}
       className="flex items-center gap-1.5 py-0.5 text-left transition-opacity hover:opacity-80 active:opacity-70"
     >
-      <Users size={16} className="flex-none text-muted" aria-hidden />
+      <Users size={14} className="flex-none text-muted" aria-hidden />
       <span className="flex items-center gap-1">
         {visible.map((p) => (
           <Avatar key={p.id} name={p.name} src={p.avatar_url} size={size} />
