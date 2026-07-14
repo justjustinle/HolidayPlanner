@@ -20,14 +20,14 @@ export default function AppShell() {
   const [tab, setTab] = useState<TabKey>('itinerary');
 
   return (
-    <div className="city-tint mx-auto flex min-h-[100dvh] max-w-app flex-col">
+    <div className="city-tint mx-auto flex h-[100dvh] max-w-app flex-col overflow-hidden">
       {demoMode && (
         <div className="bg-ink/90 px-4 py-1.5 text-center text-[11px] text-cream">
           Demo mode — add Supabase keys in <code>.env.local</code> for realtime group sync
         </div>
       )}
 
-      <main className="no-scrollbar flex-1 overflow-y-auto pb-10">
+      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-10">
         {tab === 'itinerary' && <ItineraryTab />}
         {tab === 'finance' && <FinanceTab />}
         {tab === 'stats' && <StatsTab />}
