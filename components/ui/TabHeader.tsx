@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, Menu } from 'lucide-react';
+import { Calendar, Menu, Users } from 'lucide-react';
 import AppDrawer from './AppDrawer';
-import TravelerFacepile, { TRIP_META_ICON_GRID } from './TravelerFacepile';
+import TravelerFacepile from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
 import YarnLogo from '../brand/YarnLogo';
 import { ThaiFlag, VietnamFlag } from './Flag';
@@ -23,6 +23,9 @@ type TabHeaderProps =
       action?: React.ReactNode;
     };
 
+// Shared two-column trip header: 40px icon rail + flexible content.
+const TRIP_HEADER_GRID = 'grid grid-cols-[40px_1fr]';
+
 // Itinerary: hamburger + trip title/flags/dates/facepile.
 // Expenses & Stats: hamburger + section title, Yarn logo top-right (no trip chrome).
 export default function TabHeader(props: TabHeaderProps) {
@@ -35,17 +38,17 @@ export default function TabHeader(props: TabHeaderProps) {
   return (
     <header className="px-5 pt-4">
       {isTrip ? (
-        <div className="grid grid-cols-[auto_1fr] gap-x-3">
+        <div className={TRIP_HEADER_GRID}>
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
-            className="row-start-1 flex h-10 w-10 flex-none items-center justify-center self-center rounded-full text-ink hover:bg-black/5"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-black/5"
           >
             <Menu size={22} strokeWidth={2} />
           </button>
 
-          <h1 className="col-start-2 row-start-1 flex min-w-0 items-center gap-2 self-center font-serif text-[26px] font-semibold leading-tight text-ink">
+          <h1 className="flex min-w-0 items-center gap-2 font-serif text-[26px] font-semibold leading-tight text-ink">
             <span className="min-w-0 truncate">{TRIP_TITLE}</span>
             <span
               className="inline-flex shrink-0 items-center gap-1"
@@ -55,15 +58,18 @@ export default function TabHeader(props: TabHeaderProps) {
               <VietnamFlag size={20} />
             </span>
           </h1>
-          <div className="col-start-2 row-start-2 mt-1 flex flex-col gap-2">
-            <div className={TRIP_META_ICON_GRID}>
-              <Calendar size={14} className="mx-auto flex-none text-muted" aria-hidden />
-              <p className="text-[13px] leading-snug text-muted">{dates}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
-              {action}
-            </div>
+
+          <span className="mt-1 flex items-center justify-center text-muted" aria-hidden>
+            <Calendar size={14} />
+          </span>
+          <p className="mt-1 text-[13px] leading-snug text-muted">{dates}</p>
+
+          <span className="mt-2 flex items-center justify-center text-muted" aria-hidden>
+            <Users size={14} />
+          </span>
+          <div className="mt-2 flex items-center gap-3">
+            <TravelerFacepile hideIcon onOpen={() => setRosterOpen(true)} size={23} />
+            {action}
           </div>
         </div>
       ) : (
