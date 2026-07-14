@@ -5,22 +5,25 @@ import type { Photo, Profile, StatCategory, StatEntry } from './types';
 export const STATS_DAY = 1;
 
 // The five self-input counters. The photos-taken stat is derived/read-only
-// and handled separately in the UI.
+// and handled separately in the UI. Icons live in StatsTab (Lucide).
 export const COUNTER_CATEGORIES: {
   key: StatCategory;
   label: string;
-  emoji: string;
 }[] = [
-  { key: 'poop', label: 'Poops', emoji: '💩' },
-  { key: 'drink', label: 'Drinks', emoji: '🍻' },
-  { key: 'mosquito', label: 'Mozzie bites', emoji: '🦟' },
-  { key: 'coffee', label: 'Coffees', emoji: '☕' },
-  { key: 'cards', label: 'Card games won', emoji: '🃏' },
+  { key: 'poop', label: 'Poops' },
+  { key: 'drink', label: 'Drinks' },
+  { key: 'mosquito', label: 'Mozzie bites' },
+  { key: 'coffee', label: 'Coffees' },
+  { key: 'cards', label: 'Card games won' },
 ];
 
-export const ALL_LEADERBOARD_CATEGORIES: { key: StatCategory | 'photos'; label: string; emoji: string; unit: string }[] = [
-  ...COUNTER_CATEGORIES.map((c) => ({ key: c.key, label: c.label, emoji: c.emoji, unit: '' })),
-  { key: 'photos', label: 'Photos taken', emoji: '📸', unit: '' },
+export const ALL_LEADERBOARD_CATEGORIES: {
+  key: StatCategory | 'photos';
+  label: string;
+  unit: string;
+}[] = [
+  ...COUNTER_CATEGORIES.map((c) => ({ key: c.key, label: c.label, unit: '' })),
+  { key: 'photos', label: 'Photos taken', unit: '' },
 ];
 
 export function statFor(
