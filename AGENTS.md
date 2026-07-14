@@ -1,8 +1,8 @@
 # AGENTS.md — HolidayPlanner ("Yarn" / "Planr")
 
 Tool-agnostic guide for AI coding agents (Claude Code, Codex, Cursor, Jules,
-Aider, …) working on this repo. Read this first. Last updated after trip-header
-icon rail + day-pill ghost/tint restore (PR #74) and Stats Yarn redesign (PR #72).
+Aider, …) working on this repo. Read this first. Last updated after elevated
+day pills + filled Add activity CTA (sticky day nav vs flat trip chrome).
 
 ---
 
@@ -68,7 +68,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 **components/**
 - `TripDataProvider.tsx` — the data spine: all state + every mutation (`addItineraryItem`, `addPhotos`, `addExpense`, `updateExpense`, `addReceiptExpense`, `setItemClaim`, `deleteExpense`, `settleUp`, `setStat`, …), `recordActivity` (fires notification events), mark-seen effect.
 - `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; app surface uses `.city-tint`
-- `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; outline "+ Add activity" (solid accent reserved for primary actions); timeline rows with spacing from `timelineGapPx`
+- `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; filled "+ Add activity" (solid accent + cream text); timeline rows with spacing from `timelineGapPx`
 - `tabs/FinanceTab.tsx` — total, add actions, FX rates, collapsible expense list, "Who pays whom" (tap outstanding → settle) + collapsible green settled log, balances
 - `tabs/StatsTab.tsx` — Lucide icon badges + ghost +/- counters + leaderboard rank chips; all accents via `var(--city-accent)` (see §6 / §11)
 - `ui/TabHeader.tsx` — **Itinerary:** shared `grid-cols-[40px_1fr]` trip chrome (hamburger / calendar / users in col 1; title+flags / dates / facepile in col 2). **Expenses & Stats:** hamburger + section title, Yarn logo top-right. Drawer for account actions.
@@ -93,7 +93,8 @@ Bangkok gold `#c9992e`, Phuket teal `#2f97a6`, Saigon red `#b0472f`, Nha Trang j
 - Derived values: accent tint ≈ `color-mix(in srgb, var(--city-accent) 12%, #fdfbf5)` (or 20% for selected day pills); full-opacity accent for borders / solid primary actions.
 - `.city-tint` on the app shell = `color-mix(in srgb, var(--city-accent) 12%, #f7f1e6)`.
 - **Member avatar colors** (`lib/avatar.ts`) are identity colors — **not** theme-dependent; do not recolor them to the city accent.
-- Solid accent fill is reserved for **primary actions** (e.g. Add activity outline uses accent border+text; Stats rank-1 chip is solid accent). Do not use solid city fill for large selected surfaces (day pills use tint + border instead).
+- Solid accent fill is reserved for **primary actions** (e.g. Add activity filled pill; Stats rank-1 chip). Do not use solid city fill for large selected surfaces (day pills use elevated cream + tint/border instead).
+- Trip identity chrome (title, dates, facepile, "City · Day n" label) stays **flat** on `.city-tint` — no cards behind them. Interactive chrome (day pills, Add activity) is elevated.
 
 ## 7. Notifications (built; env configured — verify + enable)
 
@@ -123,11 +124,11 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 
 ## 10. Day pills (`DayPicker`)
 
-- **Unselected (ghost):** `bg-transparent`, **no** shadow, `1px border-black/25`, dark date text, muted second line, colored city dots.
-- **Selected (only filled pill):** `color-mix(in srgb, {day.accentHex} 20%, #fdfbf5)`, `1px` solid day accent border, **bold dark** date text (not white), same muted second line + colored city dots (not white), optional `shadow-card`.
-- Dimensions identical between states (both use 1px borders). Scroll / edge fades / Add activity button unchanged.
-- ⚠️ Do **not** restore solid city fill + white text on the selected pill (regressed when an incomplete header PR landed without the pill restyle — restored in PR #74).
-
+- **Unselected (elevated):** `bg-cream-card`, `shadow-card`, `1px border-black/5` — same elevation language as timeline activity cards (not ghost outline on beige).
+- **Selected:** `color-mix(in srgb, {day.accentHex} 20%, #fdfbf5)`, `1px` solid day accent border, `shadow-card`, **bold dark** date text (not white), same muted second line + colored city dots (not white).
+- Dimensions identical between states (both use 1px borders). Sticky below the trip header (`sticky top-0` with city-tint background) so the strip stays as persistent day nav while the timeline scrolls. Edge fades unchanged.
+- **Add activity:** filled primary CTA — solid day accent background + cream text; same `h-8` rounded-full size as before (not outline/ghost).
+- ⚠️ Do **not** restore ghost outlined-on-beige unselected pills or solid city fill + white text on the selected pill.
 ## 11. Stats tab (Trip Olympics)
 
 - No emoji. Lucide (or Lucide-matched outline) icons in ~28px circular badges: accent-tint background + `var(--city-accent)` stroke.

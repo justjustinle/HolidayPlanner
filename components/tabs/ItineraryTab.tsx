@@ -134,11 +134,8 @@ export default function ItineraryTab() {
             <button
               onClick={() => setAdding(true)}
               aria-label="Add activity"
-              className="flex h-8 flex-none items-center gap-1 rounded-full border bg-transparent pl-2.5 pr-3 text-[13px] font-medium"
-              style={{
-                borderColor: selected.accentHex,
-                color: selected.accentHex,
-              }}
+              className="flex h-8 flex-none items-center gap-1 rounded-full pl-2.5 pr-3 text-[13px] font-medium text-cream-card"
+              style={{ background: selected.accentHex }}
             >
               <Plus size={15} />
               Add activity
