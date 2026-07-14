@@ -6,16 +6,16 @@ import { useTripData } from '../TripDataProvider';
 
 const MAX_VISIBLE = 5;
 
-export const TRIP_META_ICON_GRID =
-  'grid w-full grid-cols-[14px_minmax(0,1fr)] items-center gap-x-1.5';
-
 // Users icon + side-by-side avatars (small gap, no overlap) — opens the roster.
 export default function TravelerFacepile({
   onOpen,
   size = 26,
+  hideIcon = false,
 }: {
   onOpen: () => void;
   size?: number;
+  /** When true, only render avatars (icon is supplied by the parent header grid). */
+  hideIcon?: boolean;
 }) {
   const { profiles } = useTripData();
   if (profiles.length === 0) return null;
@@ -28,9 +28,9 @@ export default function TravelerFacepile({
       type="button"
       onClick={onOpen}
       aria-label={`Who's going — ${profiles.length} people`}
-      className={`${TRIP_META_ICON_GRID} py-0.5 text-left transition-opacity hover:opacity-80 active:opacity-70`}
+      className="flex items-center gap-1.5 py-0.5 text-left transition-opacity hover:opacity-80 active:opacity-70"
     >
-      <Users size={14} className="mx-auto flex-none text-muted" aria-hidden />
+      {!hideIcon && <Users size={14} className="flex-none text-muted" aria-hidden />}
       <span className="flex items-center gap-1">
         {visible.map((p) => (
           <Avatar key={p.id} name={p.name} src={p.avatar_url} size={size} />
