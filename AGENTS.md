@@ -73,7 +73,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - `tabs/StatsTab.tsx` — Lucide icon badges + ghost +/- counters + leaderboard rank chips; all accents via `var(--city-accent)` (see §6 / §11)
 - `ui/TabHeader.tsx` — **Itinerary:** shared `grid-cols-[40px_1fr]` trip chrome (hamburger / calendar / users in col 1; title+flags / dates / facepile in col 2). **Expenses & Stats:** hamburger + section title, Yarn logo top-right. Drawer for account actions.
 - `ui/DayPicker.tsx` — horizontal day pills (see §10)
-- `ui/TravelerFacepile.tsx` — avatar stack; `hideIcon` when parent supplies the Users icon in the header rail
+- `ui/TravelerFacepile.tsx` — avatar stack only (Users icon lives in the header rail)
 - `ui/` — also `AppDrawer`, `ConfirmDialog`, `Avatar`, `Sheet`, `Flag`, `TimeWheel`, `PlaneJourney`, `WhoIsGoingSheet`
 - `itinerary/` — `ItineraryCard`, `YarnTimelineRail` (wavy thread), `NowMarker`, `AddCardSheet`, `MemoriesModal`
 - `finance/` — `ExpenseCard`, `LogExpenseSheet`, `UploadReceiptSheet`, `RateSettings`
@@ -144,7 +144,7 @@ Shared grid: **`grid-cols-[40px_1fr]`** (do not nest date/facepile in a second i
 |-----|-----------------------------|-------|
 | 1 | Hamburger | `TRIP_TITLE` + Thailand/Vietnam flags |
 | 2 | Calendar | `tripDateRangeLabel()` e.g. `28th Aug – 9th Sep` |
-| 3 | Users | Facepile (`hideIcon`) |
+| 3 | Users | Facepile |
 
 ⚠️ Nesting meta rows inside `col-start-2` with a separate `14px` icon grid **misaligns** calendar/users vs hamburger and title vs dates — that was the header regression fixed by the shared 40px rail.
 

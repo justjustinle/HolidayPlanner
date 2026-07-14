@@ -121,7 +121,7 @@ components/
   TripDataProvider.tsx  # data layer: Supabase OR localStorage demo + realtime
   ServiceWorkerRegister.tsx
   tabs/                 # ItineraryTab, FinanceTab, StatsTab
-  itinerary/            # ItineraryCard, PolaroidCarousel, AddCardSheet
+  itinerary/            # ItineraryCard, YarnTimelineRail, AddCardSheet, MemoriesModal
   finance/              # RateSettings, ExpenseCard, sheets for receipt/expense
   ui/                   # Avatar, Sheet, TabHeader, DayPicker, TimeWheel
 lib/

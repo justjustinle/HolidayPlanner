@@ -20,10 +20,9 @@ export const COUNTER_CATEGORIES: {
 export const ALL_LEADERBOARD_CATEGORIES: {
   key: StatCategory | 'photos';
   label: string;
-  unit: string;
 }[] = [
-  ...COUNTER_CATEGORIES.map((c) => ({ key: c.key, label: c.label, unit: '' })),
-  { key: 'photos', label: 'Photos taken', unit: '' },
+  ...COUNTER_CATEGORIES.map((c) => ({ key: c.key, label: c.label })),
+  { key: 'photos', label: 'Photos taken' },
 ];
 
 export function statFor(

@@ -11,11 +11,9 @@ const FADE =
 export default function DayPicker({
   value,
   onChange,
-  allowAll = false,
 }: {
-  value: number; // 0 = all days (only when allowAll)
+  value: number;
   onChange: (day: number) => void;
-  allowAll?: boolean;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -46,7 +44,7 @@ export default function DayPicker({
     // Edges update after layout settles from scrollIntoView.
     const id = window.setTimeout(updateEdges, 80);
     return () => window.clearTimeout(id);
-  }, [value, allowAll]);
+  }, [value]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -59,7 +57,7 @@ export default function DayPicker({
       el.removeEventListener('scroll', updateEdges);
       ro.disconnect();
     };
-  }, [allowAll]);
+  }, []);
 
   // Selected: tinted fill + accent border + shadow; unselected: transparent ghost outline.
   const chip = (active: boolean) =>
@@ -73,19 +71,6 @@ export default function DayPicker({
         ref={scrollerRef}
         className="no-scrollbar flex gap-2 overflow-x-auto scroll-smooth py-3 pl-5 pr-14"
       >
-        {allowAll && (
-          <button
-            onClick={() => onChange(0)}
-            ref={value === 0 ? activeRef : undefined}
-            className={chip(value === 0)}
-            style={value === 0 ? { background: '#3a352c' } : undefined}
-          >
-            <span className="text-[13px] font-semibold">All</span>
-            <span className={`text-[10px] ${value === 0 ? 'text-white/70' : 'text-muted'}`}>
-              whole trip
-            </span>
-          </button>
-        )}
         {TRIP_DAYS.map((d) => {
           const active = value === d.dayNumber;
           return (
