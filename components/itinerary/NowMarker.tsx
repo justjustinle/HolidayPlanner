@@ -21,8 +21,8 @@ const NowMarker = forwardRef<
   const clock = formatClock(now);
 
   return (
-    <div ref={ref} className="relative flex gap-3" aria-label={`Now, ${clock}`}>
-      <div className="w-[56px] flex-none pt-0.5 text-right tabular-nums">
+    <div ref={ref} className="relative flex items-stretch gap-3" aria-label={`Now, ${clock}`}>
+      <div className="w-[56px] flex-none self-start pt-0.5 text-right tabular-nums">
         <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
           {clock}
         </div>
