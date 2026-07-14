@@ -2,7 +2,6 @@
 
 import { useMemo, type ComponentType, type ReactNode } from 'react';
 import {
-  Bath,
   Beer,
   Bug,
   Camera,
@@ -27,8 +26,40 @@ import type { StatCategory } from '@/lib/types';
 
 type IconType = ComponentType<LucideProps>;
 
+/** Lucide has no toilet glyph — outline that matches its 24px stroke language. */
+function ToiletIcon({
+  size = 24,
+  strokeWidth = 2,
+  className,
+  ...rest
+}: LucideProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+      {...rest}
+    >
+      {/* cistern */}
+      <rect x="7" y="2" width="10" height="5" rx="1.5" />
+      {/* bowl rim */}
+      <path d="M5 10h14a1 1 0 0 1 1 1v1c0 4.5-3.5 7-8 7s-8-2.5-8-7v-1a1 1 0 0 1 1-1z" />
+      {/* base / trap */}
+      <path d="M9 19v2h6v-2" />
+    </svg>
+  );
+}
+
 const STAT_ICONS: Record<StatCategory | 'photos', IconType> = {
-  poop: Bath,
+  poop: ToiletIcon,
   drink: Beer,
   mosquito: Bug,
   coffee: Coffee,

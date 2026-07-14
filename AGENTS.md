@@ -1,16 +1,17 @@
-# AGENTS.md — HolidayPlanner ("Planr")
+# AGENTS.md — HolidayPlanner ("Yarn" / "Planr")
 
 Tool-agnostic guide for AI coding agents (Claude Code, Codex, Cursor, Jules,
-Aider, …) working on this repo. Read this first. Last updated after the
-"Settle Up" feature (PR #16).
+Aider, …) working on this repo. Read this first. Last updated after trip-header
+icon rail + day-pill ghost/tint restore (PR #74) and Stats Yarn redesign (PR #72).
 
 ---
 
 ## 1. What the app is
 
 A collaborative travel PWA for one group's **Thailand & Vietnam trip (28 Aug – 9 Sep 2026)**.
-Three tabs: **Itinerary** (day-by-day activities + photo "memories"), **Expenses**
-(shared costs, receipt scanning, settle-up), **Stats** ("Trip Olympics" counters).
+Product chrome / branding often says **Yarn**. Three tabs: **Itinerary** (day-by-day
+activities + photo "memories"), **Expenses** (shared costs, receipt scanning,
+settle-up), **Stats** ("Trip Olympics" counters + leaderboards).
 
 Constraints that shape every design decision:
 - **Single-trip.** The trip (days, cities) is hard-coded in `lib/trip.ts`. There is **no `trips` table and no `group_id`**.
@@ -38,7 +39,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 
 - **profiles** — `id, name (unique), avatar_url, created_at`
 - **trip_settings** — single row (id=1): `vnd_per_gbp, thb_per_gbp` (group FX rates)
-- **itinerary_items** — `id, day_number, time_label, title, location, photo_url (legacy), created_at`
+- **itinerary_items** — `id, day_number, time_label, end_time_label (nullable), title, location, notes, photo_url (legacy), created_at`
 - **photos** — `id, activity_id→itinerary_items, url, uploaded_by_id, tagged_user_ids[], created_at`
 - **expenses** — `id, activity_id (legacy, nullable), label, day_number, kind, local_amount, local_currency, base_amount_gbp, paid_by_id, created_at`
   - `kind` = **`'manual' | 'receipt' | 'settlement'`** (plain text, **no CHECK constraint** — new kinds need no migration)
@@ -54,32 +55,45 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 ## 5. Key files
 
 **lib/**
-- `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `dayByNumber`, `defaultDayNumber`, `CURRENCY_SYMBOL`
+- `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `TRIP_TITLE`, `tripDateRangeLabel()` → **"28th Aug – 9th Sep"** (keeps st/nd/rd/th), `dayByNumber`, `defaultDayNumber`, `landingDayNumber`, `CURRENCY_SYMBOL`
 - `settle.ts` — `computeNetBalances` (net = paid − owed; manual splits + receipt claims), `minimizeTransfers` (greedy "who pays whom"), `totalSpend` (excludes settlements), `listSettlements`
 - `currency.ts` — `formatGbp, toGbp, round2, splitEqually`
 - `types.ts` — domain types; `ExpenseKind`, `SETTLEMENT_LABEL`, `Transfer`, `SettledPayment`
 - `supabase.ts` — client + `isSupabaseConfigured` + `SUPABASE_BUCKET`
 - `notifications/{config,client,server}.ts` — see §7
-- `image.ts`, `demo.ts`, `stats.ts`, `time.ts`, `avatar.ts`
+- `stats.ts` — `COUNTER_CATEGORIES` / `ALL_LEADERBOARD_CATEGORIES` (labels only — **no emoji**), `STATS_DAY`, `statFor`, `statTotals`, `photoUploadCounts`
+- `time.ts` — 24h clock helpers + `timelineGapPx` (capped vertical spacing between timeline rows)
+- `image.ts`, `demo.ts`, `avatar.ts`
 
 **components/**
 - `TripDataProvider.tsx` — the data spine: all state + every mutation (`addItineraryItem`, `addPhotos`, `addExpense`, `updateExpense`, `addReceiptExpense`, `setItemClaim`, `deleteExpense`, `settleUp`, `setStat`, …), `recordActivity` (fires notification events), mark-seen effect.
-- `AppShell.tsx` — bottom tab bar; app surface uses `.city-tint`
-- `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; inline "+ Add activity"; new activities auto-assigned to the current day
+- `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; app surface uses `.city-tint`
+- `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; outline "+ Add activity" (solid accent reserved for primary actions); timeline rows with spacing from `timelineGapPx`
 - `tabs/FinanceTab.tsx` — total, add actions, FX rates, collapsible expense list, "Who pays whom" (tap outstanding → settle) + collapsible green settled log, balances
-- `tabs/StatsTab.tsx`
-- `ui/` — `TabHeader` (title+flags+avatar one centered row), `ConfirmDialog` (tone: danger|primary), `Avatar`, `DayPicker`, `Sheet`, `Flag`, `TimeWheel`, `PlaneJourney`
-- `itinerary/` — `ItineraryCard`, `PolaroidCarousel`, `AddCardSheet`
+- `tabs/StatsTab.tsx` — Lucide icon badges + ghost +/- counters + leaderboard rank chips; all accents via `var(--city-accent)` (see §6 / §11)
+- `ui/TabHeader.tsx` — **Itinerary:** shared `grid-cols-[40px_1fr]` trip chrome (hamburger / calendar / users in col 1; title+flags / dates / facepile in col 2). **Expenses & Stats:** hamburger + section title, Yarn logo top-right. Drawer for account actions.
+- `ui/DayPicker.tsx` — horizontal day pills (see §10)
+- `ui/TravelerFacepile.tsx` — avatar stack; `hideIcon` when parent supplies the Users icon in the header rail
+- `ui/` — also `AppDrawer`, `ConfirmDialog`, `Avatar`, `Sheet`, `Flag`, `TimeWheel`, `PlaneJourney`, `WhoIsGoingSheet`
+- `itinerary/` — `ItineraryCard`, `YarnTimelineRail` (wavy thread), `NowMarker`, `AddCardSheet`, `MemoriesModal`
 - `finance/` — `ExpenseCard`, `LogExpenseSheet`, `UploadReceiptSheet`, `RateSettings`
-- `WelcomeGate.tsx`, `ServiceWorkerRegister.tsx`
+- `WelcomeGate.tsx`, `ServiceWorkerRegister.tsx`, `brand/YarnLogo.tsx`
 
 **app/** — `page.tsx`, `layout.tsx`, `globals.css` (`--city-accent`, `.city-tint`), `api/scan-receipt/route.ts`, `api/notifications/{subscribe,dispatch,cron}/route.ts`
 **public/** — `sw.js` (offline cache + push + notificationclick), `manifest.json`, `icons/`
 
-## 6. City theming
+## 6. City theming (accent token — critical)
 
-`ItineraryTab` writes the selected day's accent to CSS var `--city-accent`:
-Bangkok gold `#c9992e`, Phuket teal `#2f97a6`, Saigon red `#b0472f`, Nha Trang jade `#3f9b8a`. Drives active day chip, Add button, sheet submit button, tab-bar highlight, and the pastel app background (`.city-tint` = `color-mix(in srgb, var(--city-accent) 12%, cream)`).
+`ItineraryTab` writes the selected day's accent to CSS var **`--city-accent`**:
+Bangkok gold `#c9992e`, Phuket teal `#2f97a6`, Saigon red `#b0472f`, Nha Trang jade `#3f9b8a`.
+
+**Rules for UI work:**
+- Prefer **`var(--city-accent)`** (and `color-mix` derived from it) for theme highlights. Day pills may use that day's `d.accentHex` for the *selected chip's own city* (correct — each chip is tied to a day).
+- **Never hard-code gold / Bangkok hex** for page chrome that should follow the active city (Stats, tab bar, icon badges, rank-1 chips, sheet submit, etc.).
+- Derived values: accent tint ≈ `color-mix(in srgb, var(--city-accent) 12%, #fdfbf5)` (or 20% for selected day pills); full-opacity accent for borders / solid primary actions.
+- `.city-tint` on the app shell = `color-mix(in srgb, var(--city-accent) 12%, #f7f1e6)`.
+- **Member avatar colors** (`lib/avatar.ts`) are identity colors — **not** theme-dependent; do not recolor them to the city accent.
+- Solid accent fill is reserved for **primary actions** (e.g. Add activity outline uses accent border+text; Stats rank-1 chip is solid accent). Do not use solid city fill for large selected surfaces (day pills use tint + border instead).
 
 ## 7. Notifications (built; env configured — verify + enable)
 
@@ -88,7 +102,7 @@ Batched web-push digests for ambient activity.
 - **Config (single source):** `lib/notifications/config.ts` — `TRIP_ID='thailand-vietnam-2026'`, `BATCH_MIN_COUNT=5`, `BATCH_MAX_AGE_MINUTES=120`, `EVENT_CONFIG` classifying types `batched` (expense_added, photo_added, activity_added) vs `immediate` (expense_split_added).
 - **Routes:** `/api/notifications/subscribe`, `/dispatch` (immediate + count rule, poked by client after writes), `/cron` (age rule, Bearer `CRON_SECRET`).
 - **Cron:** `.github/workflows/notifications-cron.yml` hits `/cron` every 15 min (Vercel Hobby crons are daily-only). `notifications-e2e.yml` + `scripts/notifications-e2e.mjs` = manual smoke test.
-- **Subscribe UI:** "Enable notifications" in the avatar menu.
+- **Subscribe UI:** "Enable notifications" in the avatar / hamburger drawer menu.
 
 **Status:** Both stores are configured — GitHub Actions secrets (`APP_URL`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`) and the Vercel env vars (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`; `CRON_SECRET` matches the GitHub secret). A **redeploy after adding the vars is required** for the inlined `NEXT_PUBLIC_` public key to take effect. Confirm end-to-end by running the `notifications-e2e` workflow (expect 13/13; an earlier run was 3/13 only because the Vercel vars were missing). Then enable per device from the avatar menu (iOS needs the PWA installed to the home screen, 16.4+).
 
@@ -100,18 +114,54 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 - **UX:** tap an outstanding "who pays whom" card → confirm → logged. Settled payments sit in a collapsed-by-default green "Show Settled Payments (n)" accordion as immutable "X paid Y £Z ✓ PAID" rows. **Full amounts only.** Each is **reversible** (undo deletes the settlement, restores balance).
 - Helpers: `settleUp(fromId,toId,amount)` (TripDataProvider), `listSettlements()` (`lib/settle.ts`).
 
-## 9. Conventions & gotchas
+## 9. Itinerary timeline (yarn rail)
 
-- **Branching:** develop on a feature branch; open PRs as **draft** with base = default branch `claude/itinerary-app-design-brepuv`. After a merge, **reset the feature branch from the freshly-merged default** before the next change.
-- **Verify before commit:** implement → `npx tsc --noEmit` → drive the real app headless (Playwright via `playwright-core`, Chromium at `/opt/pw-browsers/chromium`, iPhone viewport) → screenshot → then commit/PR.
-- **Fast test path:** demo mode — log in as a seed profile (e.g. "Alex") to exercise flows without Supabase.
+- Layout: time column | `YarnTimelineNode` | activity card. Rows use `items-stretch`; the rail column `self-stretch`s to the full row height (card + `spacingAfter`).
+- Thread SVG fills an in-flow `flex-1` spacer and extends `calc(100% + 6px)` past the row bottom to bridge the next node's `top-1.5` inset — **no gaps** between nodes.
+- ⚠️ Do **not** reintroduce `max-h-[56px]` on the thread while spacing lives only on the content column — that broke connectors (fixed in PR #69).
+- Optional end times display as `TO HH:MM` under the start time.
+
+## 10. Day pills (`DayPicker`)
+
+- **Unselected (ghost):** `bg-transparent`, **no** shadow, `1px border-black/25`, dark date text, muted second line, colored city dots.
+- **Selected (only filled pill):** `color-mix(in srgb, {day.accentHex} 20%, #fdfbf5)`, `1px` solid day accent border, **bold dark** date text (not white), same muted second line + colored city dots (not white), optional `shadow-card`.
+- Dimensions identical between states (both use 1px borders). Scroll / edge fades / Add activity button unchanged.
+- ⚠️ Do **not** restore solid city fill + white text on the selected pill (regressed when an incomplete header PR landed without the pill restyle — restored in PR #74).
+
+## 11. Stats tab (Trip Olympics)
+
+- No emoji. Lucide (or Lucide-matched outline) icons in ~28px circular badges: accent-tint background + `var(--city-accent)` stroke.
+- Counter cards: ghost outline +/- (`border-black/25`, transparent fill, accent-tint on press); large serif count; compact padding.
+- Leaderboards: serif "Leaderboards" + "Whole trip" chip; rank chips — **1 = solid accent + white numeral**, 2 = silver-grey, 3 = bronze/tan, 4+ = transparent + muted + hairline border; current-user row = accent-tint background + "(you)"; bold serif for the leading score.
+- Photo counter stays read-only with caption: "counted from the trip photos you've uploaded".
+- Icons map in `StatsTab` (poop uses a custom toilet outline — Lucide has no toilet glyph).
+
+## 12. Trip header (Itinerary)
+
+Shared grid: **`grid-cols-[40px_1fr]`** (do not nest date/facepile in a second icon column).
+
+| Row | Col 1 (40px, icon centered) | Col 2 |
+|-----|-----------------------------|-------|
+| 1 | Hamburger | `TRIP_TITLE` + Thailand/Vietnam flags |
+| 2 | Calendar | `tripDateRangeLabel()` e.g. `28th Aug – 9th Sep` |
+| 3 | Users | Facepile (`hideIcon`) |
+
+⚠️ Nesting meta rows inside `col-start-2` with a separate `14px` icon grid **misaligns** calendar/users vs hamburger and title vs dates — that was the header regression fixed by the shared 40px rail.
+
+## 13. Conventions & gotchas
+
+- **Branching:** develop on a feature branch; open PRs as **draft** with base = default branch `claude/itinerary-app-design-brepuv`. After a merge, **reset the feature branch from the freshly-merged default** before the next change. Do not stack unrelated follow-ups on a half-merged branch — incomplete landings caused the header + day-pill regressions.
+- **Verify before commit:** implement → `npx tsc --noEmit` (use `./node_modules/.bin/tsc` if `npx tsc` resolves wrong) → drive the real app headless (Playwright via `playwright-core`, Chromium at `/opt/google/chrome/chrome` or `/opt/pw-browsers/chromium`, iPhone viewport ~390×844) → screenshot → then commit/PR.
+- **Fast test path:** demo mode — log in as a seed profile (e.g. "Alex") to exercise flows without Supabase. Demo state key: `travel_demo_state_v2`.
 - **Receipt scanning** uses Anthropic (`ANTHROPIC_API_KEY`; models `claude-haiku-4-5` → `claude-sonnet-5`) in `app/api/scan-receipt/route.ts`. (`.env.example` still mentions GEMINI — stale; the code uses Anthropic.)
 - Balances are GBP; local amounts convert via `trip_settings` FX rates.
 - Sandbox note: the dev environment's network policy blocks direct Supabase/Vercel egress from local scripts, so live-Supabase E2E must run from GitHub Actions.
+- Times are **24-hour** (`HH:MM`) in storage and display; legacy 12h labels still parse.
 
-## 10. Backlog
+## 14. Backlog
 
 - Verify notifications live: redeploy (for the inlined VAPID public key) + run the `notifications-e2e` workflow to confirm 13/13 (§7).
 - `.env.example` GEMINI → Anthropic tidy-up.
 - Per-trip notification **preferences** (mute / important-only) — schema (`notification_state`) accommodates it; UI not built.
 - Activity feed only emits add events (no edit/delete events).
+- Stats poop icon: custom toilet outline (done).
