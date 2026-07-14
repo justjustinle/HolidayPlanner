@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Calendar, Menu } from 'lucide-react';
 import AppDrawer from './AppDrawer';
 import TravelerFacepile from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
@@ -55,9 +55,14 @@ export default function TabHeader(props: TabHeaderProps) {
               <VietnamFlag size={20} />
             </span>
           </h1>
-          <p className="col-start-2 row-start-2 mt-1 text-[13px] leading-snug text-muted">{dates}</p>
-          <div className="col-start-2 row-start-3 mt-2.5 flex items-center gap-3">
-            <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
+          <div className="col-start-2 row-start-2 mt-2.5 flex min-w-0 items-center gap-2.5">
+            <span className="flex shrink-0 items-center gap-1.5 text-[13px] leading-snug text-muted">
+              <Calendar size={14} className="flex-none" aria-hidden />
+              <span className="whitespace-nowrap">{dates}</span>
+            </span>
+            <div className="min-w-0 flex-1">
+              <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
+            </div>
             {action}
           </div>
         </div>
