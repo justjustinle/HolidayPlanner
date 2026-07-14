@@ -43,10 +43,10 @@ export default function ItineraryCard({
   return (
     <>
       <div
-        className={`relative flex gap-3 transition-opacity ${dimmed ? 'opacity-45' : ''}`}
+        className={`relative flex items-stretch gap-3 transition-opacity ${dimmed ? 'opacity-45' : ''}`}
       >
         {/* Time column — start primary; optional end stacked with TO */}
-        <div className="w-[56px] flex-none pt-0.5 text-right tabular-nums">
+        <div className="w-[56px] flex-none self-start pt-0.5 text-right tabular-nums">
           <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
             {startClock}
           </div>
