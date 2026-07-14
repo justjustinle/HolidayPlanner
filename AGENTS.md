@@ -134,7 +134,7 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 - Counter cards: ghost outline +/- (`border-black/25`, transparent fill, accent-tint on press); large serif count; compact padding.
 - Leaderboards: serif "Leaderboards" + "Whole trip" chip; rank chips — **1 = solid accent + white numeral**, 2 = silver-grey, 3 = bronze/tan, 4+ = transparent + muted + hairline border; current-user row = accent-tint background + "(you)"; bold serif for the leading score.
 - Photo counter stays read-only with caption: "counted from the trip photos you've uploaded".
-- Icons map in `StatsTab` (poop currently `Bath` on default branch — Lucide has no toilet glyph; a custom toilet outline may replace it).
+- Icons map in `StatsTab` (poop uses a custom toilet outline — Lucide has no toilet glyph).
 
 ## 12. Trip header (Itinerary)
 
@@ -164,4 +164,4 @@ Shared grid: **`grid-cols-[40px_1fr]`** (do not nest date/facepile in a second i
 - `.env.example` GEMINI → Anthropic tidy-up.
 - Per-trip notification **preferences** (mute / important-only) — schema (`notification_state`) accommodates it; UI not built.
 - Activity feed only emits add events (no edit/delete events).
-- Stats poop icon: custom toilet outline (optional polish; Lucide has no toilet).
+- Stats poop icon: custom toilet outline (done).
