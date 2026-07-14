@@ -65,7 +65,9 @@ export function defaultDayNumber(): number {
   return now.getTime() < new Date(2026, 7, 28).getTime() ? 1 : TRIP_DAYS.length;
 }
 
-// Itinerary tab landing: device-local today if it matches a trip day, else Day 1.
+// Itinerary tab landing / tab-return: device-local today if it matches a trip
+// day, else Day 1 (AppShell keeps the last selected day across tab switches
+// when today is outside the trip).
 export function landingDayNumber(now: Date = new Date()): number {
   return dayNumberForDate(now) ?? 1;
 }

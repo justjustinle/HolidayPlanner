@@ -67,7 +67,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 
 **components/**
 - `TripDataProvider.tsx` — the data spine: all state + every mutation (`addItineraryItem`, `addPhotos`, `addExpense`, `updateExpense`, `addReceiptExpense`, `setItemClaim`, `deleteExpense`, `settleUp`, `setStat`, …), `recordActivity` (fires notification events), mark-seen effect.
-- `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; app surface uses `.city-tint`
+- `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; app surface uses `.city-tint`; owns itinerary day selection so tab switches keep the last day (or snap to device-local today when it matches a trip pill)
 - `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; outline "+ Add activity" (solid accent reserved for primary actions); timeline rows with spacing from `timelineGapPx`
 - `tabs/FinanceTab.tsx` — total, add actions, FX rates, collapsible expense list, "Who pays whom" (tap outstanding → settle) + collapsible green settled log, balances
 - `tabs/StatsTab.tsx` — Lucide icon badges + ghost +/- counters + leaderboard rank chips; all accents via `var(--city-accent)` (see §6 / §11)
