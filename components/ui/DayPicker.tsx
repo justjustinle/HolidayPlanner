@@ -61,10 +61,10 @@ export default function DayPicker({
     };
   }, [allowAll]);
 
-  // Active chips take their day's city color; the "All" chip stays ink.
+  // Selected: tinted fill + accent border + shadow; unselected: transparent ghost outline.
   const chip = (active: boolean) =>
-    `flex flex-none flex-col items-center rounded-xl border px-3 py-1.5 leading-tight ${
-      active ? 'border-transparent text-white' : 'border-black/10 bg-cream-card text-ink'
+    `flex flex-none flex-col items-center rounded-xl border px-3 py-1.5 leading-tight text-ink ${
+      active ? 'shadow-card' : 'border-black/25 bg-transparent'
     }`;
 
   return (
@@ -94,15 +94,22 @@ export default function DayPicker({
               onClick={() => onChange(d.dayNumber)}
               ref={active ? activeRef : undefined}
               className={chip(active)}
-              style={active ? { background: d.accentHex } : undefined}
+              style={
+                active
+                  ? {
+                      background: `color-mix(in srgb, ${d.accentHex} 20%, #fdfbf5)`,
+                      borderColor: d.accentHex,
+                    }
+                  : undefined
+              }
             >
-              <span className="text-[13px] font-semibold">{d.dateLabel}</span>
-              <span
-                className={`flex items-center gap-1 text-[10px] ${active ? 'text-white/70' : 'text-muted'}`}
-              >
+              <span className={`text-[13px] ${active ? 'font-bold' : 'font-semibold'}`}>
+                {d.dateLabel}
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-muted">
                 <span
                   className="inline-block h-1.5 w-1.5 rounded-full"
-                  style={{ background: active ? '#ffffff' : d.accentHex }}
+                  style={{ background: d.accentHex }}
                 />
                 {d.label}. {d.destination}
               </span>
