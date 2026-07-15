@@ -99,40 +99,52 @@ export default function AddCardSheet({
         className={`${inputCls} mb-3`}
       />
 
-      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">
-        Starts
-      </label>
-      <div className="mb-3">
-        <TimeWheel value={time} onChange={setTime} />
-      </div>
-
+      {/* Compact time row: start alone, or start | end side-by-side */}
       {endTime ? (
         <div className="mb-3">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <label className="text-xs uppercase tracking-wide text-muted">Ends</label>
-            <button
-              type="button"
-              onClick={() => setEndTime(null)}
-              className="inline-flex items-center gap-1 text-[12px] text-muted hover:text-ink"
-            >
-              <X size={12} /> Remove end
-            </button>
+          <div className="mb-1.5 grid grid-cols-2 gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Starts
+            </label>
+            <div className="flex items-center justify-between gap-1">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                Ends
+              </label>
+              <button
+                type="button"
+                onClick={() => setEndTime(null)}
+                className="inline-flex items-center gap-0.5 text-[11px] text-muted hover:text-ink"
+              >
+                <X size={11} /> Remove
+              </button>
+            </div>
           </div>
-          <TimeWheel value={endTime} onChange={setEndTime} />
+          <div className="grid grid-cols-2 gap-2">
+            <TimeWheel value={time} onChange={setTime} />
+            <TimeWheel value={endTime} onChange={setEndTime} />
+          </div>
           {endInvalid && (
-            <p className="mt-2 text-[12px] text-saigon">
+            <p className="mt-1.5 text-[12px] text-saigon">
               End time must be after the start.
             </p>
           )}
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setEndTime(defaultEndAfter(time))}
-          className="mb-3 w-full rounded-xl border border-dashed border-black/15 bg-transparent px-4 py-2.5 text-[14px] text-muted hover:border-black/25 hover:text-ink"
-        >
-          Add end time
-        </button>
+        <div className="mb-3">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Starts
+            </label>
+            <button
+              type="button"
+              onClick={() => setEndTime(defaultEndAfter(time))}
+              className="text-[12px] font-medium text-muted hover:text-ink"
+            >
+              + End time
+            </button>
+          </div>
+          <TimeWheel value={time} onChange={setTime} />
+        </div>
       )}
 
       <input
@@ -147,8 +159,8 @@ export default function AddCardSheet({
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Booking ref, meet point, bring sunscreen…"
-        rows={3}
-        className={`${inputCls} mb-6 resize-none`}
+        rows={2}
+        className={`${inputCls} mb-5 resize-none`}
       />
 
       <button

@@ -3,8 +3,9 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { HOURS_24, MINUTES, type TimeValue } from '@/lib/time';
 
-const ITEM_H = 32; // px per row
-const VISIBLE = 3; // one above + selected + one below
+// Compact wheel: short rows, three visible, still scroll-snappy.
+const ITEM_H = 28;
+const VISIBLE = 3;
 const PAD = (ITEM_H * (VISIBLE - 1)) / 2;
 
 interface Item {
@@ -12,8 +13,6 @@ interface Item {
   label: string;
 }
 
-// A single scroll-snapping wheel column. Items snap to centre; the selected
-// value is whichever item is centred in the highlight band.
 function WheelColumn({
   items,
   value,
@@ -31,14 +30,12 @@ function WheelColumn({
   const indexOf = (v: string | number) =>
     Math.max(0, items.findIndex((it) => it.value === v));
 
-  // Position on first paint without animation.
   useLayoutEffect(() => {
     const el = ref.current;
     if (el) el.scrollTop = indexOf(valueRef.current) * ITEM_H;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-sync if the value is changed from elsewhere (not by this column's scroll).
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -54,7 +51,10 @@ function WheelColumn({
     if (!el) return;
     if (settle.current) clearTimeout(settle.current);
     settle.current = setTimeout(() => {
-      const idx = Math.min(items.length - 1, Math.max(0, Math.round(el.scrollTop / ITEM_H)));
+      const idx = Math.min(
+        items.length - 1,
+        Math.max(0, Math.round(el.scrollTop / ITEM_H))
+      );
       const it = items[idx];
       if (it && it.value !== valueRef.current) onSelect(it.value);
     }, 90);
@@ -74,8 +74,10 @@ function WheelColumn({
             <div
               key={String(it.value)}
               onClick={() => onSelect(it.value)}
-              className={`flex snap-center items-center justify-center transition-all ${
-                active ? 'text-[16px] font-semibold text-ink' : 'text-[13px] text-muted/55'
+              className={`flex snap-center items-center justify-center tabular-nums transition-all ${
+                active
+                  ? 'text-[15px] font-semibold text-ink'
+                  : 'text-[12px] text-muted/50'
               }`}
               style={{ height: ITEM_H }}
             >
@@ -88,7 +90,7 @@ function WheelColumn({
   );
 }
 
-// Hour / minute wheel (24-hour). Fixed choices, scrollable — no free text.
+/** Compact 24h hour/minute wheel (~84px tall). */
 export default function TimeWheel({
   value,
   onChange,
@@ -106,19 +108,18 @@ export default function TimeWheel({
   }));
 
   return (
-    <div className="relative rounded-xl border border-black/10 bg-cream-card">
-      {/* centered selection band */}
+    <div className="relative rounded-lg border border-black/10 bg-cream-card">
       <div
-        className="pointer-events-none absolute inset-x-2 z-10 rounded-md border-y border-black/10 bg-black/[0.03]"
+        className="pointer-events-none absolute inset-x-1.5 z-10 rounded-md border-y border-black/10 bg-black/[0.03]"
         style={{ top: PAD, height: ITEM_H }}
       />
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center px-2">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center px-1.5">
         <WheelColumn
           items={hourItems}
           value={value.hour24}
           onSelect={(v) => onChange({ ...value, hour24: Number(v) })}
         />
-        <div className="text-[16px] font-semibold text-muted">:</div>
+        <div className="text-[14px] font-semibold text-muted">:</div>
         <WheelColumn
           items={minItems}
           value={value.minute}
