@@ -63,7 +63,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - `notifications/{config,client,server}.ts` — see §7
 - `stats.ts` — `COUNTER_CATEGORIES` / `ALL_LEADERBOARD_CATEGORIES` (labels only — **no emoji**), `STATS_DAY`, `statFor`, `statTotals`, `photoUploadCounts`
 - `time.ts` — 24h clock helpers + `timelineGapPx` (capped vertical spacing between timeline rows)
-- `image.ts`, `demo.ts`, `avatar.ts`
+- `image.ts`, `demo.ts`, `avatar.ts`, `motion.ts` (durations/easing + `hapticLight`)
 
 **components/**
 - `TripDataProvider.tsx` — the data spine: all state + every mutation (`addItineraryItem`, `addPhotos`, `addExpense`, `updateExpense`, `addReceiptExpense`, `setItemClaim`, `deleteExpense`, `settleUp`, `setStat`, …), `recordActivity` (fires notification events), mark-seen effect.
@@ -74,7 +74,8 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - `ui/DayPicker.tsx` — horizontal day pills (see §10)
 - `ui/TravelerFacepile.tsx` — avatar stack only (Users icon lives in the header rail)
 - `ui/` — also `AppDrawer`, `ConfirmDialog`, `Avatar`, `Sheet`, `Flag`, `TimeWheel`, `PlaneJourney`, `WhoIsGoingSheet`
-- `itinerary/` — `ItineraryCard`, `YarnTimelineRail` (wavy thread), `NowMarker`, `AddCardSheet`, `MemoriesModal`
+- `itinerary/` — `ItineraryCard` (tap-to-select: accent border + actions fade in; default shows photo badge only), `YarnTimelineRail` (wavy thread), `NowMarker`, `AddCardSheet`, `MemoriesModal`
+- `lib/motion.ts` — shared motion durations/easing + `hapticLight()` for select feedback
 - `finance/` — `ExpenseCard`, `LogExpenseSheet`, `UploadReceiptSheet`, `RateSettings`
 - `WelcomeGate.tsx`, `ServiceWorkerRegister.tsx`, `brand/YarnLogo.tsx`
 
@@ -120,6 +121,7 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 - Thread SVG fills an in-flow `flex-1` spacer and extends `calc(100% + 6px)` past the row bottom to bridge the next node's `top-1.5` inset — **no gaps** between nodes.
 - ⚠️ Do **not** reintroduce `max-h-[56px]` on the thread while spacing lives only on the content column — that broke connectors (fixed in PR #69).
 - Optional end times display as `TO HH:MM` under the start time.
+- **Tap-to-select cards:** default shows title / location / notes + photo count badge only (no action icons). Selected card gets city-accent border (same language as the active day pill) + `shadow-polaroid`, and camera / edit / delete fade in (≥44px targets). One selection at a time; deselect on re-tap, another card, outside tap, or day change. Edit opens via the pencil — not the whole-card tap.
 
 ## 10. Day pills (`DayPicker`)
 

@@ -36,6 +36,7 @@ export default function ItineraryTab({
 }) {
   const { itinerary } = useTripData();
   const [adding, setAdding] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const nowRef = useRef<HTMLDivElement>(null);
   const didScrollToNow = useRef(false);
@@ -50,6 +51,15 @@ export default function ItineraryTab({
     return () => window.clearInterval(id);
   }, []);
 
+  // Clear card selection when the day changes (day pills or external updates).
+  useEffect(() => {
+    setSelectedItemId(null);
+  }, [day]);
+
+  const changeDay = (next: number) => {
+    setSelectedItemId(null);
+    onDayChange(next);
+  };
   // Theme the app after the selected day's city: its dot color becomes the
   // global accent (used by the tab bar, day chips, and add buttons).
   useEffect(() => {
@@ -112,11 +122,11 @@ export default function ItineraryTab({
   const showEmpty = items.length === 0 && !isToday;
 
   return (
-    <div>
+    <div onClick={() => setSelectedItemId(null)}>
       <TabHeader />
 
       <div className="px-5">
-        <DayPicker value={day} onChange={onDayChange} />
+        <DayPicker value={day} onChange={changeDay} />
 
         {selected && (
           <div className="mb-3 flex items-start justify-between gap-3">
@@ -184,6 +194,12 @@ export default function ItineraryTab({
                   isLast={isLast}
                   dimmed={row.past}
                   spacingAfter={spacingAfter}
+                  selected={selectedItemId === row.item.id}
+                  onSelect={() =>
+                    setSelectedItemId((id) =>
+                      id === row.item.id ? null : row.item.id
+                    )
+                  }
                 />
               );
             })}
