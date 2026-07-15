@@ -35,10 +35,13 @@ export default function ItineraryCard({
   const [editing, setEditing] = useState(false);
   const [memoriesOpen, setMemoriesOpen] = useState(false);
 
-  const photoCount = useMemo(
-    () => photos.filter((p) => p.activity_id === item.id).length,
+  const activityPhotos = useMemo(
+    () => photos.filter((p) => p.activity_id === item.id),
     [photos, item.id]
   );
+  const photoCount = activityPhotos.length;
+  // Most recent upload as the mini preview thumb.
+  const previewUrl = activityPhotos[activityPhotos.length - 1]?.url ?? null;
 
   const startClock = formatTimeLabel(item.time_label);
   const endClock = item.end_time_label
@@ -133,20 +136,33 @@ export default function ItineraryCard({
               <div
                 className="relative flex flex-none items-start justify-end overflow-visible"
                 style={{
-                  width: selected ? 132 : photoCount > 0 ? 24 : 0,
-                  minHeight: selected ? 44 : photoCount > 0 ? 22 : 0,
+                  width: selected ? 132 : previewUrl ? 40 : 0,
+                  minHeight: selected ? 44 : previewUrl ? 36 : 0,
                   transition: `width ${MOTION.snappy} ${MOTION.easeOut}`,
                 }}
               >
-                {/* Default: photo count badge only (no action icons) */}
-                {!selected && photoCount > 0 && (
-                  <span
-                    className="mt-0.5 flex h-[22px] min-w-[22px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none text-white"
-                    style={{ background: YARN_BRAND.colors.gold }}
-                    aria-label={`${photoCount} photos`}
+                {/* Default: square photo preview with count badge at the corner */}
+                {!selected && previewUrl && (
+                  <div
+                    className="relative mt-0.5 h-9 w-9"
+                    aria-label={`${photoCount} photo${photoCount === 1 ? '' : 's'}`}
                   >
-                    {photoCount}
-                  </span>
+                    <div className="h-9 w-9 overflow-hidden rounded-md border border-black/10 bg-black/[.04] shadow-card">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={previewUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        draggable={false}
+                      />
+                    </div>
+                    <span
+                      className="absolute -bottom-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none text-white"
+                      style={{ background: YARN_BRAND.colors.gold }}
+                    >
+                      {photoCount}
+                    </span>
+                  </div>
                 )}
 
                 {/* Selected: camera / edit / delete fade in (≥44px targets) */}

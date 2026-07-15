@@ -80,7 +80,41 @@ export const DEMO_ITINERARY: ItineraryItem[] = [
   },
 ];
 
-export const DEMO_PHOTOS: Photo[] = [];
+export const DEMO_PHOTOS: Photo[] = [
+  {
+    id: 'demo-p1',
+    activity_id: 'demo-i1',
+    url:
+      'data:image/svg+xml,' +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c9992e"/><stop offset="1" stop-color="#b0472f"/></linearGradient></defs><rect width="240" height="240" fill="url(#g)"/><text x="120" y="128" text-anchor="middle" fill="#fdfbf5" font-family="Georgia,serif" font-size="28">BKK</text></svg>`
+      ),
+    uploaded_by_id: 'demo-alex',
+    tagged_user_ids: ['demo-alex'],
+  },
+  {
+    id: 'demo-p2',
+    activity_id: 'demo-i1',
+    url:
+      'data:image/svg+xml,' +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="#2f97a6"/><text x="120" y="128" text-anchor="middle" fill="#fdfbf5" font-family="Georgia,serif" font-size="22">taxi</text></svg>`
+      ),
+    uploaded_by_id: 'demo-sam',
+    tagged_user_ids: ['demo-sam', 'demo-alex'],
+  },
+  {
+    id: 'demo-p3',
+    activity_id: 'demo-i1',
+    url:
+      'data:image/svg+xml,' +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="#3f9b8a"/><circle cx="120" cy="110" r="48" fill="#fdfbf5" opacity=".35"/><text x="120" y="175" text-anchor="middle" fill="#fdfbf5" font-family="Georgia,serif" font-size="20">hotel</text></svg>`
+      ),
+    uploaded_by_id: 'demo-jo',
+    tagged_user_ids: ['demo-jo'],
+  },
+];
 
 // One manual expense: Alex paid ฿1,000 for street food, split four ways.
 export const DEMO_EXPENSES: Expense[] = [
