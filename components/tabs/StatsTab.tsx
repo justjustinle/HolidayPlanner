@@ -232,7 +232,7 @@ export default function StatsTab() {
                 Photos I&apos;ve taken
               </span>
             </div>
-            <div className="mt-2 font-serif text-[28px] font-semibold leading-none text-ink">
+            <div className="mt-2 text-center font-serif text-[28px] font-semibold leading-none text-ink">
               {myPhotoCount}
             </div>
             <p className="mt-1.5 text-[10px] leading-snug text-muted">
