@@ -8,6 +8,7 @@ const FADE =
 
 // Horizontal Day 1 … Day 13 chip strip. Hints overflow with a peek + edge
 // fades, and keeps the selected day scrolled to center when possible.
+// Sticky below the trip header so day nav stays visible while the timeline scrolls.
 export default function DayPicker({
   value,
   onChange,
@@ -59,71 +60,66 @@ export default function DayPicker({
     };
   }, []);
 
-  // Selected: tinted fill + accent border + shadow; unselected: transparent ghost outline.
+  // Selected: solid white + city accent outline; unselected: page bg + thin black outline.
   const chip = (active: boolean) =>
     `flex flex-none flex-col items-center rounded-xl border px-3 py-1.5 leading-tight text-ink ${
-      active ? 'shadow-card' : 'border-black/25 bg-transparent'
+      active ? 'bg-cream-card' : 'border-black/25 bg-transparent'
     }`;
 
   return (
-    <div className="relative -mx-5">
-      <div
-        ref={scrollerRef}
-        className="no-scrollbar flex gap-2 overflow-x-auto scroll-smooth py-3 pl-5 pr-14"
-      >
-        {TRIP_DAYS.map((d) => {
-          const active = value === d.dayNumber;
-          return (
-            <button
-              key={d.dayNumber}
-              onClick={() => onChange(d.dayNumber)}
-              ref={active ? activeRef : undefined}
-              className={chip(active)}
-              style={
-                active
-                  ? {
-                      background: `color-mix(in srgb, ${d.accentHex} 20%, #fdfbf5)`,
-                      borderColor: d.accentHex,
-                    }
-                  : undefined
-              }
-            >
-              <span className={`text-[13px] ${active ? 'font-bold' : 'font-semibold'}`}>
-                {d.dateLabel}
-              </span>
-              <span className="flex items-center gap-1 text-[10px] text-muted">
-                <span
-                  className="inline-block h-1.5 w-1.5 rounded-full"
-                  style={{ background: d.accentHex }}
-                />
-                {d.label}. {d.destination}
-              </span>
-            </button>
-          );
-        })}
-        {/* Trailing spacer so late chips (and the selected day) can sit centered
-            instead of flushing against the right edge. */}
-        <div className="w-[30vw] min-w-[80px] max-w-[140px] flex-none" aria-hidden />
-      </div>
+    <div className="sticky top-0 z-20 -mx-5" style={{ background: FADE }}>
+      <div className="relative">
+        <div
+          ref={scrollerRef}
+          className="no-scrollbar flex gap-2 overflow-x-auto scroll-smooth py-3 pl-5 pr-14"
+        >
+          {TRIP_DAYS.map((d) => {
+            const active = value === d.dayNumber;
+            return (
+              <button
+                key={d.dayNumber}
+                onClick={() => onChange(d.dayNumber)}
+                ref={active ? activeRef : undefined}
+                className={chip(active)}
+                style={active ? { borderColor: d.accentHex } : undefined}
+              >
+                <span className={`text-[13px] ${active ? 'font-bold' : 'font-semibold'}`}>
+                  {d.dateLabel}
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-muted">
+                  <span
+                    className="inline-block h-1.5 w-1.5 rounded-full"
+                    style={{ background: d.accentHex }}
+                  />
+                  {d.label}. {d.destination}
+                </span>
+              </button>
+            );
+          })}
+          {/* Trailing spacer so late chips (and the selected day) can sit centered
+              instead of flushing against the right edge. */}
+          <div className="w-[30vw] min-w-[80px] max-w-[140px] flex-none" aria-hidden />
+        </div>
 
-      {edge.left && (
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 w-11"
-          style={{
-            background: `linear-gradient(to right, ${FADE}, transparent)`,
-          }}
-          aria-hidden
-        />
-      )}
-      {edge.right && (
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-11"
-          style={{
-            background: `linear-gradient(to left, ${FADE}, transparent)`,
-          }}
-          aria-hidden
-        />
-      )}
+        {edge.left && (
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-11"
+            style={{
+              background: `linear-gradient(to right, ${FADE}, transparent)`,
+            }}
+            aria-hidden
+          />
+        )}
+        {edge.right && (
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-11"
+            style={{
+              background: `linear-gradient(to left, ${FADE}, transparent)`,
+            }}
+            aria-hidden
+          />
+        )}
+      </div>
     </div>
   );
 }
