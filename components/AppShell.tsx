@@ -1,11 +1,16 @@
 'use client';
 
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CalendarDays, Wallet, Trophy } from 'lucide-react';
 import { useTripData } from './TripDataProvider';
 import ItineraryTab from './tabs/ItineraryTab';
 import FinanceTab from './tabs/FinanceTab';
 import StatsTab from './tabs/StatsTab';
+import {
+  dayNumberForDate,
+  landingDayNumber,
+  writeStoredItineraryDay,
+} from '@/lib/trip';
 
 type TabKey = 'itinerary' | 'finance' | 'stats';
 
@@ -15,6 +20,12 @@ const TABS: { key: TabKey; label: string; icon: typeof CalendarDays }[] = [
   { key: 'stats', label: 'Stats', icon: Trophy },
 ];
 
+// Prefer the device-local trip day when it matches a pill; otherwise keep the
+// last day the user had selected (in-memory + localStorage across cold opens).
+function resolveItineraryDay(previous: number): number {
+  return dayNumberForDate(new Date()) ?? previous;
+}
+
 /** Matches the old per-tab `inset-x-6` underline width. */
 const INDICATOR_INSET = 24;
 
@@ -23,10 +34,19 @@ const INDICATOR_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 export default function AppShell() {
   const { demoMode } = useTripData();
   const [tab, setTab] = useState<TabKey>('itinerary');
+  // SSR-safe init (no localStorage). Client effect below restores the stored
+  // day when today is outside the trip.
+  const [itineraryDay, setItineraryDay] = useState(
+    () => dayNumberForDate(new Date()) ?? 1
+  );
   const rowRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ x: 0, width: 0 });
   const [motionReady, setMotionReady] = useState(false);
+
+  useEffect(() => {
+    setItineraryDay(landingDayNumber());
+  }, []);
 
   useLayoutEffect(() => {
     const row = rowRef.current;
@@ -58,6 +78,22 @@ export default function AppShell() {
     };
   }, [tab]);
 
+  const setDay = (day: number) => {
+    setItineraryDay(day);
+    writeStoredItineraryDay(day);
+  };
+
+  const selectTab = (key: TabKey) => {
+    if (key === 'itinerary') {
+      setItineraryDay((prev) => {
+        const next = resolveItineraryDay(prev);
+        writeStoredItineraryDay(next);
+        return next;
+      });
+    }
+    setTab(key);
+  };
+
   return (
     <div className="city-tint mx-auto flex h-[100dvh] max-w-app flex-col overflow-hidden">
       {demoMode && (
@@ -67,7 +103,9 @@ export default function AppShell() {
       )}
 
       <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-10">
-        {tab === 'itinerary' && <ItineraryTab />}
+        {tab === 'itinerary' && (
+          <ItineraryTab day={itineraryDay} onDayChange={setDay} />
+        )}
         {tab === 'finance' && <FinanceTab />}
         {tab === 'stats' && <StatsTab />}
       </main>
@@ -95,7 +133,7 @@ export default function AppShell() {
                 ref={(el) => {
                   btnRefs.current[i] = el;
                 }}
-                onClick={() => setTab(key)}
+                onClick={() => selectTab(key)}
                 className={`relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-300 ${
                   active ? '' : 'text-muted'
                 }`}

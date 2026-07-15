@@ -55,7 +55,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 ## 5. Key files
 
 **lib/**
-- `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `TRIP_TITLE`, `tripDateRangeLabel()` → **"28th Aug – 9th Sep"** (keeps st/nd/rd/th), `dayByNumber`, `defaultDayNumber`, `landingDayNumber`, `CURRENCY_SYMBOL`
+- `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `TRIP_TITLE`, `tripDateRangeLabel()` → **"28th Aug – 9th Sep"** (keeps st/nd/rd/th), `dayByNumber`, `defaultDayNumber`, `landingDayNumber` (today match → last stored day → Day 1; key `travel_itinerary_day`), `CURRENCY_SYMBOL`
 - `settle.ts` — `computeNetBalances` (net = paid − owed; manual splits + receipt claims), `minimizeTransfers` (greedy "who pays whom"), `totalSpend` (excludes settlements), `listSettlements`
 - `currency.ts` — `formatGbp, toGbp, round2, splitEqually`
 - `types.ts` — domain types; `ExpenseKind`, `SETTLEMENT_LABEL`, `Transfer`, `SettledPayment`
@@ -67,9 +67,8 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 
 **components/**
 - `TripDataProvider.tsx` — the data spine: all state + every mutation (`addItineraryItem`, `addPhotos`, `addExpense`, `updateExpense`, `addReceiptExpense`, `setItemClaim`, `deleteExpense`, `settleUp`, `setStat`, …), `recordActivity` (fires notification events), mark-seen effect.
-- `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; sliding accent indicator (320ms ease) across Itinerary / Expenses / Stats; app surface uses `.city-tint`
-- `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; filled "+ Add activity" (solid accent + cream text); timeline rows with spacing from `timelineGapPx`
-- `tabs/FinanceTab.tsx` — total, add actions, FX rates, collapsible expense list, "Who pays whom" (tap outstanding → settle) + collapsible green settled log, balances
+- `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; sliding accent indicator (320ms ease); owns itinerary day selection (persists last pill in `localStorage`; snaps to device-local today when it matches a trip pill); app surface uses `.city-tint`
+- `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; filled "+ Add activity" (solid accent + cream text); timeline rows with spacing from `timelineGapPx`- `tabs/FinanceTab.tsx` — total, add actions, FX rates, collapsible expense list, "Who pays whom" (tap outstanding → settle) + collapsible green settled log, balances
 - `tabs/StatsTab.tsx` — Lucide icon badges + ghost +/- counters + leaderboard rank chips; all accents via `var(--city-accent)` (see §6 / §11)
 - `ui/TabHeader.tsx` — **Itinerary:** shared `grid-cols-[40px_1fr]` trip chrome (hamburger / calendar / users in col 1; title+flags / dates / facepile in col 2). **Expenses & Stats:** hamburger + section title, Yarn logo top-right. Drawer for account actions.
 - `ui/DayPicker.tsx` — horizontal day pills (see §10)

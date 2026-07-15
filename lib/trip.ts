@@ -65,9 +65,37 @@ export function defaultDayNumber(): number {
   return now.getTime() < new Date(2026, 7, 28).getTime() ? 1 : TRIP_DAYS.length;
 }
 
-// Itinerary tab landing: device-local today if it matches a trip day, else Day 1.
+/** localStorage key for the last itinerary day pill the user had selected. */
+export const ITINERARY_DAY_KEY = 'travel_itinerary_day';
+
+export function readStoredItineraryDay(): number | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(ITINERARY_DAY_KEY);
+    if (!raw) return null;
+    const n = Number(raw);
+    return Number.isInteger(n) && dayByNumber(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeStoredItineraryDay(day: number): void {
+  if (typeof window === 'undefined') return;
+  if (!dayByNumber(day)) return;
+  try {
+    localStorage.setItem(ITINERARY_DAY_KEY, String(day));
+  } catch {
+    /* quota / private mode — ignore */
+  }
+}
+
+// Itinerary landing / cold open / tab-return:
+// 1) device-local today when it matches a trip pill
+// 2) else the last day the user left on (localStorage)
+// 3) else Day 1
 export function landingDayNumber(now: Date = new Date()): number {
-  return dayNumberForDate(now) ?? 1;
+  return dayNumberForDate(now) ?? readStoredItineraryDay() ?? 1;
 }
 
 export const CURRENCY_SYMBOL: Record<string, string> = {

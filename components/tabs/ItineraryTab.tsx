@@ -8,7 +8,7 @@ import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
 import DayPicker from '../ui/DayPicker';
-import { dayByNumber, dayNumberForDate, landingDayNumber } from '@/lib/trip';
+import { dayByNumber, dayNumberForDate } from '@/lib/trip';
 import { YARN_DEFAULT_ACCENT, setYarnFavicon } from '@/lib/brand/setYarnFavicon';
 import { nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
@@ -26,9 +26,15 @@ function rowStartLabel(row: TimelineRow, now: Date): string {
   return row.item.time_label;
 }
 
-export default function ItineraryTab() {
+export default function ItineraryTab({
+  day,
+  onDayChange,
+}: {
+  /** Selected trip day — owned by AppShell so it survives tab switches. */
+  day: number;
+  onDayChange: (day: number) => void;
+}) {
   const { itinerary } = useTripData();
-  const [day, setDay] = useState(landingDayNumber);
   const [adding, setAdding] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const nowRef = useRef<HTMLDivElement>(null);
@@ -110,7 +116,7 @@ export default function ItineraryTab() {
       <TabHeader />
 
       <div className="px-5">
-        <DayPicker value={day} onChange={setDay} />
+        <DayPicker value={day} onChange={onDayChange} />
 
         {selected && (
           <div className="mb-3 flex items-start justify-between gap-3">
