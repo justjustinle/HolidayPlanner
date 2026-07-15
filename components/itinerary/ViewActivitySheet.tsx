@@ -30,7 +30,7 @@ export default function ViewActivitySheet({
     [photos, item.id]
   );
   const photoCount = activityPhotos.length;
-  const previewUrl = activityPhotos[activityPhotos.length - 1]?.url ?? null;
+  const previewPhotos = activityPhotos.slice(0, 3);
   const day = dayByNumber(item.day_number);
   const startClock = formatTimeLabel(item.time_label);
   const endClock = item.end_time_label
@@ -101,23 +101,29 @@ export default function ViewActivitySheet({
           </p>
         )}
 
-        {previewUrl && (
-          <div className="relative mt-4 h-28 w-28 overflow-visible">
-            <div className="h-28 w-28 overflow-hidden rounded-xl border border-black/10 bg-black/[.04] shadow-card">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewUrl}
-                alt=""
-                className="h-full w-full object-cover"
-                draggable={false}
-              />
-            </div>
-            <span
-              className="absolute -bottom-1.5 -right-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[12px] font-semibold leading-none text-white"
-              style={{ background: YARN_BRAND.colors.gold }}
-            >
-              {photoCount}
-            </span>
+        {previewPhotos.length > 0 && (
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {previewPhotos.map((photo, index) => (
+              <div key={photo.id} className="relative min-w-0 overflow-visible">
+                <div className="aspect-square overflow-hidden rounded-xl border border-black/10 bg-black/[.04] shadow-card">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.url}
+                    alt={`Activity photo ${index + 1}`}
+                    className="h-full w-full object-cover"
+                    draggable={false}
+                  />
+                </div>
+                {index === previewPhotos.length - 1 && (
+                  <span
+                    className="absolute -bottom-1.5 -right-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[12px] font-semibold leading-none text-white"
+                    style={{ background: YARN_BRAND.colors.gold }}
+                  >
+                    {photoCount}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
