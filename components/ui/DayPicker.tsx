@@ -60,10 +60,10 @@ export default function DayPicker({
     };
   }, []);
 
-  // Selected: tinted fill + accent border + shadow; unselected: elevated cream card.
+  // Selected: solid white + city accent outline; unselected: page bg + thin black outline.
   const chip = (active: boolean) =>
-    `flex flex-none flex-col items-center rounded-xl border px-3 py-1.5 leading-tight text-ink shadow-card ${
-      active ? '' : 'border-black/5 bg-cream-card'
+    `flex flex-none flex-col items-center rounded-xl border px-3 py-1.5 leading-tight text-ink ${
+      active ? 'bg-cream-card' : 'border-black/25 bg-transparent'
     }`;
 
   return (
@@ -81,14 +81,7 @@ export default function DayPicker({
                 onClick={() => onChange(d.dayNumber)}
                 ref={active ? activeRef : undefined}
                 className={chip(active)}
-                style={
-                  active
-                    ? {
-                        background: `color-mix(in srgb, ${d.accentHex} 20%, #fdfbf5)`,
-                        borderColor: d.accentHex,
-                      }
-                    : undefined
-                }
+                style={active ? { borderColor: d.accentHex } : undefined}
               >
                 <span className={`text-[13px] ${active ? 'font-bold' : 'font-semibold'}`}>
                   {d.dateLabel}
