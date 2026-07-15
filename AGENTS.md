@@ -55,7 +55,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 ## 5. Key files
 
 **lib/**
-- `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `TRIP_TITLE`, `tripDateRangeLabel()` → **"28th Aug – 9th Sep"** (keeps st/nd/rd/th), `dayByNumber`, `defaultDayNumber`, `landingDayNumber`, `CURRENCY_SYMBOL`
+- `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `TRIP_TITLE`, `tripDateRangeLabel()` → **"28th Aug – 9th Sep"** (keeps st/nd/rd/th), `dayByNumber`, `defaultDayNumber`, `landingDayNumber` (today match → last stored day → Day 1; key `travel_itinerary_day`), `CURRENCY_SYMBOL`
 - `settle.ts` — `computeNetBalances` (net = paid − owed; manual splits + receipt claims), `minimizeTransfers` (greedy "who pays whom"), `totalSpend` (excludes settlements), `listSettlements`
 - `currency.ts` — `formatGbp, toGbp, round2, splitEqually`
 - `types.ts` — domain types; `ExpenseKind`, `SETTLEMENT_LABEL`, `Transfer`, `SettledPayment`
@@ -67,7 +67,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 
 **components/**
 - `TripDataProvider.tsx` — the data spine: all state + every mutation (`addItineraryItem`, `addPhotos`, `addExpense`, `updateExpense`, `addReceiptExpense`, `setItemClaim`, `deleteExpense`, `settleUp`, `setStat`, …), `recordActivity` (fires notification events), mark-seen effect.
-- `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; app surface uses `.city-tint`; owns itinerary day selection so tab switches keep the last day (or snap to device-local today when it matches a trip pill)
+- `AppShell.tsx` — bottom tab bar; active tab uses `var(--city-accent)`; app surface uses `.city-tint`; owns itinerary day selection (persists last pill in `localStorage`; snaps to device-local today when it matches a trip pill)
 - `tabs/ItineraryTab.tsx` — sets `--city-accent` from selected day; outline "+ Add activity" (solid accent reserved for primary actions); timeline rows with spacing from `timelineGapPx`
 - `tabs/FinanceTab.tsx` — total, add actions, FX rates, collapsible expense list, "Who pays whom" (tap outstanding → settle) + collapsible green settled log, balances
 - `tabs/StatsTab.tsx` — Lucide icon badges + ghost +/- counters + leaderboard rank chips; all accents via `var(--city-accent)` (see §6 / §11)

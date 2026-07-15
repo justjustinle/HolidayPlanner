@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CalendarDays, Wallet, Trophy } from 'lucide-react';
 import { useTripData } from './TripDataProvider';
 import ItineraryTab from './tabs/ItineraryTab';
 import FinanceTab from './tabs/FinanceTab';
 import StatsTab from './tabs/StatsTab';
-import { dayNumberForDate, landingDayNumber } from '@/lib/trip';
+import {
+  dayNumberForDate,
+  landingDayNumber,
+  writeStoredItineraryDay,
+} from '@/lib/trip';
 
 type TabKey = 'itinerary' | 'finance' | 'stats';
 
@@ -17,7 +21,7 @@ const TABS: { key: TabKey; label: string; icon: typeof CalendarDays }[] = [
 ];
 
 // Prefer the device-local trip day when it matches a pill; otherwise keep the
-// last day the user had selected (so tab switches don't reset to Day 1).
+// last day the user had selected (in-memory + localStorage across cold opens).
 function resolveItineraryDay(previous: number): number {
   return dayNumberForDate(new Date()) ?? previous;
 }
@@ -25,11 +29,28 @@ function resolveItineraryDay(previous: number): number {
 export default function AppShell() {
   const { demoMode } = useTripData();
   const [tab, setTab] = useState<TabKey>('itinerary');
-  const [itineraryDay, setItineraryDay] = useState(landingDayNumber);
+  // SSR-safe init (no localStorage). Client effect below restores the stored
+  // day when today is outside the trip.
+  const [itineraryDay, setItineraryDay] = useState(
+    () => dayNumberForDate(new Date()) ?? 1
+  );
+
+  useEffect(() => {
+    setItineraryDay(landingDayNumber());
+  }, []);
+
+  const setDay = (day: number) => {
+    setItineraryDay(day);
+    writeStoredItineraryDay(day);
+  };
 
   const selectTab = (key: TabKey) => {
     if (key === 'itinerary') {
-      setItineraryDay((prev) => resolveItineraryDay(prev));
+      setItineraryDay((prev) => {
+        const next = resolveItineraryDay(prev);
+        writeStoredItineraryDay(next);
+        return next;
+      });
     }
     setTab(key);
   };
@@ -44,7 +65,7 @@ export default function AppShell() {
 
       <main className="no-scrollbar flex-1 overflow-y-auto pb-10">
         {tab === 'itinerary' && (
-          <ItineraryTab day={itineraryDay} onDayChange={setItineraryDay} />
+          <ItineraryTab day={itineraryDay} onDayChange={setDay} />
         )}
         {tab === 'finance' && <FinanceTab />}
         {tab === 'stats' && <StatsTab />}
