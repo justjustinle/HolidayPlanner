@@ -74,7 +74,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - `ui/DayPicker.tsx` — horizontal day pills (see §10)
 - `ui/TravelerFacepile.tsx` — avatar stack only (Users icon lives in the header rail)
 - `ui/` — also `AppDrawer`, `ConfirmDialog`, `Avatar`, `Sheet`, `Flag`, `TimeWheel`, `PlaneJourney`, `WhoIsGoingSheet`
-- `itinerary/` — `ItineraryCard` (tap-to-select: accent border + actions fade in; default shows photo badge only), `YarnTimelineRail` (dashed rail + ringed dots / now diamond), `NowMarker`, `AddCardSheet`, `MemoriesModal`
+- `itinerary/` — `ItineraryCard` (tap-to-select: accent border + actions fade in; default shows photo badge only), `YarnTimelineRail` (dashed rail + diamond activity nodes / now circle), `NowMarker`, `AddCardSheet`, `MemoriesModal`
 - `lib/motion.ts` — shared motion durations/easing + `hapticLight()` for select feedback
 - `finance/` — `ExpenseCard`, `LogExpenseSheet`, `UploadReceiptSheet`, `RateSettings`
 - `WelcomeGate.tsx`, `ServiceWorkerRegister.tsx`, `brand/YarnLogo.tsx`
@@ -118,7 +118,7 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 ## 9. Itinerary timeline (dashed rail)
 
 - Layout: time column | timeline node | activity card. Rows use `items-stretch`; the rail column `self-stretch`s to the full row height (card + `spacingAfter`).
-- Rail: muted **dashed** vertical line (not the old wavy yarn SVG). Activity nodes are city-accent **ring + solid inner dot**; the live "now" marker is a solid accent **diamond**.
+- Rail: muted **dashed** vertical line (not the old wavy yarn SVG). Activity nodes are solid city-accent **diamonds**; the live "now" marker is an accent **ring + solid inner dot** (subtle ping).
 - Segment fills an in-flow `flex-1` spacer and extends `calc(100% + 6px)` past the row bottom to bridge the next node's inset — **no gaps** between nodes.
 - Optional end times display as `TO HH:MM` under the start time.
 - **Tap-to-select cards:** default shows title / location / notes + square photo preview thumb (most recent upload) with count badge on the corner when photos exist; no action icons. Selected card gets city-accent border + `shadow-polaroid`, and camera / edit / delete fade in (≥44px targets). One selection at a time; deselect on re-tap, another card, outside tap, or day change. Edit opens via the pencil — not the whole-card tap.

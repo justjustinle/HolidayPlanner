@@ -10,11 +10,32 @@ function TimelineSegment() {
   );
 }
 
-/**
- * Activity marker: accent outer ring + solid inner dot (city colour).
- * Sits on the dashed timeline rail.
- */
+/** Activity marker: solid filled diamond in the city accent. */
 export function YarnTimelineNode({
+  isLast = false,
+  accentHex,
+}: {
+  isLast?: boolean;
+  accentHex: string;
+}) {
+  return (
+    <div className="relative flex w-5 flex-none flex-col self-stretch">
+      <span
+        className="absolute left-1/2 top-2 z-10 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[1px]"
+        style={{ background: accentHex }}
+        aria-hidden
+      />
+      {/* In-flow spacer reserves the node offset so the rail stretches with the row. */}
+      <div className="h-[18px] flex-none" aria-hidden />
+      {!isLast && <TimelineSegment />}
+    </div>
+  );
+}
+
+/**
+ * Live "now" marker: accent outer ring + solid inner dot on the dashed rail.
+ */
+export function YarnTimelineNowNode({
   isLast = false,
   accentHex,
 }: {
@@ -29,32 +50,14 @@ export function YarnTimelineNode({
         aria-hidden
       >
         <span
-          className="h-1.5 w-1.5 rounded-full"
+          className="absolute inset-0 animate-ping rounded-full opacity-30"
+          style={{ background: accentHex }}
+        />
+        <span
+          className="relative h-1.5 w-1.5 rounded-full"
           style={{ background: accentHex }}
         />
       </span>
-      {/* In-flow spacer reserves the node offset so the rail stretches with the row. */}
-      <div className="h-[18px] flex-none" aria-hidden />
-      {!isLast && <TimelineSegment />}
-    </div>
-  );
-}
-
-/** Solid diamond on the dashed rail for the live "now" marker. */
-export function YarnTimelineNowNode({
-  isLast = false,
-  accentHex,
-}: {
-  isLast?: boolean;
-  accentHex: string;
-}) {
-  return (
-    <div className="relative flex w-5 flex-none flex-col self-stretch">
-      <span
-        className="absolute left-1/2 top-2 z-10 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[1px]"
-        style={{ background: accentHex }}
-        aria-hidden
-      />
       <div className="h-[18px] flex-none" aria-hidden />
       {!isLast && <TimelineSegment />}
     </div>
