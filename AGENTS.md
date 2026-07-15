@@ -1,8 +1,8 @@
 # AGENTS.md — HolidayPlanner ("Yarn" / "Planr")
 
 Tool-agnostic guide for AI coding agents (Claude Code, Codex, Cursor, Jules,
-Aider, …) working on this repo. Read this first. Last updated after elevated
-day pills + filled Add activity CTA (sticky day nav vs flat trip chrome).
+Aider, …) working on this repo. Read this first. Last updated after selected
+day pill = white + city accent outline; unselected = page bg + thin black outline.
 
 ---
 
@@ -90,11 +90,11 @@ Bangkok gold `#c9992e`, Phuket teal `#2f97a6`, Saigon red `#b0472f`, Nha Trang j
 **Rules for UI work:**
 - Prefer **`var(--city-accent)`** (and `color-mix` derived from it) for theme highlights. Day pills may use that day's `d.accentHex` for the *selected chip's own city* (correct — each chip is tied to a day).
 - **Never hard-code gold / Bangkok hex** for page chrome that should follow the active city (Stats, tab bar, icon badges, rank-1 chips, sheet submit, etc.).
-- Derived values: accent tint ≈ `color-mix(in srgb, var(--city-accent) 12%, #fdfbf5)` (or 20% for selected day pills); full-opacity accent for borders / solid primary actions.
+- Derived values: accent tint ≈ `color-mix(in srgb, var(--city-accent) 12%, #fdfbf5)`; full-opacity accent for borders / solid primary actions.
 - `.city-tint` on the app shell = `color-mix(in srgb, var(--city-accent) 12%, #f7f1e6)`.
 - **Member avatar colors** (`lib/avatar.ts`) are identity colors — **not** theme-dependent; do not recolor them to the city accent.
-- Solid accent fill is reserved for **primary actions** (e.g. Add activity filled pill; Stats rank-1 chip). Do not use solid city fill for large selected surfaces (day pills use elevated cream + tint/border instead).
-- Trip identity chrome (title, dates, facepile, "City · Day n" label) stays **flat** on `.city-tint` — no cards behind them. Interactive chrome (day pills, Add activity) is elevated.
+- Solid accent fill is reserved for **primary actions** (e.g. Add activity filled pill; Stats rank-1 chip). Do not use solid city fill for large selected surfaces (selected day pill is white + accent outline).
+- Trip identity chrome (title, dates, facepile, "City · Day n" label) stays **flat** on `.city-tint` — no cards behind them.
 
 ## 7. Notifications (built; env configured — verify + enable)
 
@@ -124,11 +124,11 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 
 ## 10. Day pills (`DayPicker`)
 
-- **Unselected (elevated):** `bg-cream-card`, `shadow-card`, `1px border-black/5` — same elevation language as timeline activity cards (not ghost outline on beige).
-- **Selected:** `color-mix(in srgb, {day.accentHex} 20%, #fdfbf5)`, `1px` solid day accent border, `shadow-card`, **bold dark** date text (not white), same muted second line + colored city dots (not white).
-- Dimensions identical between states (both use 1px borders). Sticky below the trip header (`sticky top-0` with city-tint background) so the strip stays as persistent day nav while the timeline scrolls. Edge fades unchanged.
-- **Add activity:** filled primary CTA — solid day accent background + cream text; same `h-8` rounded-full size as before (not outline/ghost).
-- ⚠️ Do **not** restore ghost outlined-on-beige unselected pills or solid city fill + white text on the selected pill.
+- **Selected:** solid white/`bg-cream-card`, `1px` solid day accent border (gold / teal / lacquer / jade from that day's `accentHex`), **bold dark** date text, muted second line + colored city dots.
+- **Unselected:** `bg-transparent` (page / city-tint background), **no** shadow, `1px border-black/25`, dark date text, muted second line, colored city dots.
+- Dimensions identical between states (both use 1px borders). Sticky below the trip header (`sticky top-0` with city-tint background). Edge fades unchanged.
+- **Add activity:** filled primary CTA — solid day accent background + cream text; same `h-8` rounded-full size as before.
+- ⚠️ Do **not** restore tinted selected fill, elevated cream unselected chips, or solid city fill + white text on the selected pill.
 ## 11. Stats tab (Trip Olympics)
 
 - No emoji. Lucide (or Lucide-matched outline) icons in ~28px circular badges: accent-tint background + `var(--city-accent)` stroke.
