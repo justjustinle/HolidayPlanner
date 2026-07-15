@@ -136,7 +136,7 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 - Counter cards: ghost outline +/- (`border-black/25`, transparent fill, accent-tint on press); large serif count; compact padding.
 - Leaderboards: serif "Leaderboards" + "Whole trip" chip; rank chips — **1 = solid accent + white numeral**, 2 = silver-grey, 3 = bronze/tan, 4+ = transparent + muted + hairline border; current-user row = accent-tint background + "(you)"; bold serif for the leading score.
 - Photo counter stays read-only with caption: "counted from the trip photos you've uploaded".
-- Icons map in `StatsTab` (poop uses a custom toilet outline — Lucide has no toilet glyph).
+- Icons map in `StatsTab` (poop uses a custom filled toilet SVG — Lucide has no toilet glyph).
 
 ## 12. Trip header (Itinerary)
 
