@@ -1,9 +1,13 @@
 /** Dashed vertical segment from this node into the next (overlaps the 6px inset). */
-function TimelineSegment() {
+function TimelineSegment({ accentHex }: { accentHex: string }) {
   return (
     <div className="relative min-h-[8px] flex-1">
       <div
-        className="absolute left-1/2 top-0 h-[calc(100%+6px)] w-0 -translate-x-1/2 border-l-[1.5px] border-dashed border-ink/35"
+        className="absolute left-1/2 top-0 h-[calc(100%+6px)] w-0.5 -translate-x-1/2"
+        style={{
+          backgroundImage: `repeating-linear-gradient(to bottom, ${accentHex} 0 5px, transparent 5px 9px)`,
+          opacity: 0.55,
+        }}
         aria-hidden
       />
     </div>
@@ -27,7 +31,7 @@ export function YarnTimelineNode({
       />
       {/* In-flow spacer reserves the node offset so the rail stretches with the row. */}
       <div className="h-[18px] flex-none" aria-hidden />
-      {!isLast && <TimelineSegment />}
+      {!isLast && <TimelineSegment accentHex={accentHex} />}
     </div>
   );
 }
@@ -59,7 +63,7 @@ export function YarnTimelineNowNode({
         />
       </span>
       <div className="h-[18px] flex-none" aria-hidden />
-      {!isLast && <TimelineSegment />}
+      {!isLast && <TimelineSegment accentHex={accentHex} />}
     </div>
   );
 }
