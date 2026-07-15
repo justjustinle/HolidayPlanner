@@ -26,8 +26,8 @@ function resolveItineraryDay(previous: number): number {
   return dayNumberForDate(new Date()) ?? previous;
 }
 
-/** Matches the old per-tab `inset-x-6` underline width. */
-const INDICATOR_INSET = 24;
+/** Accent bar width under each tab (centered on the button). */
+const INDICATOR_WIDTH = 40;
 
 const INDICATOR_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -41,7 +41,7 @@ export default function AppShell() {
   );
   const rowRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [indicator, setIndicator] = useState({ x: 0, width: 0 });
+  const [indicator, setIndicator] = useState({ x: 0, width: INDICATOR_WIDTH });
   const [motionReady, setMotionReady] = useState(false);
 
   useEffect(() => {
@@ -58,25 +58,33 @@ export default function AppShell() {
       if (!btn) return;
       const rowRect = row.getBoundingClientRect();
       const btnRect = btn.getBoundingClientRect();
+      // Center a fixed-width bar on the active tab button (left:0 + translateX).
+      const center = btnRect.left - rowRect.left + btnRect.width / 2;
       setIndicator({
-        x: btnRect.left - rowRect.left + INDICATOR_INSET,
-        width: Math.max(0, btnRect.width - INDICATOR_INSET * 2),
+        x: center - INDICATOR_WIDTH / 2,
+        width: INDICATOR_WIDTH,
       });
     };
 
     update();
     // Enable the slide only after the first layout so cold open doesn't animate
     // from x=0.
-    const raf = requestAnimationFrame(() => setMotionReady(true));
+    const raf = requestAnimationFrame(() => {
+      update();
+      setMotionReady(true);
+    });
     const ro = new ResizeObserver(update);
     ro.observe(row);
+    for (const btn of btnRefs.current) {
+      if (btn) ro.observe(btn);
+    }
     window.addEventListener('resize', update);
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, [tab]);
+  }, [tab, demoMode]);
 
   const setDay = (day: number) => {
     setItineraryDay(day);
@@ -115,13 +123,13 @@ export default function AppShell() {
         <div ref={rowRef} className="relative flex items-stretch justify-around px-2">
           <span
             aria-hidden
-            className="pointer-events-none absolute top-0 h-0.5 rounded-full will-change-transform"
+            className="pointer-events-none absolute left-0 top-0 h-0.5 rounded-full will-change-transform"
             style={{
               width: indicator.width,
               background: 'var(--city-accent)',
               transform: `translate3d(${indicator.x}px, 0, 0)`,
               transition: motionReady
-                ? `transform 320ms ${INDICATOR_EASE}, width 320ms ${INDICATOR_EASE}`
+                ? `transform 320ms ${INDICATOR_EASE}`
                 : 'none',
             }}
           />
