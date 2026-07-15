@@ -4,8 +4,8 @@ import { forwardRef } from 'react';
 import { formatClock } from '@/lib/time';
 import { YarnTimelineNowNode } from './YarnTimelineRail';
 
-// "You are here" node on today's timeline. Matches the activity rail layout so
-// it slots cleanly between cards.
+// "You are here" diamond on today's timeline. Matches the activity rail layout
+// so it slots cleanly between cards.
 const NowMarker = forwardRef<
   HTMLDivElement,
   {
@@ -32,19 +32,15 @@ const NowMarker = forwardRef<
 
       <div className="min-w-0 flex-1" style={{ paddingBottom: isLast ? 8 : spacingAfter }}>
         <div
-          className="flex items-center gap-2 rounded-xl border px-3.5 py-2.5"
+          className="flex items-center gap-2 rounded-xl px-3.5 py-2.5"
           style={{
-            borderColor: `${accentHex}55`,
-            background: `color-mix(in srgb, ${accentHex} 14%, #fdfbf5)`,
+            background: `color-mix(in srgb, ${accentHex} 18%, #3a352c)`,
           }}
         >
-          <span
-            className="text-[11px] font-semibold uppercase tracking-wider"
-            style={{ color: accentHex }}
-          >
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-cream-card">
             Now
           </span>
-          <span className="text-[13px] text-muted">You are here</span>
+          <span className="text-[13px] text-cream-card/75">You are here</span>
         </div>
       </div>
     </div>
