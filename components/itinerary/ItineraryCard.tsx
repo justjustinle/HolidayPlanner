@@ -8,7 +8,7 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import { YarnTimelineNode } from './YarnTimelineRail';
 import { useTripData } from '../TripDataProvider';
 import { YARN_BRAND } from '@/lib/brand/yarn';
-import { hapticLight, MOTION } from '@/lib/motion';
+import { hapticTick, MOTION } from '@/lib/motion';
 import { formatTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
@@ -46,7 +46,9 @@ export default function ItineraryCard({
     : null;
 
   const toggleSelect = () => {
-    if (!selected) hapticLight();
+    if (!selected) {
+      hapticTick();
+    }
     onSelect();
   };
 
@@ -233,6 +235,7 @@ export default function ItineraryCard({
           message={`"${item.title}" and its photos will be removed for everyone.`}
           onCancel={() => setConfirming(false)}
           onConfirm={() => {
+            hapticTick();
             setConfirming(false);
             deleteItineraryItem(item.id);
           }}

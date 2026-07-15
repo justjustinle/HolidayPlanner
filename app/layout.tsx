@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import HapticSwitch from '@/components/HapticSwitch';
 
 export const metadata: Metadata = {
   title: 'Yarn',
@@ -50,6 +51,7 @@ export default function RootLayout({
       </head>
       <body>
         {children}
+        <HapticSwitch />
         <ServiceWorkerRegister />
       </body>
     </html>

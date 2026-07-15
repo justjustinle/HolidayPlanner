@@ -63,7 +63,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - `notifications/{config,client,server}.ts` — see §7
 - `stats.ts` — `COUNTER_CATEGORIES` / `ALL_LEADERBOARD_CATEGORIES` (labels only — **no emoji**), `STATS_DAY`, `statFor`, `statTotals`, `photoUploadCounts`
 - `time.ts` — 24h clock helpers + `timelineGapPx` (capped vertical spacing between timeline rows)
-- `image.ts`, `demo.ts`, `avatar.ts`, `motion.ts` (durations/easing + `hapticLight`)
+- `image.ts`, `demo.ts`, `avatar.ts`, `motion.ts` (durations/easing + `hapticTick` — Android vibrate / iOS switch; select, delete confirm, save new activity only)
 
 **components/**
 - `TripDataProvider.tsx` — the data spine: all state + every mutation (`addItineraryItem`, `addPhotos`, `addExpense`, `updateExpense`, `addReceiptExpense`, `setItemClaim`, `deleteExpense`, `settleUp`, `setStat`, …), `recordActivity` (fires notification events), mark-seen effect.
@@ -121,7 +121,8 @@ Peer-to-peer debt clearing, fitted to the derived-balance model.
 - Thread SVG fills an in-flow `flex-1` spacer and extends `calc(100% + 6px)` past the row bottom to bridge the next node's `top-1.5` inset — **no gaps** between nodes.
 - ⚠️ Do **not** reintroduce `max-h-[56px]` on the thread while spacing lives only on the content column — that broke connectors (fixed in PR #69).
 - Optional end times display as `TO HH:MM` under the start time.
-- **Tap-to-select cards:** default shows title / location / notes + photo count badge only (no action icons). Selected card gets city-accent border (same language as the active day pill) + `shadow-polaroid`, and camera / edit / delete fade in (≥44px targets). One selection at a time; deselect on re-tap, another card, outside tap, or day change. Edit opens via the pencil — not the whole-card tap.
+- **Tap-to-select cards:** default shows title / location / notes + photo count badge only (no action icons). Selected card gets city-accent border (same language as the active day pill) + `shadow-polaroid`, and camera / edit / delete fade in (≥44px targets). One selection at a time; deselect on re-tap, another card, outside tap, or day change. Edit opens via the pencil — not the whole-card tap. `hapticTick()` fires on select / delete confirm / save-new only (not scroll, tabs, or opening sheets).
+- `HapticSwitch` in root layout: hidden `<input type="checkbox" switch>` for iOS 17.4+ native tick; Android uses `navigator.vibrate(10)`.
 
 ## 10. Day pills (`DayPicker`)
 

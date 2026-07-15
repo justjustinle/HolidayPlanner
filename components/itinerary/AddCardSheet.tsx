@@ -13,6 +13,7 @@ import {
   type TimeValue,
 } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
+import { hapticTick } from '@/lib/motion';
 
 function defaultEndAfter(start: TimeValue): TimeValue {
   const total = start.hour24 * 60 + start.minute + 60;
@@ -53,6 +54,8 @@ export default function AddCardSheet({
 
   const save = async () => {
     if (!title.trim() || busy || endInvalid) return;
+    // Haptic only when committing a *new* activity (not edits).
+    if (!item) hapticTick();
     setBusy(true);
     try {
       const payload = {
