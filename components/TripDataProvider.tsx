@@ -23,6 +23,7 @@ import {
 } from '@/lib/currency';
 import { TRIP_ID, type EventType } from '@/lib/notifications/config';
 import { ACTIVE_TRIP_ID } from '@/lib/activeTrip';
+import { useAuth } from './AuthProvider';
 import { SETTLEMENT_LABEL } from '@/lib/types';
 import { compressToWebp, fileToDataUrl } from '@/lib/image';
 import {
@@ -107,6 +108,13 @@ interface TripDataValue {
   ready: boolean;
   demoMode: boolean;
   me: Profile | null;
+  // Phase 2 (auth): the signed-in Google account has no membership on this trip
+  // yet — the gate should offer to claim an existing member or join by code.
+  needsMembership: boolean;
+  // Link the signed-in account to an unclaimed member row (rpc claim_member).
+  claimMembership: (memberId: string) => Promise<void>;
+  // Join a trip via an invite code (rpc join_trip).
+  joinTripByCode: (code: string) => Promise<void>;
   profiles: Profile[];
   settings: TripSettings;
   itinerary: ItineraryItem[];
@@ -160,6 +168,7 @@ export default function TripDataProvider({
   children: React.ReactNode;
 }) {
   const demoMode = !isSupabaseConfigured;
+  const { authEnabled, authReady, account } = useAuth();
 
   const [ready, setReady] = useState(false);
   const [me, setMe] = useState<Profile | null>(null);
@@ -237,12 +246,16 @@ export default function TripDataProvider({
   useEffect(() => {
     let mounted = true;
 
-    // Restore the signed-in profile from localStorage (the login bypass).
-    try {
-      const raw = localStorage.getItem(ME_KEY);
-      if (raw) setMe(JSON.parse(raw) as Profile);
-    } catch {
-      /* ignore */
+    // Restore the signed-in profile from localStorage (the name-based login
+    // bypass). With auth on, identity comes from the Supabase session instead,
+    // so skip the localStorage restore and let the membership effect resolve me.
+    if (!authEnabled) {
+      try {
+        const raw = localStorage.getItem(ME_KEY);
+        if (raw) setMe(JSON.parse(raw) as Profile);
+      } catch {
+        /* ignore */
+      }
     }
 
     if (demoMode) {
@@ -296,8 +309,10 @@ export default function TripDataProvider({
 
   // Keep `me` aligned with the live profiles list. localStorage can hold a
   // stale id (old project, deleted row, demo→live switch) that then breaks
-  // FKs like photos.uploaded_by_id on insert.
+  // FKs like photos.uploaded_by_id on insert. (Auth path resolves me by
+  // account link instead — see the membership effect below.)
   useEffect(() => {
+    if (authEnabled) return;
     if (!ready || !me || profiles.length === 0) return;
     const byId = profiles.find((p) => p.id === me.id);
     if (byId) {
@@ -343,6 +358,42 @@ export default function TripDataProvider({
       /* ignore */
     }
   };
+
+  // Phase 2 (auth on): `me` is the trip membership linked to the signed-in
+  // account. Resolve it from the roster by user_id; clear it on sign-out.
+  useEffect(() => {
+    if (!authEnabled || !authReady) return;
+    if (!account) {
+      if (me) persistMe(null);
+      return;
+    }
+    const membership = profiles.find((p) => p.user_id === account.id) ?? null;
+    if (membership?.id !== me?.id) persistMe(membership);
+  }, [authEnabled, authReady, account, profiles, me]);
+
+  // Signed in but not yet a member of this trip → the gate offers claim/join.
+  const needsMembership =
+    authEnabled && authReady && ready && !!account && !me;
+
+  const claimMembership = useCallback(
+    async (memberId: string) => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc('claim_member', { p_member: memberId });
+      if (error) throw error;
+      await refetchAll();
+    },
+    [refetchAll]
+  );
+
+  const joinTripByCode = useCallback(
+    async (code: string) => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc('join_trip', { invite_code: code.trim() });
+      if (error) throw error;
+      await refetchAll();
+    },
+    [refetchAll]
+  );
 
   // Upload an avatar photo into the shared bucket under a stable key so it
   // overwrites cleanly. Best-effort: returns null if storage/column isn't set
@@ -1151,6 +1202,9 @@ export default function TripDataProvider({
       ready,
       demoMode,
       me,
+      needsMembership,
+      claimMembership,
+      joinTripByCode,
       profiles,
       settings,
       itinerary,
@@ -1183,6 +1237,9 @@ export default function TripDataProvider({
       ready,
       demoMode,
       me,
+      needsMembership,
+      claimMembership,
+      joinTripByCode,
       profiles,
       settings,
       itinerary,

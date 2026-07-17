@@ -13,6 +13,7 @@ import {
 import Avatar from './Avatar';
 import YarnLogo from '../brand/YarnLogo';
 import { useTripData } from '../TripDataProvider';
+import { useAuth } from '../AuthProvider';
 import {
   disablePush,
   enablePush,
@@ -31,6 +32,7 @@ export default function AppDrawer({
   onOpenRoster: () => void;
 }) {
   const { me, signOut, setMyPhoto } = useTripData();
+  const { authEnabled, signOutAccount } = useAuth();
   const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
     'idle'
   );
@@ -172,7 +174,8 @@ export default function AppDrawer({
             type="button"
             onClick={() => {
               onClose();
-              signOut();
+              if (authEnabled) void signOutAccount();
+              else signOut();
             }}
             className={itemCls}
           >

@@ -17,9 +17,14 @@ export const runtime = 'nodejs';
 
 function supabaseOr503() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return null;
-  return createClient(url, anonKey, { auth: { persistSession: false } });
+  // Prefer service-role: this server route persists rows for a user with no
+  // session of their own, so it must bypass the Phase 2 membership RLS. Falls
+  // back to anon for the pre-auth / open-RLS build.
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
 export async function POST(req: Request) {

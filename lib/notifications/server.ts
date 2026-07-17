@@ -49,9 +49,13 @@ export function notificationsConfigured(): boolean {
 }
 
 function serverClient(): SupabaseClient {
+  // Prefer the service-role key: once Phase 2 locks down RLS, this route acts
+  // across all users and cannot use any single caller's session. Falls back to
+  // the anon key for the pre-auth / open-RLS build.
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+    (serviceKey ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) as string,
     { auth: { persistSession: false } }
   );
 }
