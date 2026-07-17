@@ -22,6 +22,7 @@ import {
   localSharesToGbp,
 } from '@/lib/currency';
 import { TRIP_ID, type EventType } from '@/lib/notifications/config';
+import { ACTIVE_TRIP_ID } from '@/lib/activeTrip';
 import { SETTLEMENT_LABEL } from '@/lib/types';
 import { compressToWebp, fileToDataUrl } from '@/lib/image';
 import {
@@ -202,16 +203,17 @@ export default function TripDataProvider({
   // --- initial load ---------------------------------------------------------
   const refetchAll = useCallback(async () => {
     if (!supabase) return;
+    const trip = ACTIVE_TRIP_ID;
     const [p, s, it, ph, ex, sp, rc, ri, st] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at'),
+      supabase.from('profiles').select('*').eq('trip_id', trip).order('created_at'),
       supabase.from('trip_settings').select('*').eq('id', 1).single(),
-      supabase.from('itinerary_items').select('*').order('day_number').order('created_at'),
-      supabase.from('photos').select('*').order('created_at'),
-      supabase.from('expenses').select('*').order('created_at'),
-      supabase.from('expense_splits').select('*'),
-      supabase.from('receipts').select('*'),
-      supabase.from('receipt_items').select('*').order('created_at'),
-      supabase.from('stat_entries').select('*'),
+      supabase.from('itinerary_items').select('*').eq('trip_id', trip).order('day_number').order('created_at'),
+      supabase.from('photos').select('*').eq('trip_id', trip).order('created_at'),
+      supabase.from('expenses').select('*').eq('trip_id', trip).order('created_at'),
+      supabase.from('expense_splits').select('*').eq('trip_id', trip),
+      supabase.from('receipts').select('*').eq('trip_id', trip),
+      supabase.from('receipt_items').select('*').eq('trip_id', trip).order('created_at'),
+      supabase.from('stat_entries').select('*').eq('trip_id', trip),
     ]);
     if (p.data) setProfiles(p.data as Profile[]);
     if (s.data) setSettings(s.data as TripSettings);
@@ -397,7 +399,7 @@ export default function TripDataProvider({
       if (!profile) {
         const { data: created, error } = await supabase!
           .from('profiles')
-          .insert({ name })
+          .insert({ name, trip_id: ACTIVE_TRIP_ID })
           .select()
           .single();
         if (error || !created) throw error ?? new Error('Could not create profile');
@@ -506,7 +508,7 @@ export default function TripDataProvider({
         setItinerary((prev) => [...prev, { ...input, id: genId(), photo_url: null }]);
         return;
       }
-      await supabase!.from('itinerary_items').insert(input);
+      await supabase!.from('itinerary_items').insert({ ...input, trip_id: ACTIVE_TRIP_ID });
       void recordActivity('activity_added', {
         title: input.title,
         day_number: input.day_number,
@@ -595,6 +597,7 @@ export default function TripDataProvider({
         const { data: pub } = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
         const ins = await supabase!.from('photos').insert({
           id,
+          trip_id: ACTIVE_TRIP_ID,
           activity_id: activityId,
           url: pub.publicUrl,
           uploaded_by_id,
@@ -694,6 +697,7 @@ export default function TripDataProvider({
       const { data: exp, error } = await supabase!
         .from('expenses')
         .insert({
+          trip_id: ACTIVE_TRIP_ID,
           label,
           day_number: dayNumber,
           kind: 'manual',
@@ -707,6 +711,7 @@ export default function TripDataProvider({
       if (error || !exp) throw error ?? new Error('Could not save expense');
       await supabase!.from('expense_splits').insert(
         parts.map((uid, i) => ({
+          trip_id: ACTIVE_TRIP_ID,
           expense_id: (exp as Expense).id,
           user_id: uid,
           amount_owed: shares[i],
@@ -779,7 +784,12 @@ export default function TripDataProvider({
       if (isManual) {
         await supabase!.from('expense_splits').delete().eq('expense_id', id);
         await supabase!.from('expense_splits').insert(
-          parts.map((uid, i) => ({ expense_id: id, user_id: uid, amount_owed: shares[i] }))
+          parts.map((uid, i) => ({
+            trip_id: ACTIVE_TRIP_ID,
+            expense_id: id,
+            user_id: uid,
+            amount_owed: shares[i],
+          }))
         );
       } else {
         await supabase!.from('receipts').update({ merchant: label }).eq('expense_id', id);
@@ -840,6 +850,7 @@ export default function TripDataProvider({
       const { data: exp, error } = await supabase!
         .from('expenses')
         .insert({
+          trip_id: ACTIVE_TRIP_ID,
           label,
           day_number: dayNumber,
           kind: 'receipt',
@@ -866,14 +877,14 @@ export default function TripDataProvider({
 
       const { data: receipt, error: rErr } = await supabase!
         .from('receipts')
-        .insert({ expense_id: (exp as Expense).id, merchant: label, image_url })
+        .insert({ trip_id: ACTIVE_TRIP_ID, expense_id: (exp as Expense).id, merchant: label, image_url })
         .select()
         .single();
       if (rErr || !receipt) throw rErr ?? new Error('Could not save receipt');
 
       if (cleanItems.length) {
         await supabase!.from('receipt_items').insert(
-          cleanItems.map((i) => ({ receipt_id: (receipt as Receipt).id, ...i }))
+          cleanItems.map((i) => ({ trip_id: ACTIVE_TRIP_ID, receipt_id: (receipt as Receipt).id, ...i }))
         );
       }
       void recordActivity('expense_added', {
@@ -1000,6 +1011,7 @@ export default function TripDataProvider({
             .eq('id', i.id);
         } else {
           await supabase!.from('receipt_items').insert({
+            trip_id: ACTIVE_TRIP_ID,
             receipt_id: existingReceipt.id,
             name: i.name,
             quantity: i.quantity,
@@ -1078,6 +1090,7 @@ export default function TripDataProvider({
       const { data: exp, error } = await supabase!
         .from('expenses')
         .insert({
+          trip_id: ACTIVE_TRIP_ID,
           label: SETTLEMENT_LABEL,
           kind: 'settlement',
           local_amount: value,
@@ -1090,7 +1103,7 @@ export default function TripDataProvider({
       if (error || !exp) throw error ?? new Error('Could not log settlement');
       await supabase!
         .from('expense_splits')
-        .insert({ expense_id: (exp as Expense).id, user_id: toId, amount_owed: value });
+        .insert({ trip_id: ACTIVE_TRIP_ID, expense_id: (exp as Expense).id, user_id: toId, amount_owed: value });
       await refetchAll();
     },
     [demoMode, refetchAll]
@@ -1120,6 +1133,7 @@ export default function TripDataProvider({
         .from('stat_entries')
         .upsert(
           {
+            trip_id: ACTIVE_TRIP_ID,
             user_id: me.id,
             day_number: dayNumber,
             category,

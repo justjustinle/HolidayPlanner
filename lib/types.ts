@@ -2,11 +2,17 @@
 
 export type CurrencyCode = 'VND' | 'THB' | 'GBP';
 
+// A person on a trip. Content rows (paid_by_id, uploaded_by_id, splits, stats,
+// claims) all FK to this id. From Phase 1 it is trip-scoped; `user_id` links it
+// to a signed-in account (null = an unclaimed placeholder member).
 export interface Profile {
   id: string;
   name: string;
   avatar_url?: string | null;
   created_at?: string;
+  trip_id?: string;
+  user_id?: string | null;
+  role?: 'owner' | 'member';
 }
 
 export interface TripSettings {

@@ -1,9 +1,12 @@
 // Central notification config: batching thresholds and the event-type
 // registry. Reclassify an event between tiers by editing EVENT_CONFIG only.
 
-// The app is single-trip today; every notification table carries this trip_id
-// so per-trip preferences / multi-trip support can be added without a reshape.
-export const TRIP_ID = 'thailand-vietnam-2026';
+import { ACTIVE_TRIP_ID } from '@/lib/activeTrip';
+
+// Every notification table carries this trip_id. Phase 1 of multi-tenant made
+// it the trip's uuid (was the legacy string 'thailand-vietnam-2026'); Phase 3
+// makes it a per-trip value resolved at runtime rather than a constant.
+export const TRIP_ID = ACTIVE_TRIP_ID;
 export const TRIP_NAME = 'Thailand & Vietnam';
 
 // Hybrid batching rule — a push goes out when EITHER is met, whichever first:
