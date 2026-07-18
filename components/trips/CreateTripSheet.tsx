@@ -7,6 +7,7 @@ import { useTripData } from '../TripDataProvider';
 import { useAuth } from '../AuthProvider';
 import type { CreateTripResult } from '@/lib/types';
 import type { TripDay } from '@/lib/trip';
+import { COUNTRY_OPTIONS, normalizeCountryName } from '@/lib/countries';
 
 const ACCENTS = ['#c9992e', '#2f97a6', '#b0472f', '#3f9b8a', '#7a5cc9', '#4f7fd6'];
 
@@ -177,6 +178,9 @@ export default function CreateTripSheet({
       if (!destination.country.trim()) {
         return `Add a country for destination ${index + 1}.`;
       }
+      if (!normalizeCountryName(destination.country)) {
+        return `Pick a supported country for destination ${index + 1}.`;
+      }
       if (!destination.startDate || !destination.endDate) {
         return `Add both dates for ${destination.city.trim() || destination.country.trim()}.`;
       }
@@ -215,7 +219,7 @@ export default function CreateTripSheet({
         name: name.trim(),
         homeCurrency: homeCurrency.trim().toUpperCase(),
         destinations: destinations.map((destination) => ({
-          country: destination.country.trim(),
+          country: normalizeCountryName(destination.country) ?? destination.country.trim(),
           city: destination.city.trim(),
           startDate: destination.startDate,
           endDate: destination.endDate,
@@ -375,14 +379,27 @@ export default function CreateTripSheet({
                   <span className="mb-1 block text-xs text-muted">Country</span>
                   <input
                     type="text"
+                    list={`trip-countries-${destination.id}`}
                     value={destination.country}
                     onChange={(event) =>
                       updateDestination(destination.id, { country: event.target.value })
                     }
+                    onBlur={() => {
+                      const canonical = normalizeCountryName(destination.country);
+                      if (canonical && canonical !== destination.country) {
+                        updateDestination(destination.id, { country: canonical });
+                      }
+                    }}
                     placeholder="e.g. Japan"
                     className={inputClass}
                     required
+                    autoComplete="off"
                   />
+                  <datalist id={`trip-countries-${destination.id}`}>
+                    {COUNTRY_OPTIONS.map((country) => (
+                      <option key={country} value={country} />
+                    ))}
+                  </datalist>
                 </label>
                 {destinations.length > 1 && (
                   <button

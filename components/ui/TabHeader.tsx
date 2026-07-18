@@ -9,7 +9,8 @@ import InviteFriendsSheet from './InviteFriendsSheet';
 import EditNameSheet from './EditNameSheet';
 import CreateTripSheet from '../trips/CreateTripSheet';
 import YarnLogo from '../brand/YarnLogo';
-import { ThaiFlag, VietnamFlag } from './Flag';
+import { TripCountryFlags } from './Flag';
+import { uniqueCountriesFromTripDays } from '@/lib/countries';
 import { rangeLabelFromDays } from '@/lib/trip';
 import { useTripData } from '../TripDataProvider';
 
@@ -39,6 +40,7 @@ export default function TabHeader(props: TabHeaderProps) {
   const [editTripOpen, setEditTripOpen] = useState(false);
   const { trip, tripDays } = useTripData();
   const dates = rangeLabelFromDays(tripDays);
+  const tripCountries = uniqueCountriesFromTripDays(tripDays);
 
   return (
     <header className="px-5 pt-4">
@@ -55,13 +57,7 @@ export default function TabHeader(props: TabHeaderProps) {
 
           <h1 className="flex min-w-0 items-center gap-2 font-serif text-[26px] font-semibold leading-tight text-ink">
             <span className="min-w-0 truncate">{trip.name}</span>
-            <span
-              className="inline-flex shrink-0 items-center gap-1"
-              aria-label="Thailand and Vietnam"
-            >
-              <ThaiFlag size={20} />
-              <VietnamFlag size={20} />
-            </span>
+            <TripCountryFlags countries={tripCountries} size={20} />
           </h1>
 
           <span className="mt-1 flex items-center justify-center text-muted" aria-hidden>
