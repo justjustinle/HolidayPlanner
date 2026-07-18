@@ -1,9 +1,9 @@
-/** Dashed vertical segment from this node into the next (overlaps the 6px inset). */
+/** Dashed vertical segment from this node into the next title-aligned marker. */
 function TimelineSegment({ accentHex }: { accentHex: string }) {
   return (
     <div className="relative min-h-[8px] flex-1">
       <div
-        className="absolute left-1/2 top-0 h-[calc(100%+6px)] w-0.5 -translate-x-1/2"
+        className="absolute left-1/2 top-0 h-[calc(100%+16px)] w-0.5 -translate-x-1/2"
         style={{
           backgroundImage: `repeating-linear-gradient(to bottom, ${accentHex} 0 5px, transparent 5px 9px)`,
           opacity: 0.55,
@@ -25,7 +25,7 @@ export function YarnTimelineNode({
   return (
     <div className="relative flex w-5 flex-none flex-col self-stretch">
       <span
-        className="absolute left-1/2 top-2 z-10 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[1px]"
+        className="absolute left-1/2 top-[18px] z-10 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[1px]"
         style={{ background: accentHex }}
         aria-hidden
       />
