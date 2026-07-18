@@ -5,6 +5,9 @@ export const MOTION = {
   /** Soft settle (borders, shadows) */
   snappy: '220ms',
   easeOut: 'cubic-bezier(0.22, 1, 0.36, 1)',
+  /** Sliding selection bars shared by the day picker and bottom tabs. */
+  indicator: '320ms',
+  indicatorEase: 'cubic-bezier(0.22, 1, 0.36, 1)',
 } as const;
 
 /** Light tap feedback where the Vibration API is available (no-op on iOS Safari). */

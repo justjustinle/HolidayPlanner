@@ -11,6 +11,7 @@ import {
   landingDayNumber,
   writeStoredItineraryDay,
 } from '@/lib/trip';
+import { MOTION } from '@/lib/motion';
 
 type TabKey = 'itinerary' | 'finance' | 'stats';
 
@@ -28,8 +29,6 @@ function resolveItineraryDay(previous: number): number {
 
 /** Accent bar width under each tab (centered on the button). */
 const INDICATOR_WIDTH = 40;
-
-const INDICATOR_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export default function AppShell() {
   const { demoMode } = useTripData();
@@ -129,7 +128,7 @@ export default function AppShell() {
               background: 'var(--city-accent)',
               transform: `translate3d(${indicator.x}px, 0, 0)`,
               transition: motionReady
-                ? `transform 320ms ${INDICATOR_EASE}`
+                ? `transform ${MOTION.indicator} ${MOTION.indicatorEase}`
                 : 'none',
             }}
           />
