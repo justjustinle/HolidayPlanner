@@ -7,6 +7,7 @@ import TravelerFacepile from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
 import InviteFriendsSheet from './InviteFriendsSheet';
 import EditNameSheet from './EditNameSheet';
+import CreateTripSheet from '../trips/CreateTripSheet';
 import YarnLogo from '../brand/YarnLogo';
 import { ThaiFlag, VietnamFlag } from './Flag';
 import { rangeLabelFromDays } from '@/lib/trip';
@@ -35,6 +36,7 @@ export default function TabHeader(props: TabHeaderProps) {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editNameOpen, setEditNameOpen] = useState(false);
+  const [editTripOpen, setEditTripOpen] = useState(false);
   const { trip, tripDays } = useTripData();
   const dates = rangeLabelFromDays(tripDays);
 
@@ -103,10 +105,14 @@ export default function TabHeader(props: TabHeaderProps) {
         onClose={() => setDrawerOpen(false)}
         onOpenInvite={() => setInviteOpen(true)}
         onOpenEditName={() => setEditNameOpen(true)}
+        onOpenEditTrip={() => setEditTripOpen(true)}
       />
       {rosterOpen && <WhoIsGoingSheet onClose={() => setRosterOpen(false)} />}
       {inviteOpen && <InviteFriendsSheet onClose={() => setInviteOpen(false)} />}
       {editNameOpen && <EditNameSheet onClose={() => setEditNameOpen(false)} />}
+      {editTripOpen && (
+        <CreateTripSheet mode="edit" onClose={() => setEditTripOpen(false)} />
+      )}
     </header>
   );
 }

@@ -126,9 +126,8 @@ export interface NewReceiptInput {
   imageFile?: File | null;
 }
 
-export interface NewTripInput {
+export interface TripDetailsInput {
   name: string;
-  ownerName: string;
   homeCurrency: string;
   destinations: {
     destination: string;
@@ -137,6 +136,10 @@ export interface NewTripInput {
     accentHex: string;
   }[];
   destinationCurrencies: string[];
+}
+
+export interface NewTripInput extends TripDetailsInput {
+  ownerName: string;
 }
 
 interface TripDataValue {
@@ -161,6 +164,7 @@ interface TripDataValue {
   myTrips: Trip[];
   setActiveTrip: (tripId: string | null) => void;
   createTrip: (input: NewTripInput) => Promise<CreateTripResult>;
+  updateTrip: (input: TripDetailsInput) => Promise<void>;
   profiles: Profile[];
   settings: TripSettings;
   itinerary: ItineraryItem[];
@@ -619,6 +623,29 @@ export default function TripDataProvider({
       return { tripId: result.trip_id, inviteCode: result.invite_code };
     },
     [loadMyTrips]
+  );
+
+  const updateTrip = useCallback<TripDataValue['updateTrip']>(
+    async (input) => {
+      if (!supabase || !activeTripIdRef.current) {
+        throw new Error('Open a trip before editing it.');
+      }
+      const { error } = await supabase.rpc('update_trip_v2', {
+        p_trip: activeTripIdRef.current,
+        p_name: input.name,
+        p_home_currency: input.homeCurrency,
+        p_destinations: input.destinations.map((destination) => ({
+          destination: destination.destination,
+          start_date: destination.startDate,
+          end_date: destination.endDate,
+          accent_hex: destination.accentHex,
+        })),
+        p_destination_currencies: input.destinationCurrencies,
+      });
+      if (error) throw new Error(error.message || 'Could not update the trip.');
+      await Promise.all([loadMyTrips(), refetchAll()]);
+    },
+    [loadMyTrips, refetchAll]
   );
 
   // Upload an avatar photo into the shared bucket under a stable key so it
@@ -1488,6 +1515,7 @@ export default function TripDataProvider({
       myTrips,
       setActiveTrip,
       createTrip,
+      updateTrip,
       profiles,
       settings,
       trip,
@@ -1532,6 +1560,7 @@ export default function TripDataProvider({
       myTrips,
       setActiveTrip,
       createTrip,
+      updateTrip,
       profiles,
       settings,
       trip,
