@@ -13,9 +13,9 @@ function GateHeader({ subtitle }: { subtitle: string }) {
   return (
     <>
       <div className="mb-6 flex flex-col items-center">
-        <div className="flex items-center gap-3 text-[var(--city-accent)]">
-          <YarnLogo size={52} color="currentColor" />
-          <h1 className="font-serif text-[48px] font-semibold leading-none tracking-tight text-ink">
+        <div className="flex items-center gap-3.5 text-[var(--city-accent)]">
+          <YarnLogo size={60} color="currentColor" />
+          <h1 className="font-serif text-[55px] font-semibold leading-none tracking-tight text-ink">
             Yarn
           </h1>
         </div>

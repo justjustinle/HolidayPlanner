@@ -125,7 +125,8 @@ export default function AuthChoices({
       </form>
 
       <p className="mt-2 text-center text-[12px] leading-relaxed text-muted">
-        No password needed. New email addresses are signed up automatically.
+        Accessing via Browser? Tap the Share button and select &apos;Add to Home Screen&apos; to
+        install Yarn!
       </p>
       {error && (
         <p className="mt-3 text-center text-[13px] text-saigon" role="alert">
