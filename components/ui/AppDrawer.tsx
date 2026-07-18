@@ -8,7 +8,6 @@ import {
   BellOff,
   BellRing,
   Loader2,
-  Users,
   UserPlus,
   Map,
   Pencil,
@@ -28,13 +27,11 @@ import {
 export default function AppDrawer({
   open,
   onClose,
-  onOpenRoster,
   onOpenInvite,
   onOpenEditName,
 }: {
   open: boolean;
   onClose: () => void;
-  onOpenRoster: () => void;
   onOpenInvite: () => void;
   onOpenEditName: () => void;
 }) {
@@ -159,16 +156,6 @@ export default function AppDrawer({
             className={itemCls}
           >
             <Pencil size={18} className="text-muted" /> Edit name
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onOpenRoster();
-            }}
-            className={itemCls}
-          >
-            <Users size={18} className="text-muted" /> Who&apos;s going
           </button>
           {authEnabled && (
             <button
