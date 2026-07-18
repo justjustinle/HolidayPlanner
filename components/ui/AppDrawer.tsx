@@ -11,6 +11,7 @@ import {
   Users,
   UserPlus,
   Map,
+  Pencil,
 } from 'lucide-react';
 import Avatar from './Avatar';
 import YarnLogo from '../brand/YarnLogo';
@@ -29,11 +30,13 @@ export default function AppDrawer({
   onClose,
   onOpenRoster,
   onOpenInvite,
+  onOpenEditName,
 }: {
   open: boolean;
   onClose: () => void;
   onOpenRoster: () => void;
   onOpenInvite: () => void;
+  onOpenEditName: () => void;
 }) {
   const { me, signOut, setMyPhoto, setActiveTrip } = useTripData();
   const { authEnabled, signOutAccount } = useAuth();
@@ -146,6 +149,17 @@ export default function AppDrawer({
               <Map size={18} className="text-muted" /> My trips
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenEditName();
+            }}
+            disabled={!me}
+            className={itemCls}
+          >
+            <Pencil size={18} className="text-muted" /> Edit name
+          </button>
           <button
             type="button"
             onClick={() => {

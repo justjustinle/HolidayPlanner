@@ -6,6 +6,7 @@ import AppDrawer from './AppDrawer';
 import TravelerFacepile from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
 import InviteFriendsSheet from './InviteFriendsSheet';
+import EditNameSheet from './EditNameSheet';
 import YarnLogo from '../brand/YarnLogo';
 import { ThaiFlag, VietnamFlag } from './Flag';
 import { rangeLabelFromDays } from '@/lib/trip';
@@ -33,6 +34,7 @@ export default function TabHeader(props: TabHeaderProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editNameOpen, setEditNameOpen] = useState(false);
   const { trip, tripDays } = useTripData();
   const dates = rangeLabelFromDays(tripDays);
 
@@ -101,9 +103,11 @@ export default function TabHeader(props: TabHeaderProps) {
         onClose={() => setDrawerOpen(false)}
         onOpenRoster={() => setRosterOpen(true)}
         onOpenInvite={() => setInviteOpen(true)}
+        onOpenEditName={() => setEditNameOpen(true)}
       />
       {rosterOpen && <WhoIsGoingSheet onClose={() => setRosterOpen(false)} />}
       {inviteOpen && <InviteFriendsSheet onClose={() => setInviteOpen(false)} />}
+      {editNameOpen && <EditNameSheet onClose={() => setEditNameOpen(false)} />}
     </header>
   );
 }
