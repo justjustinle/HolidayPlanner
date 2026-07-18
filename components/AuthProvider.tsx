@@ -27,6 +27,7 @@ interface AuthValue {
   session: Session | null;
   account: Account | null;
   signInWithGoogle: (nextPath?: string) => Promise<void>;
+  signInWithEmail: (email: string, nextPath?: string) => Promise<void>;
   signOutAccount: () => Promise<void>;
 }
 
@@ -50,6 +51,15 @@ function toAccount(session: Session | null): Account | null {
 }
 
 const active = AUTH_ENABLED && isSupabaseConfigured;
+
+function authCallbackUrl(nextPath?: string): string {
+  const callback = new URL('/auth/callback', window.location.origin);
+  callback.searchParams.set(
+    'next',
+    nextPath?.startsWith('/') && !nextPath.startsWith('//') ? nextPath : '/'
+  );
+  return callback.toString();
+}
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -80,14 +90,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const signInWithGoogle = useCallback(async (nextPath?: string) => {
     if (!supabase) return;
-    const callback = new URL('/auth/callback', window.location.origin);
-    if (nextPath?.startsWith('/') && !nextPath.startsWith('//')) {
-      callback.searchParams.set('next', nextPath);
-    }
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: callback.toString() },
+      options: { redirectTo: authCallbackUrl(nextPath) },
     });
+    if (error) throw new Error(error.message);
+  }, []);
+
+  const signInWithEmail = useCallback(async (email: string, nextPath?: string) => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: authCallbackUrl(nextPath),
+      },
+    });
+    if (error) throw new Error(error.message);
   }, []);
 
   const signOutAccount = useCallback(async () => {
@@ -103,9 +122,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       session,
       account: toAccount(session),
       signInWithGoogle,
+      signInWithEmail,
       signOutAccount,
     }),
-    [authReady, session, signInWithGoogle, signOutAccount]
+    [authReady, session, signInWithEmail, signInWithGoogle, signOutAccount]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

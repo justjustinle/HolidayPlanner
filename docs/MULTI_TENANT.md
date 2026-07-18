@@ -51,8 +51,22 @@ Applying migration v6 without a signed-in session locks every anon request out
 ### 2. Supabase dashboard
 
 - Authentication → Providers → Google → enable, paste client ID + secret.
+- Authentication → Providers → Email → keep email sign-ins and automatic user
+  creation enabled.
 - Authentication → URL Configuration → add `https://holiday-planner-ruby.vercel.app/auth/callback`
   and `http://localhost:3000/auth/callback` to the redirect allow-list.
+- Authentication → Email Templates → Magic Link: the default
+  `{{ .ConfirmationURL }}` template works with the browser PKCE callback. If
+  using a direct token-hash template, use:
+
+  ```html
+  <h2>Sign in to Yarn</h2>
+  <p>This one-time link expires shortly.</p>
+  <p><a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email">Sign in to Yarn</a></p>
+  ```
+
+  `AuthProvider` always supplies a callback URL with a `next` query parameter,
+  so appending the token hash with `&` is intentional.
 
 ### 3. Env vars (Vercel + GitHub Actions)
 
