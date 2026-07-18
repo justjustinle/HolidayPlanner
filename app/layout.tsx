@@ -5,7 +5,7 @@ import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 export const metadata: Metadata = {
   title: 'Yarn',
   description:
-    'Collaborative travel planner — itinerary, Polaroid memories, shared expenses, and stats.',
+    'Weave your next adventure together. Co-create itineraries, split expenses, and track trip stats.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
