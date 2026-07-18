@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TRIP_DAYS, type TripDay } from '@/lib/trip';
+import { MOTION } from '@/lib/motion';
 
 const FADE =
   'color-mix(in srgb, var(--city-accent) 12%, #f7f1e6)';
+const INDICATOR_WIDTH = 40;
 
 // Horizontal Day 1 … Day 13 chip strip. Hints overflow with a peek + edge
 // fades, and keeps the selected day scrolled to center when possible.
@@ -22,6 +24,8 @@ export default function DayPicker({
   const activeRef = useRef<HTMLButtonElement>(null);
   const didCenter = useRef(false);
   const [edge, setEdge] = useState({ left: false, right: false });
+  const [indicatorX, setIndicatorX] = useState(0);
+  const [indicatorReady, setIndicatorReady] = useState(false);
 
   const updateEdges = () => {
     const el = scrollerRef.current;
@@ -62,6 +66,35 @@ export default function DayPicker({
     };
   }, []);
 
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    const active = activeRef.current;
+    if (!scroller || !active) return;
+
+    const update = () => {
+      const scrollerRect = scroller.getBoundingClientRect();
+      const activeRect = active.getBoundingClientRect();
+      const center =
+        activeRect.left - scrollerRect.left + scroller.scrollLeft + activeRect.width / 2;
+      setIndicatorX(center - INDICATOR_WIDTH / 2);
+    };
+
+    update();
+    const raf = requestAnimationFrame(() => {
+      update();
+      setIndicatorReady(true);
+    });
+    const ro = new ResizeObserver(update);
+    ro.observe(scroller);
+    ro.observe(active);
+    window.addEventListener('resize', update);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [days, value]);
+
   // Selected: solid white + city accent outline; unselected: page bg + thin black outline.
   const chip = (active: boolean) =>
     `flex flex-none flex-col items-center rounded-xl border px-3 py-1.5 leading-tight text-ink ${
@@ -73,8 +106,21 @@ export default function DayPicker({
       <div className="relative">
         <div
           ref={scrollerRef}
-          className="no-scrollbar flex gap-2 overflow-x-auto scroll-smooth py-3 pl-5 pr-14"
+          className="no-scrollbar relative flex gap-2 overflow-x-auto scroll-smooth py-3 pl-5 pr-14"
         >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-1 h-0.5 rounded-full will-change-transform"
+            style={{
+              left: 0,
+              width: INDICATOR_WIDTH,
+              background: 'var(--city-accent)',
+              transform: `translate3d(${indicatorX}px, 0, 0)`,
+              transition: indicatorReady
+                ? `transform ${MOTION.indicator} ${MOTION.indicatorEase}`
+                : 'none',
+            }}
+          />
           {days.map((d) => {
             const active = value === d.dayNumber;
             return (
