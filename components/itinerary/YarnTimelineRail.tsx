@@ -14,7 +14,7 @@ function TimelineSegment({ accentHex }: { accentHex: string }) {
   );
 }
 
-/** Activity marker: outlined diamond in the city accent. */
+/** Activity marker: compact solid diamond in the city accent. */
 export function YarnTimelineNode({
   isLast = false,
   accentHex,
@@ -25,8 +25,8 @@ export function YarnTimelineNode({
   return (
     <div className="relative flex w-5 flex-none flex-col self-stretch">
       <span
-        className="absolute left-1/2 top-[18px] z-10 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[1px] border-[1.5px] bg-transparent"
-        style={{ borderColor: accentHex }}
+        className="absolute left-1/2 top-[18.75px] z-10 h-[8.5px] w-[8.5px] -translate-x-1/2 rotate-45 rounded-[1px]"
+        style={{ background: accentHex }}
         aria-hidden
       />
       {/* In-flow spacer reserves the node offset so the rail stretches with the row. */}
