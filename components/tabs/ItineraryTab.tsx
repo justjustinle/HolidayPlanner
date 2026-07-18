@@ -119,7 +119,7 @@ export default function ItineraryTab({
         <DayPicker value={day} onChange={onDayChange} days={tripDays} />
 
         {selected && (
-          <div className="mb-3 mt-1 flex items-start justify-between gap-3">
+          <div className="mb-3 mt-5 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-2">
               <span
                 className="mt-2 inline-block h-2 w-2 flex-none rounded-full"
