@@ -30,7 +30,7 @@ function GoogleGate() {
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col justify-center px-6 py-8">
       <div className="animate-fade-in">
-        <GateHeader subtitle="Sign in or create an account to start planning." />
+        <GateHeader subtitle="Weave your next adventure together. Co-create itineraries, split expenses, and track trip stats." />
         <AuthChoices />
       </div>
     </div>
