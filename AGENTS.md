@@ -160,10 +160,32 @@ Shared grid: **`grid-cols-[40px_1fr]`** (do not nest date/facepile in a second i
 - Sandbox note: the dev environment's network policy blocks direct Supabase/Vercel egress from local scripts, so live-Supabase E2E must run from GitHub Actions.
 - Times are **24-hour** (`HH:MM`) in storage and display; legacy 12h labels still parse.
 
+## 13a. KPI activity log (internal analytics — not consumer-facing)
+
+Launch KPIs need "activities per user". The `activity_events` table doubles as
+the analytics log:
+- **Logging:** every meaningful write in `TripDataProvider` is tagged with the
+  actor profile. Add/split events go through `recordActivity` (also feeds
+  notifications); edits/deletes/claims/settlements/stats/rate-changes go through
+  `logKpiEvent` — same table, but **no dispatcher poke** and the event types are
+  **not** in `EVENT_CONFIG`, so they never push and never surface in the app.
+  Event types: `activity_{added,edited,deleted}`, `photo_{added,deleted}`,
+  `expense_{added,edited,deleted}`, `receipt_edited`, `item_{claimed,released}`,
+  `settlement_added`, `stat_updated`, `rates_updated`.
+- **Output:** `scripts/kpi-activity-export.mjs` reads `activity_events` +
+  `profiles` (plain fetch, no deps) and writes `kpi-activity-report.{json,md}`
+  grouped **per user** (totals, by-action breakdown, first/last activity,
+  zero-activity profiles included). `expense_split_added` is excluded as a
+  notification fan-out artifact. Env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  optional `TRIP_ID` (default active trip; `all` for every trip), `OUT_DIR`.
+- **Run:** the `kpi-activity-export` GitHub Actions workflow (manual dispatch,
+  uploads the report as an artifact) — the sandbox blocks direct Supabase egress
+  from local scripts.
+
 ## 14. Backlog
 
 - Verify notifications live: redeploy (for the inlined VAPID public key) + run the `notifications-e2e` workflow to confirm 13/13 (§7).
 - `.env.example` GEMINI → Anthropic tidy-up.
 - Per-trip notification **preferences** (mute / important-only) — schema (`notification_state`) accommodates it; UI not built.
-- Activity feed only emits add events (no edit/delete events).
+- The consumer notification feed only emits add events; edit/delete/etc. are now logged to `activity_events` for KPIs (§13a) but intentionally don't notify.
 - Stats poop icon: custom toilet outline (done).
