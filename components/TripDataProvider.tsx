@@ -155,6 +155,7 @@ interface TripDataValue {
   claimMembership: (memberId: string) => Promise<void>;
   // Join a trip via an invite code (rpc join_trip).
   joinTripByCode: (code: string) => Promise<void>;
+  leaveTrip: (tripId: string) => Promise<void>;
   // Phase 4 (multi-trip; auth-on only — with auth off a single trip is pinned).
   activeTripId: string | null;
   myTrips: Trip[];
@@ -454,7 +455,8 @@ export default function TripDataProvider({
       if (me) persistMe(null);
       return;
     }
-    const membership = profiles.find((p) => p.user_id === account.id) ?? null;
+    const membership =
+      profiles.find((p) => p.user_id === account.id && !p.left_at) ?? null;
     if (membership?.id !== me?.id) persistMe(membership);
   }, [authEnabled, authReady, account, profiles, me]);
 
@@ -539,7 +541,8 @@ export default function TripDataProvider({
     const { data: memberships } = await supabase
       .from('profiles')
       .select('trip_id')
-      .eq('user_id', account.id);
+      .eq('user_id', account.id)
+      .is('left_at', null);
     const ids = Array.from(
       new Set(((memberships ?? []) as { trip_id: string }[]).map((m) => m.trip_id))
     );
@@ -577,6 +580,17 @@ export default function TripDataProvider({
       if (error) throw error;
       await loadMyTrips();
       if (typeof data === 'string') setActiveTrip(data);
+    },
+    [loadMyTrips, setActiveTrip]
+  );
+
+  const leaveTrip = useCallback<TripDataValue['leaveTrip']>(
+    async (tripId) => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc('leave_trip', { p_trip: tripId });
+      if (error) throw new Error(error.message);
+      if (activeTripIdRef.current === tripId) setActiveTrip(null);
+      await loadMyTrips();
     },
     [loadMyTrips, setActiveTrip]
   );
@@ -1469,6 +1483,7 @@ export default function TripDataProvider({
       needsMembership,
       claimMembership,
       joinTripByCode,
+      leaveTrip,
       activeTripId,
       myTrips,
       setActiveTrip,
@@ -1512,6 +1527,7 @@ export default function TripDataProvider({
       needsMembership,
       claimMembership,
       joinTripByCode,
+      leaveTrip,
       activeTripId,
       myTrips,
       setActiveTrip,

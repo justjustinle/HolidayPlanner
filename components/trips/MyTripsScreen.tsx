@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, LogOut, Loader2, Ticket } from 'lucide-react';
+import { Plus, LogOut, Loader2, Ticket, X } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import { useAuth } from '../AuthProvider';
 import { rangeLabelFromDays, formatTripDate, type TripDay } from '@/lib/trip';
 import CreateTripSheet from './CreateTripSheet';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import type { Trip } from '@/lib/types';
 
 // Compact date range for a trip card, derived from its start/end dates.
@@ -20,12 +21,15 @@ function tripRange(trip: Trip): string {
 // Auth-on landing when no trip is open: pick an existing trip, create one, or
 // join by invite code.
 export default function MyTripsScreen() {
-  const { myTrips, setActiveTrip, joinTripByCode } = useTripData();
+  const { myTrips, setActiveTrip, joinTripByCode, leaveTrip } = useTripData();
   const { account, signOutAccount } = useAuth();
   const [creating, setCreating] = useState(false);
   const [code, setCode] = useState('');
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState<Trip | null>(null);
+  const [leavingId, setLeavingId] = useState<string | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +43,21 @@ export default function MyTripsScreen() {
       setError(err instanceof Error ? err.message : 'That code did not work.');
     } finally {
       setJoining(false);
+    }
+  };
+
+  const confirmLeave = async () => {
+    const trip = leaving;
+    if (!trip || leavingId) return;
+    setLeaving(null);
+    setLeavingId(trip.id);
+    setLeaveError(null);
+    try {
+      await leaveTrip(trip.id);
+    } catch (caught) {
+      setLeaveError(caught instanceof Error ? caught.message : 'Could not leave the trip.');
+    } finally {
+      setLeavingId(null);
     }
   };
 
@@ -65,23 +84,38 @@ export default function MyTripsScreen() {
         <ul className="space-y-3">
           {myTrips.map((t) => (
             <li key={t.id}>
-              <button
-                type="button"
-                onClick={() => setActiveTrip(t.id)}
-                className="flex w-full items-center gap-3 rounded-2xl border border-black/10 bg-cream-card p-4 text-left hover:border-black/20"
-              >
-                <span
-                  className="h-10 w-1.5 flex-none rounded-full"
-                  style={{ background: 'var(--city-accent, #c9992e)' }}
-                  aria-hidden
-                />
-                <span className="min-w-0">
-                  <span className="block truncate font-serif text-[18px] font-semibold text-ink">
-                    {t.name}
+              <div className="flex w-full items-center rounded-2xl border border-black/10 bg-cream-card hover:border-black/20">
+                <button
+                  type="button"
+                  onClick={() => setActiveTrip(t.id)}
+                  className="flex min-w-0 flex-1 items-center gap-3 p-4 text-left"
+                >
+                  <span
+                    className="h-10 w-1.5 flex-none rounded-full"
+                    style={{ background: 'var(--city-accent, #c9992e)' }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate font-serif text-[18px] font-semibold text-ink">
+                      {t.name}
+                    </span>
+                    <span className="block text-[13px] text-muted">{tripRange(t)}</span>
                   </span>
-                  <span className="block text-[13px] text-muted">{tripRange(t)}</span>
-                </span>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLeaving(t)}
+                  disabled={leavingId !== null}
+                  aria-label={`Leave ${t.name}`}
+                  className="mr-3 flex h-10 w-10 flex-none items-center justify-center rounded-full text-muted hover:bg-saigon/10 hover:text-saigon disabled:opacity-40"
+                >
+                  {leavingId === t.id ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <X size={18} />
+                  )}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -89,6 +123,11 @@ export default function MyTripsScreen() {
         <div className="rounded-2xl border-2 border-dashed border-black/10 px-4 py-8 text-center text-[14px] text-muted">
           No trips yet. Create one, or join with an invite code.
         </div>
+      )}
+      {leaveError && (
+        <p className="mt-3 text-center text-[13px] text-saigon" role="alert">
+          {leaveError}
+        </p>
       )}
 
       <button
@@ -123,6 +162,16 @@ export default function MyTripsScreen() {
       </form>
 
       {creating && <CreateTripSheet onClose={() => setCreating(false)} />}
+      {leaving && (
+        <ConfirmDialog
+          title="Are you sure you want to leave the trip?"
+          message={`You will need a new invite to rejoin ${leaving.name}.`}
+          confirmLabel="Yes"
+          cancelLabel="No"
+          onConfirm={confirmLeave}
+          onCancel={() => setLeaving(null)}
+        />
+      )}
     </div>
   );
 }

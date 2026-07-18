@@ -8,7 +8,8 @@ import { useTripData } from '../TripDataProvider';
 // itinerary facepile — same sheet either way.
 export default function WhoIsGoingSheet({ onClose }: { onClose: () => void }) {
   const { profiles, me } = useTripData();
-  const count = profiles.length;
+  const activeProfiles = profiles.filter((profile) => !profile.left_at);
+  const count = activeProfiles.length;
 
   return (
     <Sheet title="Who's going" onClose={onClose}>
@@ -24,7 +25,7 @@ export default function WhoIsGoingSheet({ onClose }: { onClose: () => void }) {
         </div>
       ) : (
         <ul className="space-y-1">
-          {profiles.map((p) => {
+          {activeProfiles.map((p) => {
             const isYou = me?.id === p.id;
             return (
               <li

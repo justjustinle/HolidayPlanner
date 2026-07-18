@@ -14,6 +14,7 @@ export interface Profile {
   trip_id?: string;
   user_id?: string | null;
   role?: 'owner' | 'member';
+  left_at?: string | null;
 }
 
 export interface TripSettings {

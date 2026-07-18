@@ -6,6 +6,7 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
   tone = 'danger',
   onConfirm,
   onCancel,
@@ -13,6 +14,7 @@ export default function ConfirmDialog({
   title: string;
   message?: string;
   confirmLabel?: string;
+  cancelLabel?: string;
   tone?: 'danger' | 'primary';
   onConfirm: () => void;
   onCancel: () => void;
@@ -34,7 +36,7 @@ export default function ConfirmDialog({
             onClick={onCancel}
             className="rounded-xl border border-black/10 bg-cream-card py-2.5 text-[14px] font-medium text-ink"
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
