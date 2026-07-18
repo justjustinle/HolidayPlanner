@@ -467,7 +467,859 @@ const FLAG_ART: Record<CountryName, ReactNode> = {
       <path d="M38,24 H48 V30 H38 Z" fill="none" stroke="#FFFFFF" strokeWidth="1.8" />
       <path d="M14,28 H34" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
     </>
-  )
+  ),
+  "Germany": (
+    <>
+      <rect width="60" height="13.33" fill="#000000" />
+      <rect y="13.33" width="60" height="13.33" fill="#DD0000" />
+      <rect y="26.67" width="60" height="13.33" fill="#FFCE00" />
+    </>
+  ),
+  "Austria": (
+    <>
+      <rect width="60" height="13.33" fill="#ED2939" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#ED2939" />
+    </>
+  ),
+  "Malaysia": (
+    <>
+      <rect width="60" height="40" fill="#CC0001" />
+      <rect y="3.08" width="60" height="3.08" fill="#FFFFFF" />
+      <rect y="9.23" width="60" height="3.08" fill="#FFFFFF" />
+      <rect y="15.38" width="60" height="3.08" fill="#FFFFFF" />
+      <rect y="21.54" width="60" height="3.08" fill="#FFFFFF" />
+      <rect y="27.69" width="60" height="3.08" fill="#FFFFFF" />
+      <rect y="33.85" width="60" height="3.08" fill="#FFFFFF" />
+      <rect width="30" height="20" fill="#010066" />
+      <circle cx="15" cy="10" r="6" fill="#FFCC00" />
+      <circle cx="17" cy="10" r="5" fill="#010066" />
+      <path d="M22,6 L23,9 L26,9 L23.5,11 L24.5,14 L22,12 L19.5,14 L20.5,11 L18,9 L21,9 Z" fill="#FFCC00" />
+    </>
+  ),
+  "Netherlands": (
+    <>
+      <rect width="60" height="13.33" fill="#AE1C28" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#21468B" />
+    </>
+  ),
+  "Poland": (
+    <>
+      <rect width="60" height="20" fill="#FFFFFF" />
+      <rect y="20" width="60" height="20" fill="#DC143C" />
+    </>
+  ),
+  "Hungary": (
+    <>
+      <rect width="60" height="13.33" fill="#CE2939" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#477050" />
+    </>
+  ),
+  "Czechia": (
+    <>
+      <rect width="60" height="20" fill="#FFFFFF" />
+      <rect y="20" width="60" height="20" fill="#D7141A" />
+      <path d="M0,0 L30,20 L0,40 Z" fill="#11457E" />
+    </>
+  ),
+  "Belgium": (
+    <>
+      <rect width="20" height="40" fill="#000000" />
+      <rect x="20" width="20" height="40" fill="#FDDA24" />
+      <rect x="40" width="20" height="40" fill="#EF3340" />
+    </>
+  ),
+  "Ireland": (
+    <>
+      <rect width="20" height="40" fill="#169B62" />
+      <rect x="20" width="20" height="40" fill="#FFFFFF" />
+      <rect x="40" width="20" height="40" fill="#FF883E" />
+    </>
+  ),
+  "Denmark": (
+    <>
+      <rect width="60" height="40" fill="#C8102E" />
+      <rect x="18" width="6" height="40" fill="#FFFFFF" />
+      <rect y="17" width="60" height="6" fill="#FFFFFF" />
+    </>
+  ),
+  "Sweden": (
+    <>
+      <rect width="60" height="40" fill="#006AA7" />
+      <rect x="18" width="6" height="40" fill="#FECC00" />
+      <rect y="17" width="60" height="6" fill="#FECC00" />
+    </>
+  ),
+  "Finland": (
+    <>
+      <rect width="60" height="40" fill="#FFFFFF" />
+      <rect x="18" width="6" height="40" fill="#003580" />
+      <rect y="17" width="60" height="6" fill="#003580" />
+    </>
+  ),
+  "Brazil": (
+    <>
+      <rect width="60" height="40" fill="#009C3B" />
+      <path d="M30,4 L54,20 L30,36 L6,20 Z" fill="#FFDF00" />
+      <circle cx="30" cy="20" r="8" fill="#002776" />
+    </>
+  ),
+  "Taiwan": (
+    <>
+      <rect width="60" height="40" fill="#FE0000" />
+      <rect width="30" height="20" fill="#000095" />
+      <circle cx="15" cy="10" r="6" fill="#FFFFFF" />
+      <circle cx="15" cy="10" r="3.5" fill="#000095" />
+      <circle cx="15" cy="10" r="2" fill="#FFFFFF" />
+    </>
+  ),
+  "Bahrain": (
+    <>
+      <rect width="60" height="40" fill="#CE1126" />
+      <path d="M0,0 H22 L16,5 L22,10 L16,15 L22,20 L16,25 L22,30 L16,35 L22,40 H0 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Romania": (
+    <>
+      <rect width="20" height="40" fill="#002B7F" />
+      <rect x="20" width="20" height="40" fill="#FCD116" />
+      <rect x="40" width="20" height="40" fill="#CE1126" />
+    </>
+  ),
+  "Bulgaria": (
+    <>
+      <rect width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="13.33" width="60" height="13.33" fill="#00966E" />
+      <rect y="26.67" width="60" height="13.33" fill="#D62612" />
+    </>
+  ),
+  "Ukraine": (
+    <>
+      <rect width="60" height="20" fill="#0057B7" />
+      <rect y="20" width="60" height="20" fill="#FFD700" />
+    </>
+  ),
+  "Tunisia": (
+    <>
+      <rect width="60" height="40" fill="#E70013" />
+      <circle cx="30" cy="20" r="10" fill="#FFFFFF" />
+      <circle cx="33" cy="20" r="8" fill="#E70013" />
+      <path d="M36,14 L37.5,18 L41.5,18 L38.3,20.5 L39.5,24.5 L36,22 L32.5,24.5 L33.7,20.5 L30.5,18 L34.5,18 Z" fill="#E70013" />
+    </>
+  ),
+  "Israel": (
+    <>
+      <rect width="60" height="40" fill="#FFFFFF" />
+      <rect y="4" width="60" height="5" fill="#0038B8" />
+      <rect y="31" width="60" height="5" fill="#0038B8" />
+      <path d="M30,12 L34,24 H26 Z" fill="none" stroke="#0038B8" strokeWidth="1.6" />
+      <path d="M30,28 L26,16 H34 Z" fill="none" stroke="#0038B8" strokeWidth="1.6" />
+    </>
+  ),
+  "Oman": (
+    <>
+      <rect width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="13.33" width="60" height="13.33" fill="#DB161B" />
+      <rect y="26.67" width="60" height="13.33" fill="#008000" />
+      <rect width="15" height="40" fill="#DB161B" />
+    </>
+  ),
+  "Georgia": (
+    <>
+      <rect width="60" height="40" fill="#FFFFFF" />
+      <rect x="26" width="8" height="40" fill="#FF0000" />
+      <rect y="16" width="60" height="8" fill="#FF0000" />
+      <path d="M10,6 h6 v2 h-2 v4 h-2 v-4 h-2 z M44,6 h6 v2 h-2 v4 h-2 v-4 h-2 z M10,28 h6 v2 h-2 v4 h-2 v-4 h-2 z M44,28 h6 v2 h-2 v4 h-2 v-4 h-2 z" fill="#FF0000" />
+    </>
+  ),
+  "Armenia": (
+    <>
+      <rect width="60" height="13.33" fill="#D90012" />
+      <rect y="13.33" width="60" height="13.33" fill="#0033A0" />
+      <rect y="26.67" width="60" height="13.33" fill="#F2A800" />
+    </>
+  ),
+  "Azerbaijan": (
+    <>
+      <rect width="60" height="13.33" fill="#00B5E2" />
+      <rect y="13.33" width="60" height="13.33" fill="#EF3340" />
+      <rect y="26.67" width="60" height="13.33" fill="#509E2F" />
+      <circle cx="28" cy="20" r="5" fill="#FFFFFF" />
+      <circle cx="30" cy="20" r="4" fill="#EF3340" />
+      <path d="M34,16 L35,18.5 L37.5,18.5 L35.5,20 L36.2,22.5 L34,21 L31.8,22.5 L32.5,20 L30.5,18.5 L33,18.5 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Kazakhstan": (
+    <>
+      <rect width="60" height="40" fill="#00AFCA" />
+      <path d="M8,6 V34" stroke="#FAC704" strokeWidth="3" />
+      <circle cx="34" cy="16" r="7" fill="#FAC704" />
+      <path d="M22,28 Q34,20 46,28 Q34,24 22,28 Z" fill="#FAC704" />
+    </>
+  ),
+  "Mongolia": (
+    <>
+      <rect width="20" height="40" fill="#C4272F" />
+      <rect x="20" width="20" height="40" fill="#015197" />
+      <rect x="40" width="20" height="40" fill="#C4272F" />
+      <circle cx="30" cy="12" r="4" fill="#F9CF02" />
+      <rect x="28" y="18" width="4" height="12" fill="#F9CF02" />
+    </>
+  ),
+  "Sri Lanka": (
+    <>
+      <rect width="10" height="40" fill="#FFBE29" />
+      <rect x="10" width="10" height="40" fill="#00534E" />
+      <rect x="20" width="40" height="40" fill="#8D153A" />
+      <circle cx="40" cy="20" r="8" fill="#FFBE29" />
+    </>
+  ),
+  "Laos": (
+    <>
+      <rect width="60" height="10" fill="#CE1126" />
+      <rect y="10" width="60" height="20" fill="#002868" />
+      <rect y="30" width="60" height="10" fill="#CE1126" />
+      <circle cx="30" cy="20" r="7" fill="#FFFFFF" />
+    </>
+  ),
+  "Myanmar": (
+    <>
+      <rect width="60" height="13.33" fill="#FECB00" />
+      <rect y="13.33" width="60" height="13.33" fill="#34B233" />
+      <rect y="26.67" width="60" height="13.33" fill="#EA2839" />
+      <path d="M30,10 L33,19 L42,19 L35,25 L37.5,34 L30,28 L22.5,34 L25,25 L18,19 L27,19 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Dominican Republic": (
+    <>
+      <rect width="30" height="20" fill="#002D62" />
+      <rect x="30" width="30" height="20" fill="#CE1126" />
+      <rect y="20" width="30" height="20" fill="#CE1126" />
+      <rect x="30" y="20" width="30" height="20" fill="#002D62" />
+      <rect x="26" width="8" height="40" fill="#FFFFFF" />
+      <rect y="16" width="60" height="8" fill="#FFFFFF" />
+      <circle cx="30" cy="20" r="3.5" fill="#006600" />
+    </>
+  ),
+  "Cuba": (
+    <>
+      <rect width="60" height="8" fill="#002A8F" />
+      <rect y="8" width="60" height="8" fill="#FFFFFF" />
+      <rect y="16" width="60" height="8" fill="#002A8F" />
+      <rect y="24" width="60" height="8" fill="#FFFFFF" />
+      <rect y="32" width="60" height="8" fill="#002A8F" />
+      <path d="M0,0 L26,20 L0,40 Z" fill="#CF142B" />
+      <path d="M9,14 L10.5,18 L14.5,18 L11.3,20.5 L12.5,24.5 L9,22 L5.5,24.5 L6.7,20.5 L3.5,18 L7.5,18 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Jamaica": (
+    <>
+      <path d="M0,0 H60 L30,20 Z" fill="#009B3A" />
+      <path d="M0,40 H60 L30,20 Z" fill="#009B3A" />
+      <path d="M0,0 L30,20 L0,40 Z" fill="#000000" />
+      <path d="M60,0 L30,20 L60,40 Z" fill="#000000" />
+      <path d="M0,0 L60,40 M60,0 L0,40" stroke="#FED100" strokeWidth="6" />
+    </>
+  ),
+  "Panama": (
+    <>
+      <rect width="30" height="20" fill="#FFFFFF" />
+      <rect x="30" width="30" height="20" fill="#DA121A" />
+      <rect y="20" width="30" height="20" fill="#072357" />
+      <rect x="30" y="20" width="30" height="20" fill="#FFFFFF" />
+      <path d="M15,6 L16.2,9.5 L20,9.5 L17,11.7 L18.2,15.2 L15,13 L11.8,15.2 L13,11.7 L10,9.5 L13.8,9.5 Z" fill="#072357" />
+      <path d="M45,26 L46.2,29.5 L50,29.5 L47,31.7 L48.2,35.2 L45,33 L41.8,35.2 L43,31.7 L40,29.5 L43.8,29.5 Z" fill="#DA121A" />
+    </>
+  ),
+  "Guatemala": (
+    <>
+      <rect width="20" height="40" fill="#4997D0" />
+      <rect x="20" width="20" height="40" fill="#FFFFFF" />
+      <rect x="40" width="20" height="40" fill="#4997D0" />
+      <circle cx="30" cy="20" r="5" fill="#6B8E23" />
+    </>
+  ),
+  "Ecuador": (
+    <>
+      <rect width="60" height="20" fill="#FFDD00" />
+      <rect y="20" width="60" height="10" fill="#034EA2" />
+      <rect y="30" width="60" height="10" fill="#ED1C24" />
+      <circle cx="30" cy="18" r="5" fill="#8B4513" />
+    </>
+  ),
+  "Bolivia": (
+    <>
+      <rect width="60" height="13.33" fill="#D52B1E" />
+      <rect y="13.33" width="60" height="13.33" fill="#FCE300" />
+      <rect y="26.67" width="60" height="13.33" fill="#007934" />
+    </>
+  ),
+  "Uruguay": (
+    <>
+      <rect width="60" height="40" fill="#FFFFFF" />
+      <rect y="4.44" width="60" height="4.44" fill="#0038A8" />
+      <rect y="13.33" width="60" height="4.44" fill="#0038A8" />
+      <rect y="22.22" width="60" height="4.44" fill="#0038A8" />
+      <rect y="31.11" width="60" height="4.44" fill="#0038A8" />
+      <rect width="24" height="22.22" fill="#FFFFFF" />
+      <circle cx="12" cy="11" r="5" fill="#FCD116" />
+    </>
+  ),
+  "Kenya": (
+    <>
+      <rect width="60" height="12" fill="#000000" />
+      <rect y="12" width="60" height="2" fill="#FFFFFF" />
+      <rect y="14" width="60" height="12" fill="#BB0000" />
+      <rect y="26" width="60" height="2" fill="#FFFFFF" />
+      <rect y="28" width="60" height="12" fill="#006600" />
+      <ellipse cx="30" cy="20" rx="8" ry="10" fill="#FFFFFF" stroke="#000000" strokeWidth="1" />
+      <ellipse cx="30" cy="20" rx="3" ry="8" fill="#BB0000" />
+    </>
+  ),
+  "Ethiopia": (
+    <>
+      <rect width="60" height="13.33" fill="#078930" />
+      <rect y="13.33" width="60" height="13.33" fill="#FCDD09" />
+      <rect y="26.67" width="60" height="13.33" fill="#DA121A" />
+      <circle cx="30" cy="20" r="8" fill="#0F47AF" />
+      <path d="M30,14 L31.5,18.5 L36,18.5 L32.5,21 L33.8,25.5 L30,22.5 L26.2,25.5 L27.5,21 L24,18.5 L28.5,18.5 Z" fill="#FCDD09" />
+    </>
+  ),
+  "Ghana": (
+    <>
+      <rect width="60" height="13.33" fill="#CE1126" />
+      <rect y="13.33" width="60" height="13.33" fill="#FCD116" />
+      <rect y="26.67" width="60" height="13.33" fill="#006B3F" />
+      <path d="M30,15 L31.5,19.5 L36,19.5 L32.5,22 L33.8,26.5 L30,23.5 L26.2,26.5 L27.5,22 L24,19.5 L28.5,19.5 Z" fill="#000000" />
+    </>
+  ),
+  "Malta": (
+    <>
+      <rect width="30" height="40" fill="#FFFFFF" />
+      <rect x="30" width="30" height="40" fill="#CF142B" />
+      <rect x="6" y="8" width="8" height="8" fill="none" stroke="#CCCCCC" strokeWidth="1.5" />
+    </>
+  ),
+  "Cyprus": (
+    <>
+      <rect width="60" height="40" fill="#FFFFFF" />
+      <path d="M22,14 L28,12 L34,14 L38,18 L36,24 L30,26 L24,24 L20,18 Z" fill="#D4762C" />
+      <path d="M24,28 Q30,32 36,28" fill="none" stroke="#4E5B31" strokeWidth="2" />
+    </>
+  ),
+  "Slovakia": (
+    <>
+      <rect width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="13.33" width="60" height="13.33" fill="#0B4EA2" />
+      <rect y="26.67" width="60" height="13.33" fill="#EE1C25" />
+      <path d="M14,10 L14,28 L22,24 L14,20 Z" fill="#FFFFFF" stroke="#0B4EA2" strokeWidth="0.8" />
+    </>
+  ),
+  "Slovenia": (
+    <>
+      <rect width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="13.33" width="60" height="13.33" fill="#0000FF" />
+      <rect y="26.67" width="60" height="13.33" fill="#FF0000" />
+      <path d="M12,8 L18,18 L6,18 Z" fill="#0000FF" />
+      <circle cx="12" cy="10" r="2" fill="#FFFF00" />
+    </>
+  ),
+  "Serbia": (
+    <>
+      <rect width="60" height="13.33" fill="#C6363C" />
+      <rect y="13.33" width="60" height="13.33" fill="#0C4076" />
+      <rect y="26.67" width="60" height="13.33" fill="#FFFFFF" />
+      <circle cx="18" cy="16" r="6" fill="#C6363C" stroke="#FFFFFF" strokeWidth="1" />
+    </>
+  ),
+  "Montenegro": (
+    <>
+      <rect width="60" height="40" fill="#C40308" />
+      <rect x="2" y="2" width="56" height="36" fill="none" stroke="#D4AF37" strokeWidth="2.5" />
+      <path d="M30,10 L34,22 H26 Z" fill="#D4AF37" />
+    </>
+  ),
+  "Bosnia and Herzegovina": (
+    <>
+      <rect width="60" height="40" fill="#002395" />
+      <path d="M18,0 L48,0 L48,40 Z" fill="#FECB00" />
+      <path d="M22,4 L23.2,7.5 L27,7.5 L24,9.7 L25.2,13.2 L22,11 L18.8,13.2 L20,9.7 L17,7.5 L20.8,7.5 Z" fill="#FFFFFF" />
+      <path d="M26,12 L27.2,15.5 L31,15.5 L28,17.7 L29.2,21.2 L26,19 L22.8,21.2 L24,17.7 L21,15.5 L24.8,15.5 Z" fill="#FFFFFF" />
+      <path d="M30,20 L31.2,23.5 L35,23.5 L32,25.7 L33.2,29.2 L30,27 L26.8,29.2 L28,25.7 L25,23.5 L28.8,23.5 Z" fill="#FFFFFF" />
+      <path d="M34,28 L35.2,31.5 L39,31.5 L36,33.7 L37.2,37.2 L34,35 L30.8,37.2 L32,33.7 L29,31.5 L32.8,31.5 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Estonia": (
+    <>
+      <rect width="60" height="13.33" fill="#0072CE" />
+      <rect y="13.33" width="60" height="13.33" fill="#000000" />
+      <rect y="26.67" width="60" height="13.33" fill="#FFFFFF" />
+    </>
+  ),
+  "Latvia": (
+    <>
+      <rect width="60" height="16" fill="#9E3039" />
+      <rect y="16" width="60" height="8" fill="#FFFFFF" />
+      <rect y="24" width="60" height="16" fill="#9E3039" />
+    </>
+  ),
+  "Lithuania": (
+    <>
+      <rect width="60" height="13.33" fill="#FDB913" />
+      <rect y="13.33" width="60" height="13.33" fill="#006A44" />
+      <rect y="26.67" width="60" height="13.33" fill="#C1272D" />
+    </>
+  ),
+  "Andorra": (
+    <>
+      <rect width="20" height="40" fill="#10069F" />
+      <rect x="20" width="20" height="40" fill="#FEDD00" />
+      <rect x="40" width="20" height="40" fill="#D50032" />
+      <circle cx="30" cy="20" r="5" fill="#C8102E" />
+    </>
+  ),
+  "Macau": (
+    <>
+      <rect width="60" height="40" fill="#00785E" />
+      <path d="M30,8 L32,14 L38,14 L33,18 L35,24 L30,20 L25,24 L27,18 L22,14 L28,14 Z" fill="#FFFFFF" />
+      <circle cx="30" cy="28" r="3" fill="#FFFFFF" />
+      <path d="M18,30 Q30,34 42,30" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+    </>
+  ),
+  "Barbados": (
+    <>
+      <rect width="20" height="40" fill="#00267F" />
+      <rect x="20" width="20" height="40" fill="#FFC726" />
+      <rect x="40" width="20" height="40" fill="#00267F" />
+      <path d="M30,10 L28,30 H32 Z" fill="#000000" />
+      <path d="M24,16 H36 M24,22 H36" stroke="#000000" strokeWidth="2" />
+    </>
+  ),
+  "Belize": (
+    <>
+      <rect width="60" height="40" fill="#003F87" />
+      <rect y="0" width="60" height="6" fill="#CE1126" />
+      <rect y="34" width="60" height="6" fill="#CE1126" />
+      <circle cx="30" cy="20" r="9" fill="#FFFFFF" />
+      <circle cx="30" cy="20" r="6" fill="#6B8E23" />
+    </>
+  ),
+  "Honduras": (
+    <>
+      <rect width="60" height="13.33" fill="#0073CF" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#0073CF" />
+      <path d="M22,18 L23,20.5 L25.5,20.5 L23.5,22 L24.2,24.5 L22,23 L19.8,24.5 L20.5,22 L18.5,20.5 L21,20.5 Z" fill="#0073CF" />
+      <path d="M30,16 L31,18.5 L33.5,18.5 L31.5,20 L32.2,22.5 L30,21 L27.8,22.5 L28.5,20 L26.5,18.5 L29,18.5 Z" fill="#0073CF" />
+      <path d="M38,18 L39,20.5 L41.5,20.5 L39.5,22 L40.2,24.5 L38,23 L35.8,24.5 L36.5,22 L34.5,20.5 L37,20.5 Z" fill="#0073CF" />
+      <path d="M26,22 L27,24.5 L29.5,24.5 L27.5,26 L28.2,28.5 L26,27 L23.8,28.5 L24.5,26 L22.5,24.5 L25,24.5 Z" fill="#0073CF" />
+      <path d="M34,22 L35,24.5 L37.5,24.5 L35.5,26 L36.2,28.5 L34,27 L31.8,28.5 L32.5,26 L30.5,24.5 L33,24.5 Z" fill="#0073CF" />
+    </>
+  ),
+  "Nicaragua": (
+    <>
+      <rect width="60" height="13.33" fill="#0067C6" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#0067C6" />
+      <circle cx="30" cy="20" r="5" fill="#C8A200" />
+    </>
+  ),
+  "El Salvador": (
+    <>
+      <rect width="60" height="13.33" fill="#0047AB" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#0047AB" />
+      <circle cx="30" cy="20" r="4.5" fill="#FCD116" />
+    </>
+  ),
+  "Madagascar": (
+    <>
+      <rect width="20" height="40" fill="#FFFFFF" />
+      <rect x="20" width="40" height="20" fill="#FC3D32" />
+      <rect x="20" y="20" width="40" height="20" fill="#007E3A" />
+    </>
+  ),
+  "Botswana": (
+    <>
+      <rect width="60" height="14" fill="#75AADB" />
+      <rect y="14" width="60" height="4" fill="#FFFFFF" />
+      <rect y="18" width="60" height="4" fill="#000000" />
+      <rect y="22" width="60" height="4" fill="#FFFFFF" />
+      <rect y="26" width="60" height="14" fill="#75AADB" />
+    </>
+  ),
+  "Namibia": (
+    <>
+      <path d="M0,0 H60 L0,40 Z" fill="#003580" />
+      <path d="M60,0 V40 H0 Z" fill="#009543" />
+      <path d="M0,32 L52,0 H60 L0,40 Z" fill="#C8102E" />
+      <path d="M0,28 L48,0 H52 L0,32 Z" fill="#FFFFFF" />
+      <path d="M8,40 L60,8 V12 L12,40 Z" fill="#FFFFFF" />
+      <path d="M14,8 L16,12 L20,12 L17,14.5 L18,18.5 L14,16 L10,18.5 L11,14.5 L8,12 L12,12 Z" fill="#FFCE00" />
+    </>
+  ),
+  "Rwanda": (
+    <>
+      <rect width="60" height="16" fill="#00A1DE" />
+      <rect y="16" width="60" height="12" fill="#FAD201" />
+      <rect y="28" width="60" height="12" fill="#20603D" />
+      <path d="M46,6 L47.5,10 L52,10 L48.5,12.5 L50,16.5 L46,14 L42,16.5 L43.5,12.5 L40,10 L44.5,10 Z" fill="#E5BE01" />
+    </>
+  ),
+  "Uganda": (
+    <>
+      <rect width="60" height="6.67" fill="#000000" />
+      <rect y="6.67" width="60" height="6.67" fill="#FCDC04" />
+      <rect y="13.33" width="60" height="6.67" fill="#D90000" />
+      <rect y="20" width="60" height="6.67" fill="#000000" />
+      <rect y="26.67" width="60" height="6.67" fill="#FCDC04" />
+      <rect y="33.33" width="60" height="6.67" fill="#D90000" />
+      <circle cx="30" cy="20" r="7" fill="#FFFFFF" />
+      <circle cx="30" cy="20" r="3.5" fill="#000000" />
+    </>
+  ),
+  "Zambia": (
+    <>
+      <rect width="60" height="40" fill="#198A00" />
+      <rect x="40" y="0" width="20" height="16" fill="#DE2010" />
+      <rect x="40" y="16" width="20" height="8" fill="#000000" />
+      <rect x="40" y="24" width="20" height="8" fill="#EF7D00" />
+    </>
+  ),
+  "Zimbabwe": (
+    <>
+      <rect width="60" height="6.67" fill="#009543" />
+      <rect y="6.67" width="60" height="6.67" fill="#FDE100" />
+      <rect y="13.33" width="60" height="6.67" fill="#DE2010" />
+      <rect y="20" width="60" height="6.67" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="6.67" fill="#000000" />
+      <rect y="33.33" width="60" height="6.67" fill="#9E1A1A" />
+      <path d="M0,0 L24,20 L0,40 Z" fill="#FFFFFF" />
+      <path d="M8,14 L10,18 L14,18 L11,20.5 L12,24.5 L8,22 L4,24.5 L5,20.5 L2,18 L6,18 Z" fill="#DE2010" />
+    </>
+  ),
+  "Mozambique": (
+    <>
+      <rect width="60" height="10" fill="#007168" />
+      <rect y="10" width="60" height="2" fill="#FFFFFF" />
+      <rect y="12" width="60" height="10" fill="#000000" />
+      <rect y="22" width="60" height="2" fill="#FFFFFF" />
+      <rect y="24" width="60" height="10" fill="#FCE100" />
+      <rect y="34" width="60" height="6" fill="#D21034" />
+      <path d="M0,0 L26,20 L0,40 Z" fill="#D21034" />
+      <path d="M9,14 L11,18 L15,18 L12,20.5 L13,24.5 L9,22 L5,24.5 L6,20.5 L3,18 L7,18 Z" fill="#FCE100" />
+    </>
+  ),
+  "Senegal": (
+    <>
+      <rect width="20" height="40" fill="#00853F" />
+      <rect x="20" width="20" height="40" fill="#FDEF42" />
+      <rect x="40" width="20" height="40" fill="#E31B23" />
+      <path d="M30,14 L31.5,18.5 L36,18.5 L32.5,21 L33.8,25.5 L30,22.5 L26.2,25.5 L27.5,21 L24,18.5 L28.5,18.5 Z" fill="#00853F" />
+    </>
+  ),
+  "C\u00f4te d'Ivoire": (
+    <>
+      <rect width="20" height="40" fill="#F77F00" />
+      <rect x="20" width="20" height="40" fill="#FFFFFF" />
+      <rect x="40" width="20" height="40" fill="#009E60" />
+    </>
+  ),
+  "Kuwait": (
+    <>
+      <rect width="60" height="13.33" fill="#007A3D" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#CE1126" />
+      <path d="M0,0 L20,13.33 V26.67 L0,40 Z" fill="#000000" />
+    </>
+  ),
+  "Lebanon": (
+    <>
+      <rect width="60" height="10" fill="#EE161F" />
+      <rect y="10" width="60" height="20" fill="#FFFFFF" />
+      <rect y="30" width="60" height="10" fill="#EE161F" />
+      <path d="M30,12 L34,24 H26 Z" fill="#00A651" />
+      <rect x="28" y="24" width="4" height="4" fill="#00A651" />
+    </>
+  ),
+  "Iran": (
+    <>
+      <rect width="60" height="13.33" fill="#239F40" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#DA0000" />
+      <circle cx="30" cy="20" r="4" fill="#DA0000" />
+    </>
+  ),
+  "Pakistan": (
+    <>
+      <rect width="15" height="40" fill="#FFFFFF" />
+      <rect x="15" width="45" height="40" fill="#01411C" />
+      <circle cx="36" cy="18" r="8" fill="#FFFFFF" />
+      <circle cx="39" cy="16" r="6.5" fill="#01411C" />
+      <path d="M44,12 L45.2,15.5 L48.5,15.5 L45.8,17.5 L46.8,21 L44,18.8 L41.2,21 L42.2,17.5 L39.5,15.5 L42.8,15.5 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Bhutan": (
+    <>
+      <path d="M0,0 H60 L0,40 Z" fill="#FFD520" />
+      <path d="M60,0 V40 H0 Z" fill="#FF4E12" />
+      <circle cx="30" cy="20" r="8" fill="#FFFFFF" stroke="#000000" strokeWidth="1" />
+    </>
+  ),
+  "Bangladesh": (
+    <>
+      <rect width="60" height="40" fill="#006A4E" />
+      <circle cx="26" cy="20" r="10" fill="#F42A41" />
+    </>
+  ),
+  "Papua New Guinea": (
+    <>
+      <path d="M0,0 H60 L0,40 Z" fill="#000000" />
+      <path d="M60,0 V40 H0 Z" fill="#CE1126" />
+      <path d="M12,8 L13,11 L16,11 L13.5,13 L14.5,16 L12,14 L9.5,16 L10.5,13 L8,11 L11,11 Z" fill="#FFFFFF" />
+      <path d="M20,14 L20.7,16 L23,16 L21.2,17.3 L21.9,19.3 L20,18 L18.1,19.3 L18.8,17.3 L17,16 L19.3,16 Z" fill="#FFFFFF" />
+      <path d="M42,24 L46,28 L42,32 L38,28 Z" fill="#FCD116" />
+    </>
+  ),
+  "Vanuatu": (
+    <>
+      <path d="M0,0 H60 L0,40 Z" fill="#D21034" />
+      <path d="M60,0 V40 H0 Z" fill="#009543" />
+      <path d="M0,16 L40,16 L60,0 V8 L44,20 L60,32 V40 L40,24 H0 Z" fill="#000000" />
+      <path d="M0,18 H42 L60,4 V8 L44,20 L60,32 V36 L42,22 H0 Z" fill="#FDCE12" />
+    </>
+  ),
+  "Samoa": (
+    <>
+      <rect width="60" height="40" fill="#CE1126" />
+      <rect width="30" height="20" fill="#002B7F" />
+      <path d="M8,4 L8.8,6.5 L11.5,6.5 L9.4,8 L10.1,10.5 L8,9 L5.9,10.5 L6.6,8 L4.5,6.5 L7.2,6.5 Z" fill="#FFFFFF" />
+      <path d="M16,6 L16.7,8 L19,8 L17.2,9.3 L17.9,11.3 L16,10 L14.1,11.3 L14.8,9.3 L13,8 L15.3,8 Z" fill="#FFFFFF" />
+      <path d="M20,12 L20.7,14 L23,14 L21.2,15.3 L21.9,17.3 L20,16 L18.1,17.3 L18.8,15.3 L17,14 L19.3,14 Z" fill="#FFFFFF" />
+      <path d="M12,12 L12.7,14 L15,14 L13.2,15.3 L13.9,17.3 L12,16 L10.1,17.3 L10.8,15.3 L9,14 L11.3,14 Z" fill="#FFFFFF" />
+      <path d="M15,16 L15.5,17.5 L17,17.5 L15.8,18.4 L16.3,19.9 L15,19 L13.7,19.9 L14.2,18.4 L13,17.5 L14.5,17.5 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "French Polynesia": (
+    <>
+      <rect width="60" height="10" fill="#CE1126" />
+      <rect y="10" width="60" height="20" fill="#FFFFFF" />
+      <rect y="30" width="60" height="10" fill="#CE1126" />
+      <circle cx="30" cy="20" r="7" fill="#FFD100" />
+      <path d="M24,20 Q30,14 36,20 Q30,26 24,20 Z" fill="#0035AD" />
+    </>
+  ),
+  "Luxembourg": (
+    <>
+      <rect width="60" height="13.33" fill="#ED2939" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#00A1DE" />
+    </>
+  ),
+  "Moldova": (
+    <>
+      <rect width="20" height="40" fill="#003DA5" />
+      <rect x="20" width="20" height="40" fill="#FFD200" />
+      <rect x="40" width="20" height="40" fill="#CC092F" />
+      <circle cx="30" cy="20" r="5" fill="#A67C00" />
+    </>
+  ),
+  "Belarus": (
+    <>
+      <rect width="12" height="40" fill="#C8312A" />
+      <rect x="12" width="48" height="28" fill="#C8312A" />
+      <rect x="12" y="28" width="48" height="12" fill="#4AA657" />
+      <path d="M2,8 h8 M2,14 h8 M2,20 h8 M2,26 h8 M2,32 h8" stroke="#FFFFFF" strokeWidth="1.5" />
+    </>
+  ),
+  "Russia": (
+    <>
+      <rect width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="13.33" width="60" height="13.33" fill="#0039A6" />
+      <rect y="26.67" width="60" height="13.33" fill="#D52B1E" />
+    </>
+  ),
+  "Algeria": (
+    <>
+      <rect width="30" height="40" fill="#006233" />
+      <rect x="30" width="30" height="40" fill="#FFFFFF" />
+      <circle cx="28" cy="20" r="8" fill="#D21034" />
+      <circle cx="31" cy="20" r="6.5" fill="#006233" />
+      <path d="M33,13.5 L34.3,17.5 L38.5,17.5 L35.2,20 L36.3,24 L33,21.5 L29.7,24 L30.8,20 L27.5,17.5 L31.7,17.5 Z" fill="#D21034" />
+    </>
+  ),
+  "Angola": (
+    <>
+      <rect width="60" height="20" fill="#CC092F" />
+      <rect y="20" width="60" height="20" fill="#000000" />
+      <path d="M22,14 A12,12 0 0,1 38,26" fill="none" stroke="#FFCD00" strokeWidth="3" />
+      <circle cx="34" cy="18" r="3" fill="#FFCD00" />
+    </>
+  ),
+  "Cameroon": (
+    <>
+      <rect width="20" height="40" fill="#007A5E" />
+      <rect x="20" width="20" height="40" fill="#CE1126" />
+      <rect x="40" width="20" height="40" fill="#FCD116" />
+      <path d="M30,14 L31.5,18.5 L36,18.5 L32.5,21 L33.8,25.5 L30,22.5 L26.2,25.5 L27.5,21 L24,18.5 L28.5,18.5 Z" fill="#FCD116" />
+    </>
+  ),
+  "Paraguay": (
+    <>
+      <rect width="60" height="13.33" fill="#D52B1E" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#0038A8" />
+      <circle cx="30" cy="20" r="4.5" fill="#D4A017" />
+    </>
+  ),
+  "Venezuela": (
+    <>
+      <rect width="60" height="13.33" fill="#FFCC00" />
+      <rect y="13.33" width="60" height="13.33" fill="#00247D" />
+      <rect y="26.67" width="60" height="13.33" fill="#CF142B" />
+      <path d="M20,18 L21,20.5 L23.5,20.5 L21.5,22 L22.2,24.5 L20,23 L17.8,24.5 L18.5,22 L16.5,20.5 L19,20.5 Z" fill="#FFFFFF" />
+      <path d="M26,16 L27,18.5 L29.5,18.5 L27.5,20 L28.2,22.5 L26,21 L23.8,22.5 L24.5,20 L22.5,18.5 L25,18.5 Z" fill="#FFFFFF" />
+      <path d="M32,16 L33,18.5 L35.5,18.5 L33.5,20 L34.2,22.5 L32,21 L29.8,22.5 L30.5,20 L28.5,18.5 L31,18.5 Z" fill="#FFFFFF" />
+      <path d="M38,18 L39,20.5 L41.5,20.5 L39.5,22 L40.2,24.5 L38,23 L35.8,24.5 L36.5,22 L34.5,20.5 L37,20.5 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Trinidad and Tobago": (
+    <>
+      <rect width="60" height="40" fill="#CE1126" />
+      <path d="M-4,40 L28,-4 H40 L8,44 Z" fill="#FFFFFF" />
+      <path d="M0,40 L30,-4 H38 L8,44 Z" fill="#000000" />
+    </>
+  ),
+  "Antigua and Barbuda": (
+    <>
+      <rect width="60" height="40" fill="#CE1126" />
+      <path d="M0,0 L30,20 L0,40 Z" fill="#CE1126" />
+      <path d="M60,0 L30,20 L60,40 Z" fill="#CE1126" />
+      <path d="M0,0 H60 L30,20 Z" fill="#FCD116" />
+      <path d="M8,20 H52 L30,40 Z" fill="#0072C6" />
+      <path d="M14,26 H46 L30,40 Z" fill="#FFFFFF" />
+      <path d="M20,32 H40 L30,40 Z" fill="#000000" />
+      <circle cx="30" cy="12" r="5" fill="#FCD116" />
+    </>
+  ),
+  "Grenada": (
+    <>
+      <rect width="60" height="40" fill="#CE1126" />
+      <path d="M0,6 H60 V34 H0 Z" fill="#007A5E" />
+      <path d="M0,0 L30,20 L0,40 Z" fill="#CE1126" />
+      <path d="M60,0 L30,20 L60,40 Z" fill="#CE1126" />
+      <path d="M0,6 L30,20 L0,34 Z" fill="#FCD116" />
+      <path d="M60,6 L30,20 L60,34 Z" fill="#FCD116" />
+      <circle cx="30" cy="20" r="5" fill="#FCD116" />
+    </>
+  ),
+  "Dominica": (
+    <>
+      <rect width="60" height="40" fill="#006B3F" />
+      <rect y="14" width="60" height="4" fill="#FCD116" />
+      <rect y="18" width="60" height="4" fill="#000000" />
+      <rect y="22" width="60" height="4" fill="#FFFFFF" />
+      <rect x="26" width="4" height="40" fill="#FCD116" />
+      <rect x="30" width="4" height="40" fill="#000000" />
+      <rect x="34" width="4" height="40" fill="#FFFFFF" />
+      <circle cx="32" cy="20" r="7" fill="#C8102E" />
+    </>
+  ),
+  "Saint Kitts and Nevis": (
+    <>
+      <path d="M0,0 H60 L0,40 Z" fill="#009739" />
+      <path d="M60,0 V40 H0 Z" fill="#CE1126" />
+      <path d="M0,28 L48,0 H60 L12,40 H0 Z" fill="#000000" />
+      <path d="M0,32 L52,0 H56 L8,40 H0 Z" fill="#FCD116" />
+      <path d="M22,14 L23.2,17 L26.5,17 L23.8,19 L25,22 L22,20 L19,22 L20.2,19 L17.5,17 L20.8,17 Z" fill="#FFFFFF" />
+      <path d="M34,22 L35.2,25 L38.5,25 L35.8,27 L37,30 L34,28 L31,30 L32.2,27 L29.5,25 L32.8,25 Z" fill="#FFFFFF" />
+    </>
+  ),
+  "Saint Vincent and the Grenadines": (
+    <>
+      <rect width="18" height="40" fill="#0072C6" />
+      <rect x="18" width="24" height="40" fill="#FCD116" />
+      <rect x="42" width="18" height="40" fill="#007A3D" />
+      <path d="M24,12 L30,22 L24,32 L18,22 Z" fill="#007A3D" />
+      <path d="M30,10 L36,20 L30,30 L24,20 Z" fill="#007A3D" />
+      <path d="M36,12 L42,22 L36,32 L30,22 Z" fill="#007A3D" />
+    </>
+  ),
+  "Guyana": (
+    <>
+      <rect width="60" height="40" fill="#009E49" />
+      <path d="M0,0 L60,20 L0,40 Z" fill="#FFFFFF" />
+      <path d="M0,3 L52,20 L0,37 Z" fill="#FCD116" />
+      <path d="M0,0 L30,20 L0,40 Z" fill="#000000" />
+      <path d="M0,4 L24,20 L0,36 Z" fill="#CE1126" />
+    </>
+  ),
+  "Suriname": (
+    <>
+      <rect width="60" height="8" fill="#377E3F" />
+      <rect y="8" width="60" height="6" fill="#FFFFFF" />
+      <rect y="14" width="60" height="12" fill="#B40A2D" />
+      <rect y="26" width="60" height="6" fill="#FFFFFF" />
+      <rect y="32" width="60" height="8" fill="#377E3F" />
+      <path d="M30,16 L31.5,20 L36,20 L32.5,22.5 L33.8,26.5 L30,24 L26.2,26.5 L27.5,22.5 L24,20 L28.5,20 Z" fill="#ECC81D" />
+    </>
+  ),
+  "Gambia": (
+    <>
+      <rect width="60" height="13" fill="#CE1126" />
+      <rect y="13" width="60" height="3" fill="#FFFFFF" />
+      <rect y="16" width="60" height="8" fill="#0C1C8C" />
+      <rect y="24" width="60" height="3" fill="#FFFFFF" />
+      <rect y="27" width="60" height="13" fill="#3A7728" />
+    </>
+  ),
+  "Malawi": (
+    <>
+      <rect width="60" height="13.33" fill="#000000" />
+      <rect y="13.33" width="60" height="13.33" fill="#CE1126" />
+      <rect y="26.67" width="60" height="13.33" fill="#339E35" />
+      <circle cx="30" cy="10" r="5" fill="#CE1126" />
+    </>
+  ),
+  "Lesotho": (
+    <>
+      <rect width="60" height="13.33" fill="#00209F" />
+      <rect y="13.33" width="60" height="13.33" fill="#FFFFFF" />
+      <rect y="26.67" width="60" height="13.33" fill="#009543" />
+      <path d="M30,16 L34,24 H26 Z" fill="#000000" />
+    </>
+  ),
+  "Eswatini": (
+    <>
+      <rect width="60" height="10" fill="#3E5EB9" />
+      <rect y="10" width="60" height="4" fill="#FFD900" />
+      <rect y="14" width="60" height="12" fill="#FF4F00" />
+      <rect y="26" width="60" height="4" fill="#FFD900" />
+      <rect y="30" width="60" height="10" fill="#3E5EB9" />
+      <ellipse cx="30" cy="20" rx="10" ry="6" fill="#000000" />
+      <ellipse cx="30" cy="20" rx="10" ry="6" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+    </>
+  ),
+  "North Macedonia": (
+    <>
+      <rect width="60" height="40" fill="#D20000" />
+      <circle cx="30" cy="20" r="7" fill="#FFE600" />
+      <path d="M30,0 L34,20 L30,40 L26,20 Z M0,20 L30,16 L60,20 L30,24 Z" fill="#FFE600" />
+    </>
+  ),
+  "Kosovo": (
+    <>
+      <rect width="60" height="40" fill="#244AA5" />
+      <path d="M24,14 L28,12 L32,14 L36,18 L34,26 L30,30 L26,26 L22,18 Z" fill="#D0A650" />
+      <path d="M18,8 L18.7,10 L21,10 L19.2,11.3 L19.9,13.3 L18,12 L16.1,13.3 L16.8,11.3 L15,10 L17.3,10 Z" fill="#FFFFFF" />
+      <path d="M24,6 L24.7,8 L27,8 L25.2,9.3 L25.9,11.3 L24,10 L22.1,11.3 L22.8,9.3 L21,8 L23.3,8 Z" fill="#FFFFFF" />
+      <path d="M30,5 L30.7,7 L33,7 L31.2,8.3 L31.9,10.3 L30,9 L28.1,10.3 L28.8,8.3 L27,7 L29.3,7 Z" fill="#FFFFFF" />
+      <path d="M36,6 L36.7,8 L39,8 L37.2,9.3 L37.9,11.3 L36,10 L34.1,11.3 L34.8,9.3 L33,8 L35.3,8 Z" fill="#FFFFFF" />
+      <path d="M42,8 L42.7,10 L45,10 L43.2,11.3 L43.9,13.3 L42,12 L40.1,13.3 L40.8,11.3 L39,10 L41.3,10 Z" fill="#FFFFFF" />
+    </>
+  ),
 };
 
 export function CountryFlag({
