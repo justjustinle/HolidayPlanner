@@ -52,6 +52,8 @@ export interface InvitePreview {
   start_date: string;
   end_date: string;
   member_count: number;
+  /** Unique destination countries in first-seen day order. */
+  countries: string[];
 }
 
 export interface ItineraryItem {
