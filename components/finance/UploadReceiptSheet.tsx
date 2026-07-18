@@ -6,9 +6,8 @@ import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
 import { useTripData } from '../TripDataProvider';
 import { compressToWebp, dataUrlToBase64, fileToDataUrl } from '@/lib/image';
-import { toGbp, formatGbp, round2 } from '@/lib/currency';
+import { toGbp, formatGbp, round2, symbolFor } from '@/lib/currency';
 import { receiptTaxMultiplier } from '@/lib/settle';
-import { CURRENCY_SYMBOL, TRIP_DAYS } from '@/lib/trip';
 import type { CurrencyCode, Expense } from '@/lib/types';
 
 const CURRENCIES: CurrencyCode[] = ['VND', 'THB', 'GBP'];
@@ -40,6 +39,8 @@ export default function UploadReceiptSheet({
     settings,
     receipts,
     receiptItems,
+    tripDays,
+    currencies,
     addReceiptExpense,
     updateReceiptExpense,
   } = useTripData();
@@ -85,7 +86,7 @@ export default function UploadReceiptSheet({
   );
   const [busy, setBusy] = useState(false);
 
-  const currencySymbol = CURRENCY_SYMBOL[currency];
+  const currencySymbol = symbolFor(currency, currencies);
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -268,7 +269,7 @@ export default function UploadReceiptSheet({
               onChange={(e) => setDay(Number(e.target.value))}
               className={`${inputCls} appearance-none`}
             >
-              {TRIP_DAYS.map((d) => (
+              {tripDays.map((d) => (
                 <option key={d.dayNumber} value={d.dayNumber}>
                   {d.label} · {d.destination}
                 </option>
@@ -281,7 +282,7 @@ export default function UploadReceiptSheet({
             >
               {CURRENCIES.map((c) => (
                 <option key={c} value={c}>
-                  {CURRENCY_SYMBOL[c]} {c}
+                  {symbolFor(c, currencies)} {c}
                 </option>
               ))}
             </select>

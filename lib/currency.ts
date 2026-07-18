@@ -1,4 +1,35 @@
-import type { CurrencyCode, TripSettings } from './types';
+import type { CurrencyCode, TripCurrency, TripSettings } from './types';
+
+// Built-in currency set used as the fallback (demo mode / before the multi-trip
+// migration). Derived from the group's two FX rates + a base GBP row, matching
+// the old hard-coded CURRENCY_SYMBOL map exactly.
+export function defaultCurrencies(settings: TripSettings): TripCurrency[] {
+  return [
+    { code: 'GBP', symbol: '£', rate_per_base: 1 },
+    { code: 'VND', symbol: '₫', rate_per_base: settings.vnd_per_gbp },
+    { code: 'THB', symbol: '฿', rate_per_base: settings.thb_per_gbp },
+  ];
+}
+
+// Symbol for a currency code from a trip's currency list, falling back to the
+// code itself for an unknown currency.
+export function symbolFor(code: string, currencies: TripCurrency[]): string {
+  return currencies.find((c) => c.code === code)?.symbol ?? code;
+}
+
+// Convert a local amount into the trip's base currency using its currency list
+// (rate_per_base = local units per 1 base unit). Generic replacement for toGbp;
+// the base-currency row (rate 1) passes through unchanged.
+export function toBase(
+  amount: number,
+  code: string,
+  currencies: TripCurrency[]
+): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const rate = currencies.find((c) => c.code === code)?.rate_per_base;
+  if (!rate || rate <= 0) return 0;
+  return round2(amount / rate);
+}
 
 // Round to standard 2-decimal precision, avoiding binary float drift
 // (e.g. 1.005 → 1.01, not 1.00). All money in the app passes through here.

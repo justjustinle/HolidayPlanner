@@ -7,7 +7,8 @@ import TravelerFacepile from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
 import YarnLogo from '../brand/YarnLogo';
 import { ThaiFlag, VietnamFlag } from './Flag';
-import { TRIP_TITLE, tripDateRangeLabel } from '@/lib/trip';
+import { rangeLabelFromDays } from '@/lib/trip';
+import { useTripData } from '../TripDataProvider';
 
 type TabHeaderProps =
   | {
@@ -30,7 +31,8 @@ export default function TabHeader(props: TabHeaderProps) {
   const isTrip = props.variant !== 'section';
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
-  const dates = tripDateRangeLabel();
+  const { trip, tripDays } = useTripData();
+  const dates = rangeLabelFromDays(tripDays);
 
   return (
     <header className="px-5 pt-4">
@@ -46,7 +48,7 @@ export default function TabHeader(props: TabHeaderProps) {
           </button>
 
           <h1 className="flex min-w-0 items-center gap-2 font-serif text-[26px] font-semibold leading-tight text-ink">
-            <span className="min-w-0 truncate">{TRIP_TITLE}</span>
+            <span className="min-w-0 truncate">{trip.name}</span>
             <span
               className="inline-flex shrink-0 items-center gap-1"
               aria-label="Thailand and Vietnam"

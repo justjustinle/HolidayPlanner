@@ -30,8 +30,79 @@ export const TRIP_DAYS: TripDay[] = [
   { dayNumber: 13, destination: 'Nha Trang', label: 'Day 13', dateLabel: 'Wed 9th Sep', accentHex: '#3f9b8a' },
 ];
 
-export function dayByNumber(n: number): TripDay | undefined {
-  return TRIP_DAYS.find((d) => d.dayNumber === n);
+export function dayByNumber(n: number, days: TripDay[] = TRIP_DAYS): TripDay | undefined {
+  return days.find((d) => d.dayNumber === n);
+}
+
+// --- dynamic-trip helpers (Phase 3) -----------------------------------------
+// The days above are the fallback used in demo mode and before the multi-trip
+// migration. When Supabase returns `trip_days`, they are mapped into the same
+// TripDay shape via these helpers so the UI is source-agnostic.
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function ordinal(n: number): string {
+  const rem100 = n % 100;
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+}
+
+// Parse a 'YYYY-MM-DD' date string into a LOCAL Date (no timezone shift), so
+// weekday/label math matches the device calendar the way the hard-coded labels
+// did (see dayNumberForDate).
+export function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
+// "Fri 28th Aug" — the same format the constants ship, derived from a date.
+export function formatTripDate(dateStr: string): string {
+  const d = parseLocalDate(dateStr);
+  return `${WEEKDAYS[d.getDay()]} ${ordinal(d.getDate())} ${MONTHS[d.getMonth()]}`;
+}
+
+// Map a Supabase trip_days row into the UI's TripDay shape.
+export function tripDayFromRow(row: {
+  day_number: number;
+  date: string;
+  destination: string;
+  accent_hex: string;
+}): TripDay {
+  return {
+    dayNumber: row.day_number,
+    destination: row.destination,
+    label: `Day ${row.day_number}`,
+    dateLabel: formatTripDate(row.date),
+    accentHex: row.accent_hex,
+  };
+}
+
+// Compact range label from an arbitrary day list, e.g. "28th Aug – 9th Sep"
+// (drops the weekday prefix, keeps the ordinal suffix).
+export function rangeLabelFromDays(days: TripDay[]): string {
+  if (days.length === 0) return '';
+  const compact = (label: string) =>
+    label.replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+/i, '');
+  return `${compact(days[0].dateLabel)} – ${compact(days[days.length - 1].dateLabel)}`;
+}
+
+// day-number for a date within an arbitrary trip span (defaults to the built-in
+// trip so existing call sites / tests keep their behaviour).
+export function dayNumberForDateInTrip(
+  date: Date,
+  startDateStr: string,
+  count: number
+): number | null {
+  const start = parseLocalDate(startDateStr);
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff = Math.round((day.getTime() - start.getTime()) / 86_400_000) + 1;
+  return diff >= 1 && diff <= count ? diff : null;
 }
 
 /** Display name for the trip identity header. */

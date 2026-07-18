@@ -11,8 +11,9 @@ import {
   round2,
   splitEqually,
   isEqualSplit,
+  symbolFor,
 } from '@/lib/currency';
-import { CURRENCY_SYMBOL, TRIP_DAYS, dayByNumber } from '@/lib/trip';
+import { dayByNumber } from '@/lib/trip';
 import { formatTimeLabel } from '@/lib/time';
 import type { CurrencyCode, Expense, ItineraryItem, Profile } from '@/lib/types';
 
@@ -91,7 +92,7 @@ export default function LogExpenseSheet({
   expense?: Expense;
   onClose: () => void;
 }) {
-  const { profiles, me, settings, splits, itinerary, addExpense, updateExpense } = useTripData();
+  const { profiles, me, settings, splits, itinerary, tripDays, currencies, addExpense, updateExpense } = useTripData();
 
   const isReceipt = expense?.kind === 'receipt';
 
@@ -221,7 +222,7 @@ export default function LogExpenseSheet({
   const inputCls =
     'w-full rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-[15px] text-ink outline-none focus:border-ink';
 
-  const symbol = CURRENCY_SYMBOL[currency];
+  const symbol = symbolFor(currency, currencies);
   const customSummary =
     customShares &&
     participants
@@ -259,7 +260,7 @@ export default function LogExpenseSheet({
           onChange={(e) => setDay(Number(e.target.value))}
           className={`${inputCls} mb-3 appearance-none`}
         >
-          {TRIP_DAYS.map((d) => (
+          {tripDays.map((d) => (
             <option key={d.dayNumber} value={d.dayNumber}>
               {d.label} · {d.destination} · {d.dateLabel}
             </option>
@@ -281,7 +282,7 @@ export default function LogExpenseSheet({
                     : 'border-black/10 bg-cream-card text-ink'
                 }`}
               >
-                {CURRENCY_SYMBOL[c]} {c}
+                {symbolFor(c, currencies)} {c}
               </button>
             );
           })}
@@ -290,7 +291,7 @@ export default function LogExpenseSheet({
         {/* amount */}
         <div className="relative mb-1">
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted">
-            {CURRENCY_SYMBOL[currency]}
+            {symbol}
           </span>
           <input
             value={amountStr}
@@ -421,6 +422,7 @@ export default function LogExpenseSheet({
           profiles={profiles}
           participants={participants}
           currency={currency}
+          symbol={symbol}
           total={amount}
           initialShares={customShares}
           onApply={applyCustomSplit}
@@ -436,6 +438,7 @@ function CustomSplitSheet({
   profiles,
   participants,
   currency,
+  symbol,
   total,
   initialShares,
   onApply,
@@ -445,13 +448,13 @@ function CustomSplitSheet({
   profiles: Profile[];
   participants: string[];
   currency: CurrencyCode;
+  symbol: string;
   total: number;
   initialShares: Record<string, number> | null;
   onApply: (shares: Record<string, number>) => void;
   onResetEqual: () => void;
   onClose: () => void;
 }) {
-  const symbol = CURRENCY_SYMBOL[currency];
   const [draft, setDraft] = useState<Record<string, string>>(() => {
     const base = initialShares ?? equalLocalShares(participants, total);
     const out: Record<string, string> = {};

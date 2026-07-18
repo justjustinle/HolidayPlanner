@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { TRIP_DAYS } from '@/lib/trip';
+import { TRIP_DAYS, type TripDay } from '@/lib/trip';
 
 const FADE =
   'color-mix(in srgb, var(--city-accent) 12%, #f7f1e6)';
@@ -12,9 +12,11 @@ const FADE =
 export default function DayPicker({
   value,
   onChange,
+  days = TRIP_DAYS,
 }: {
   value: number;
   onChange: (day: number) => void;
+  days?: TripDay[];
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -73,7 +75,7 @@ export default function DayPicker({
           ref={scrollerRef}
           className="no-scrollbar flex gap-2 overflow-x-auto scroll-smooth py-3 pl-5 pr-14"
         >
-          {TRIP_DAYS.map((d) => {
+          {days.map((d) => {
             const active = value === d.dayNumber;
             return (
               <button

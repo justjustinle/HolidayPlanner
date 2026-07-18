@@ -20,7 +20,14 @@ import {
   round2,
   splitEqually,
   localSharesToGbp,
+  defaultCurrencies,
 } from '@/lib/currency';
+import {
+  TRIP_DAYS,
+  TRIP_TITLE,
+  tripDayFromRow,
+  type TripDay,
+} from '@/lib/trip';
 import { TRIP_ID, type EventType } from '@/lib/notifications/config';
 import { ACTIVE_TRIP_ID } from '@/lib/activeTrip';
 import { useAuth } from './AuthProvider';
@@ -48,11 +55,24 @@ import type {
   ReceiptItem,
   StatCategory,
   StatEntry,
+  Trip,
+  TripCurrency,
   TripSettings,
 } from '@/lib/types';
 
 const ME_KEY = 'travel_user_profile';
 const DEMO_KEY = 'travel_demo_state_v2';
+
+// The built-in trip identity, used in demo mode and as a fallback before the
+// multi-trip migration is applied. When Supabase returns a `trips` row (+ days
+// + currencies) those take over, so nothing in lib/trip.ts stays load-bearing.
+const FALLBACK_TRIP: Trip = {
+  id: ACTIVE_TRIP_ID,
+  name: TRIP_TITLE,
+  start_date: '2026-08-28',
+  end_date: '2026-09-09',
+  base_currency: 'GBP',
+};
 
 function genId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -108,6 +128,11 @@ interface TripDataValue {
   ready: boolean;
   demoMode: boolean;
   me: Profile | null;
+  // Phase 3: trip identity, days and currencies sourced from the DB (or the
+  // built-in fallback) rather than hard-coded constants.
+  trip: Trip;
+  tripDays: TripDay[];
+  currencies: TripCurrency[];
   // Phase 2 (auth): the signed-in Google account has no membership on this trip
   // yet — the gate should offer to claim an existing member or join by code.
   needsMembership: boolean;
@@ -174,6 +199,11 @@ export default function TripDataProvider({
   const [me, setMe] = useState<Profile | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [settings, setSettings] = useState<TripSettings>(DEMO_SETTINGS);
+  const [trip, setTrip] = useState<Trip>(FALLBACK_TRIP);
+  const [tripDays, setTripDays] = useState<TripDay[]>(TRIP_DAYS);
+  const [currencies, setCurrencies] = useState<TripCurrency[]>(() =>
+    defaultCurrencies(DEMO_SETTINGS)
+  );
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -212,18 +242,40 @@ export default function TripDataProvider({
   // --- initial load ---------------------------------------------------------
   const refetchAll = useCallback(async () => {
     if (!supabase) return;
-    const trip = ACTIVE_TRIP_ID;
-    const [p, s, it, ph, ex, sp, rc, ri, st] = await Promise.all([
-      supabase.from('profiles').select('*').eq('trip_id', trip).order('created_at'),
+    const tripId = ACTIVE_TRIP_ID;
+    const [tr, td, tc, p, s, it, ph, ex, sp, rc, ri, st] = await Promise.all([
+      supabase.from('trips').select('*').eq('id', tripId).maybeSingle(),
+      supabase.from('trip_days').select('*').eq('trip_id', tripId).order('day_number'),
+      supabase.from('trip_currencies').select('*').eq('trip_id', tripId),
+      supabase.from('profiles').select('*').eq('trip_id', tripId).order('created_at'),
       supabase.from('trip_settings').select('*').eq('id', 1).single(),
-      supabase.from('itinerary_items').select('*').eq('trip_id', trip).order('day_number').order('created_at'),
-      supabase.from('photos').select('*').eq('trip_id', trip).order('created_at'),
-      supabase.from('expenses').select('*').eq('trip_id', trip).order('created_at'),
-      supabase.from('expense_splits').select('*').eq('trip_id', trip),
-      supabase.from('receipts').select('*').eq('trip_id', trip),
-      supabase.from('receipt_items').select('*').eq('trip_id', trip).order('created_at'),
-      supabase.from('stat_entries').select('*').eq('trip_id', trip),
+      supabase.from('itinerary_items').select('*').eq('trip_id', tripId).order('day_number').order('created_at'),
+      supabase.from('photos').select('*').eq('trip_id', tripId).order('created_at'),
+      supabase.from('expenses').select('*').eq('trip_id', tripId).order('created_at'),
+      supabase.from('expense_splits').select('*').eq('trip_id', tripId),
+      supabase.from('receipts').select('*').eq('trip_id', tripId),
+      supabase.from('receipt_items').select('*').eq('trip_id', tripId).order('created_at'),
+      supabase.from('stat_entries').select('*').eq('trip_id', tripId),
     ]);
+    // Trip metadata (fall back to the built-in identity if the migration that
+    // seeds these tables hasn't been applied yet).
+    if (tr.data) setTrip(tr.data as Trip);
+    const dayRows = (td.data ?? []) as {
+      day_number: number; date: string; destination: string; accent_hex: string;
+    }[];
+    if (dayRows.length) setTripDays(dayRows.map(tripDayFromRow));
+    const currencyRows = (tc.data ?? []) as TripCurrency[];
+    if (currencyRows.length) {
+      // Keep base currency first, then a stable order for the picker.
+      const base = (tr.data as Trip | null)?.base_currency ?? 'GBP';
+      setCurrencies(
+        [...currencyRows].sort((a, b) =>
+          a.code === base ? -1 : b.code === base ? 1 : a.code.localeCompare(b.code)
+        )
+      );
+    } else if (s.data) {
+      setCurrencies(defaultCurrencies(s.data as TripSettings));
+    }
     if (p.data) setProfiles(p.data as Profile[]);
     if (s.data) setSettings(s.data as TripSettings);
     if (it.data) {
@@ -278,6 +330,7 @@ export default function TripDataProvider({
       }
       setProfiles(state.profiles);
       setSettings(state.settings);
+      setCurrencies(defaultCurrencies(state.settings));
       setItinerary(state.itinerary);
       setPhotos(state.photos);
       setExpenses(state.expenses);
@@ -1207,6 +1260,9 @@ export default function TripDataProvider({
       joinTripByCode,
       profiles,
       settings,
+      trip,
+      tripDays,
+      currencies,
       itinerary,
       photos,
       expenses,
@@ -1242,6 +1298,9 @@ export default function TripDataProvider({
       joinTripByCode,
       profiles,
       settings,
+      trip,
+      tripDays,
+      currencies,
       itinerary,
       photos,
       expenses,

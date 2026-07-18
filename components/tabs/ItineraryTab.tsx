@@ -8,7 +8,7 @@ import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
 import TabHeader from '../ui/TabHeader';
 import DayPicker from '../ui/DayPicker';
-import { dayByNumber, dayNumberForDate } from '@/lib/trip';
+import { dayByNumber, dayNumberForDateInTrip } from '@/lib/trip';
 import { YARN_DEFAULT_ACCENT, setYarnFavicon } from '@/lib/brand/setYarnFavicon';
 import { nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
@@ -34,14 +34,14 @@ export default function ItineraryTab({
   day: number;
   onDayChange: (day: number) => void;
 }) {
-  const { itinerary } = useTripData();
+  const { itinerary, trip, tripDays } = useTripData();
   const [adding, setAdding] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const nowRef = useRef<HTMLDivElement>(null);
   const didScrollToNow = useRef(false);
 
-  const selected = dayByNumber(day);
-  const todayDay = dayNumberForDate(now);
+  const selected = dayByNumber(day, tripDays);
+  const todayDay = dayNumberForDateInTrip(now, trip.start_date, tripDays.length);
   const isToday = todayDay !== null && day === todayDay;
 
   // Keep the "now" marker in sync with device time while this tab is open.
@@ -116,7 +116,7 @@ export default function ItineraryTab({
       <TabHeader />
 
       <div className="px-5">
-        <DayPicker value={day} onChange={onDayChange} />
+        <DayPicker value={day} onChange={onDayChange} days={tripDays} />
 
         {selected && (
           <div className="mb-3 flex items-start justify-between gap-3">
