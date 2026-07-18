@@ -2,7 +2,7 @@
   "name": "holiday-planner",
   "version": "0.1.0",
   "private": true,
-  "description": "Collaborative travel PWA for a Vietnam & Thailand group trip — itinerary, Polaroid memories, shared expenses, and packing.",
+  "description": "Yarn — collaborative multi-trip travel PWA for co-creating itineraries, splitting expenses, and tracking trip stats.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

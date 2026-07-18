@@ -1,7 +1,7 @@
 {
   "name": "Yarn",
   "short_name": "Yarn",
-  "description": "Collaborative travel planner — itinerary, memories, shared expenses, and stats.",
+  "description": "Weave your next adventure together. Co-create itineraries, split expenses, and track trip stats.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
