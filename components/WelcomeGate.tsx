@@ -4,30 +4,23 @@ import { useRef, useState } from 'react';
 import { Camera, Loader2, LogOut } from 'lucide-react';
 import { useTripData } from './TripDataProvider';
 import { useAuth } from './AuthProvider';
-import { ThaiFlag, VietnamFlag } from './ui/Flag';
-import PlaneJourney from './ui/PlaneJourney';
 import Avatar from './ui/Avatar';
 import AuthChoices from './auth/AuthChoices';
+import YarnLogo from './brand/YarnLogo';
 
-// Shared branded header for every gate variant (flags, plane, headline).
+// Shared branded header for every gate variant (Yarn mark + wordmark).
 function GateHeader({ subtitle }: { subtitle: string }) {
   return (
     <>
-      <div className="mb-5 flex items-center justify-center gap-3">
-        <ThaiFlag size={34} />
-        <span className="text-muted">·</span>
-        <VietnamFlag size={34} />
+      <div className="mb-6 flex flex-col items-center">
+        <div className="flex items-center gap-3 text-[var(--city-accent)]">
+          <YarnLogo size={52} color="currentColor" />
+          <h1 className="font-serif text-[48px] font-semibold leading-none tracking-tight text-ink">
+            Yarn
+          </h1>
+        </div>
       </div>
-      <div className="mb-4">
-        <PlaneJourney />
-      </div>
-      <h1 className="text-center text-[15px] font-semibold uppercase tracking-[0.15em] text-bangkok">
-        Are you ready for the trip of a lifetime
-      </h1>
-      <p className="mt-3 text-center font-serif text-[30px] font-semibold leading-tight text-ink">
-        Thailand &amp; Vietnam 2026
-      </p>
-      <p className="mt-3 text-center text-[15px] text-muted">{subtitle}</p>
+      <p className="text-center text-[15px] text-muted">{subtitle}</p>
     </>
   );
 }
