@@ -9,6 +9,7 @@ import {
   BellRing,
   Loader2,
   Users,
+  UserPlus,
   Map,
 } from 'lucide-react';
 import Avatar from './Avatar';
@@ -27,10 +28,12 @@ export default function AppDrawer({
   open,
   onClose,
   onOpenRoster,
+  onOpenInvite,
 }: {
   open: boolean;
   onClose: () => void;
   onOpenRoster: () => void;
+  onOpenInvite: () => void;
 }) {
   const { me, signOut, setMyPhoto, setActiveTrip } = useTripData();
   const { authEnabled, signOutAccount } = useAuth();
@@ -153,6 +156,18 @@ export default function AppDrawer({
           >
             <Users size={18} className="text-muted" /> Who&apos;s going
           </button>
+          {authEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenInvite();
+              }}
+              className={itemCls}
+            >
+              <UserPlus size={18} className="text-muted" /> Invite friends
+            </button>
+          )}
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
