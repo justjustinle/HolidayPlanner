@@ -2,11 +2,17 @@
 
 export type CurrencyCode = 'VND' | 'THB' | 'GBP';
 
+// A person on a trip. Content rows (paid_by_id, uploaded_by_id, splits, stats,
+// claims) all FK to this id. From Phase 1 it is trip-scoped; `user_id` links it
+// to a signed-in account (null = an unclaimed placeholder member).
 export interface Profile {
   id: string;
   name: string;
   avatar_url?: string | null;
   created_at?: string;
+  trip_id?: string;
+  user_id?: string | null;
+  role?: 'owner' | 'member';
 }
 
 export interface TripSettings {
@@ -14,6 +20,23 @@ export interface TripSettings {
   vnd_per_gbp: number;
   thb_per_gbp: number;
   updated_at?: string;
+}
+
+// A trip's identity + span, replacing the hard-coded TRIP_TITLE / date anchors.
+export interface Trip {
+  id: string;
+  name: string;
+  start_date: string; // 'YYYY-MM-DD'
+  end_date: string; // 'YYYY-MM-DD'
+  base_currency: string; // e.g. 'GBP'
+}
+
+// A currency available on a trip. rate_per_base = local units per 1 base unit
+// (the base_currency row is 1). Replaces the hard-coded CURRENCY_SYMBOL map.
+export interface TripCurrency {
+  code: string;
+  symbol: string;
+  rate_per_base: number;
 }
 
 export interface ItineraryItem {

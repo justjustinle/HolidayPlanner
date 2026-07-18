@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
+  dispatchAllTrips,
   dispatchBatched,
   NotificationConfigError,
   notificationsConfigured,
@@ -27,11 +28,14 @@ export async function GET(req: Request) {
     );
   }
 
-  // Optional trip override (isolated E2E); defaults to the app's trip.
+  // Optional trip override (isolated E2E) runs a single trip; otherwise every
+  // trip with engaged users is flushed (multi-trip).
   const tripId = new URL(req.url).searchParams.get('tripId') ?? undefined;
 
   try {
-    const { notified } = await dispatchBatched(true, tripId);
+    const { notified } = tripId
+      ? await dispatchBatched(true, tripId)
+      : await dispatchAllTrips(true);
     return NextResponse.json({
       ok: true,
       notified: notified.length,

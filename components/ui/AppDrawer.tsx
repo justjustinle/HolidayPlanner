@@ -9,10 +9,12 @@ import {
   BellRing,
   Loader2,
   Users,
+  Map,
 } from 'lucide-react';
 import Avatar from './Avatar';
 import YarnLogo from '../brand/YarnLogo';
 import { useTripData } from '../TripDataProvider';
+import { useAuth } from '../AuthProvider';
 import {
   disablePush,
   enablePush,
@@ -30,7 +32,8 @@ export default function AppDrawer({
   onClose: () => void;
   onOpenRoster: () => void;
 }) {
-  const { me, signOut, setMyPhoto } = useTripData();
+  const { me, signOut, setMyPhoto, setActiveTrip } = useTripData();
+  const { authEnabled, signOutAccount } = useAuth();
   const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
     'idle'
   );
@@ -128,6 +131,18 @@ export default function AppDrawer({
             </div>
           )}
 
+          {authEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                setActiveTrip(null);
+              }}
+              className={itemCls}
+            >
+              <Map size={18} className="text-muted" /> My trips
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -172,7 +187,8 @@ export default function AppDrawer({
             type="button"
             onClick={() => {
               onClose();
-              signOut();
+              if (authEnabled) void signOutAccount();
+              else signOut();
             }}
             className={itemCls}
           >

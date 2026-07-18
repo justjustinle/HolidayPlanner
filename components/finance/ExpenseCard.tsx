@@ -7,9 +7,9 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import LogExpenseSheet from './LogExpenseSheet';
 import UploadReceiptSheet from './UploadReceiptSheet';
 import { useTripData } from '../TripDataProvider';
-import { formatGbp, round2 } from '@/lib/currency';
+import { formatGbp, round2, symbolFor } from '@/lib/currency';
 import { receiptTaxMultiplier } from '@/lib/settle';
-import { CURRENCY_SYMBOL, dayByNumber } from '@/lib/trip';
+import { dayByNumber } from '@/lib/trip';
 import type { Expense } from '@/lib/types';
 
 // One expense row in the Expenses tab. Manual expenses show who's splitting;
@@ -19,14 +19,14 @@ import type { Expense } from '@/lib/types';
 // total exceeds the item subtotal — so a £100 bill with £93 of items shares
 // the £7 gap across whoever claims each line.
 export default function ExpenseCard({ expense }: { expense: Expense }) {
-  const { profiles, me, splits, receipts, receiptItems, setItemClaim, deleteExpense } =
+  const { profiles, me, splits, receipts, receiptItems, tripDays, currencies, setItemClaim, deleteExpense } =
     useTripData();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   const profileOf = (id: string | null) => profiles.find((p) => p.id === id);
   const payer = profileOf(expense.paid_by_id);
-  const day = expense.day_number ? dayByNumber(expense.day_number) : undefined;
+  const day = expense.day_number ? dayByNumber(expense.day_number, tripDays) : undefined;
 
   const receipt = receipts.find((r) => r.expense_id === expense.id);
   const items = receipt ? receiptItems.filter((i) => i.receipt_id === receipt.id) : [];
@@ -64,7 +64,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
         <div className="flex flex-none items-center gap-2">
           <div className="text-right">
             <div className="text-[15px] font-semibold text-ink">
-              {CURRENCY_SYMBOL[expense.local_currency]}
+              {symbolFor(expense.local_currency, currencies)}
               {expense.local_amount.toLocaleString()}
             </div>
             <div className="text-[11px] text-muted">{formatGbp(expense.base_amount_gbp)}</div>
@@ -98,7 +98,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
         <div className="mt-3 space-y-1.5 border-t border-black/5 pt-3">
           {hasTaxGap && (
             <p className="text-[11px] font-medium text-nhatrang">
-              Incl. {CURRENCY_SYMBOL[expense.local_currency]}
+              Incl. {symbolFor(expense.local_currency, currencies)}
               {taxGapLocal.toLocaleString()} tax/service — split proportionally on claim
             </p>
           )}
@@ -108,7 +108,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
             const canClaim = me != null && item.claimed_by_id == null;
             const menuPrice = item.local_amount;
             const priceWithTax = round2(menuPrice * multiplier);
-            const sym = CURRENCY_SYMBOL[expense.local_currency];
+            const sym = symbolFor(expense.local_currency, currencies);
             return (
               <button
                 key={item.id}
