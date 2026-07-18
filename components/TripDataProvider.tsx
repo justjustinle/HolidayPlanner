@@ -172,6 +172,7 @@ interface TripDataValue {
 
   ensureProfile: (name: string, photo?: File | null) => Promise<Profile>;
   signInAs: (profile: Profile) => void;
+  updateMyName: (name: string) => Promise<void>;
   setMyPhoto: (file: File) => Promise<void>;
   signOut: () => void;
 
@@ -684,6 +685,37 @@ export default function TripDataProvider({
   );
 
   const signInAs = useCallback((profile: Profile) => persistMe(profile), []);
+
+  const updateMyName = useCallback<TripDataValue['updateMyName']>(
+    async (rawName) => {
+      if (!me) throw new Error('No traveler profile is selected.');
+      const name = rawName.trim();
+      if (!name) throw new Error('Enter a display name.');
+      if (name === me.name) return;
+      const updated = { ...me, name };
+      if (demoMode) {
+        setProfiles((previous) =>
+          previous.map((profile) => (profile.id === me.id ? updated : profile))
+        );
+        persistMe(updated);
+        return;
+      }
+      const { error } = await supabase!
+        .from('profiles')
+        .update({ name })
+        .eq('id', me.id);
+      if (error) {
+        throw new Error(
+          error.code === '23505'
+            ? 'Someone on this trip is already using that name.'
+            : error.message
+        );
+      }
+      persistMe(updated);
+      await refetchAll();
+    },
+    [demoMode, me, refetchAll]
+  );
 
   const setMyPhoto = useCallback<TripDataValue['setMyPhoto']>(
     async (file) => {
@@ -1455,6 +1487,7 @@ export default function TripDataProvider({
       stats,
       ensureProfile,
       signInAs,
+      updateMyName,
       setMyPhoto,
       signOut,
       addItineraryItem,
@@ -1497,6 +1530,7 @@ export default function TripDataProvider({
       stats,
       ensureProfile,
       signInAs,
+      updateMyName,
       setMyPhoto,
       signOut,
       addItineraryItem,
