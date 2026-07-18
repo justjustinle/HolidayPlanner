@@ -28,7 +28,7 @@ import {
   tripDayFromRow,
   type TripDay,
 } from '@/lib/trip';
-import { TRIP_ID, type EventType } from '@/lib/notifications/config';
+import { type EventType } from '@/lib/notifications/config';
 import { ACTIVE_TRIP_ID } from '@/lib/activeTrip';
 import { useAuth } from './AuthProvider';
 import { SETTLEMENT_LABEL } from '@/lib/types';
@@ -62,6 +62,7 @@ import type {
 
 const ME_KEY = 'travel_user_profile';
 const DEMO_KEY = 'travel_demo_state_v2';
+const ACTIVE_TRIP_KEY = 'active_trip_id';
 
 // The built-in trip identity, used in demo mode and as a fallback before the
 // multi-trip migration is applied. When Supabase returns a `trips` row (+ days
@@ -124,6 +125,16 @@ export interface NewReceiptInput {
   imageFile?: File | null;
 }
 
+export interface NewTripInput {
+  name: string;
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string; // 'YYYY-MM-DD'
+  baseCurrency: string;
+  ownerName: string;
+  days: { day_number: number; date: string; destination: string; accent_hex: string }[];
+  currencies: { code: string; symbol: string; rate_per_base: number }[];
+}
+
 interface TripDataValue {
   ready: boolean;
   demoMode: boolean;
@@ -140,6 +151,11 @@ interface TripDataValue {
   claimMembership: (memberId: string) => Promise<void>;
   // Join a trip via an invite code (rpc join_trip).
   joinTripByCode: (code: string) => Promise<void>;
+  // Phase 4 (multi-trip; auth-on only — with auth off a single trip is pinned).
+  activeTripId: string | null;
+  myTrips: Trip[];
+  setActiveTrip: (tripId: string | null) => void;
+  createTrip: (input: NewTripInput) => Promise<string>;
   profiles: Profile[];
   settings: TripSettings;
   itinerary: ItineraryItem[];
@@ -212,6 +228,17 @@ export default function TripDataProvider({
   const [receiptItems, setReceiptItems] = useState<ReceiptItem[]>([]);
   const [stats, setStats] = useState<StatEntry[]>([]);
 
+  // Phase 4: the trip currently open. With auth off there is exactly one trip
+  // (the built-in), so it is pinned; with auth on it is chosen on the My Trips
+  // screen and persisted per device. A ref mirrors it so the many mutation
+  // callbacks can stamp the current trip without being re-created on switch.
+  const [activeTripId, setActiveTripIdState] = useState<string | null>(
+    authEnabled ? null : ACTIVE_TRIP_ID
+  );
+  const activeTripIdRef = useRef(activeTripId);
+  activeTripIdRef.current = activeTripId;
+  const [myTrips, setMyTrips] = useState<Trip[]>([]);
+
   // --- demo persistence -----------------------------------------------------
   const persistDemo = useRef<() => void>(() => {});
   persistDemo.current = () => {
@@ -242,7 +269,9 @@ export default function TripDataProvider({
   // --- initial load ---------------------------------------------------------
   const refetchAll = useCallback(async () => {
     if (!supabase) return;
-    const tripId = ACTIVE_TRIP_ID;
+    const tripId = activeTripIdRef.current;
+    // No trip selected yet (auth on, still on My Trips) → nothing to load.
+    if (!tripId) return;
     const [tr, td, tc, p, s, it, ph, ex, sp, rc, ri, st] = await Promise.all([
       supabase.from('trips').select('*').eq('id', tripId).maybeSingle(),
       supabase.from('trip_days').select('*').eq('trip_id', tripId).order('day_number'),
@@ -424,9 +453,66 @@ export default function TripDataProvider({
     if (membership?.id !== me?.id) persistMe(membership);
   }, [authEnabled, authReady, account, profiles, me]);
 
-  // Signed in but not yet a member of this trip → the gate offers claim/join.
+  // When the account resolves (auth on), load the trips it belongs to and
+  // restore the last-open trip from this device (if the account is still a
+  // member of it). Otherwise land on My Trips (activeTripId stays null).
+  useEffect(() => {
+    if (!authEnabled || !authReady) return;
+    if (!account) {
+      setMyTrips([]);
+      setActiveTripIdState(null);
+      activeTripIdRef.current = null;
+      return;
+    }
+    void (async () => {
+      // A pending invite (deep-linked /join/[code]) takes priority: join, then
+      // open that trip.
+      let pending: string | null = null;
+      try {
+        pending = localStorage.getItem('pending_join_code');
+      } catch {
+        /* ignore */
+      }
+      if (pending && supabase) {
+        try {
+          const { data } = await supabase.rpc('join_trip', { invite_code: pending.trim() });
+          try {
+            localStorage.removeItem('pending_join_code');
+          } catch {
+            /* ignore */
+          }
+          await loadMyTrips();
+          if (typeof data === 'string') {
+            setActiveTrip(data);
+            return;
+          }
+        } catch {
+          try {
+            localStorage.removeItem('pending_join_code');
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
+      const list = await loadMyTrips();
+      let stored: string | null = null;
+      try {
+        stored = localStorage.getItem(ACTIVE_TRIP_KEY);
+      } catch {
+        /* ignore */
+      }
+      if (stored && list.some((t) => t.id === stored)) {
+        setActiveTrip(stored);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authEnabled, authReady, account]);
+
+  // Signed in, a trip is open, but no membership on it → offer claim/join.
+  // (With no trip open we show My Trips instead, not the claim gate.)
   const needsMembership =
-    authEnabled && authReady && ready && !!account && !me;
+    authEnabled && authReady && ready && !!account && !!activeTripId && !me;
 
   const claimMembership = useCallback(
     async (memberId: string) => {
@@ -443,9 +529,70 @@ export default function TripDataProvider({
       if (!supabase) return;
       const { error } = await supabase.rpc('join_trip', { invite_code: code.trim() });
       if (error) throw error;
-      await refetchAll();
+      await loadMyTrips();
     },
-    [refetchAll]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // --- multi-trip (Phase 4) -------------------------------------------------
+  // The trips the signed-in account is a member of (auth-on only).
+  const loadMyTrips = useCallback(async () => {
+    if (!supabase || !account) {
+      setMyTrips([]);
+      return [] as Trip[];
+    }
+    const { data: memberships } = await supabase
+      .from('profiles')
+      .select('trip_id')
+      .eq('user_id', account.id);
+    const ids = Array.from(
+      new Set(((memberships ?? []) as { trip_id: string }[]).map((m) => m.trip_id))
+    );
+    if (ids.length === 0) {
+      setMyTrips([]);
+      return [] as Trip[];
+    }
+    const { data: trips } = await supabase.from('trips').select('*').in('id', ids);
+    const list = (trips ?? []) as Trip[];
+    setMyTrips(list);
+    return list;
+  }, [account]);
+
+  const setActiveTrip = useCallback<TripDataValue['setActiveTrip']>((tripId) => {
+    setActiveTripIdState(tripId);
+    activeTripIdRef.current = tripId;
+    try {
+      if (tripId) localStorage.setItem(ACTIVE_TRIP_KEY, tripId);
+      else localStorage.removeItem(ACTIVE_TRIP_KEY);
+    } catch {
+      /* ignore */
+    }
+    // Reset the current trip's rows; refetchAll repopulates for the new trip.
+    setMe(null);
+    if (tripId) void refetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const createTrip = useCallback<TripDataValue['createTrip']>(
+    async (input) => {
+      if (!supabase) throw new Error('Not connected.');
+      const { data, error } = await supabase.rpc('create_trip', {
+        p_name: input.name,
+        p_start: input.startDate,
+        p_end: input.endDate,
+        p_base: input.baseCurrency,
+        p_owner_name: input.ownerName,
+        p_days: input.days,
+        p_currencies: input.currencies,
+      });
+      if (error) throw error;
+      const newTripId = data as string;
+      await loadMyTrips();
+      setActiveTrip(newTripId);
+      return newTripId;
+    },
+    [loadMyTrips, setActiveTrip]
   );
 
   // Upload an avatar photo into the shared bucket under a stable key so it
@@ -503,7 +650,7 @@ export default function TripDataProvider({
       if (!profile) {
         const { data: created, error } = await supabase!
           .from('profiles')
-          .insert({ name, trip_id: ACTIVE_TRIP_ID })
+          .insert({ name, trip_id: activeTripIdRef.current! })
           .select()
           .single();
         if (error || !created) throw error ?? new Error('Could not create profile');
@@ -564,7 +711,7 @@ export default function TripDataProvider({
         const { data } = await supabase!
           .from('activity_events')
           .insert({
-            trip_id: TRIP_ID,
+            trip_id: activeTripIdRef.current!,
             event_type: eventType,
             actor_id: me.id,
             recipient_id: recipientId ?? null,
@@ -592,7 +739,7 @@ export default function TripDataProvider({
       supabase!
         .from('notification_state')
         .upsert(
-          { profile_id: me.id, trip_id: TRIP_ID, last_seen_at: new Date().toISOString() },
+          { profile_id: me.id, trip_id: activeTripIdRef.current!, last_seen_at: new Date().toISOString() },
           { onConflict: 'profile_id,trip_id' }
         )
         .then(() => {});
@@ -612,7 +759,7 @@ export default function TripDataProvider({
         setItinerary((prev) => [...prev, { ...input, id: genId(), photo_url: null }]);
         return;
       }
-      await supabase!.from('itinerary_items').insert({ ...input, trip_id: ACTIVE_TRIP_ID });
+      await supabase!.from('itinerary_items').insert({ ...input, trip_id: activeTripIdRef.current! });
       void recordActivity('activity_added', {
         title: input.title,
         day_number: input.day_number,
@@ -701,7 +848,7 @@ export default function TripDataProvider({
         const { data: pub } = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path);
         const ins = await supabase!.from('photos').insert({
           id,
-          trip_id: ACTIVE_TRIP_ID,
+          trip_id: activeTripIdRef.current!,
           activity_id: activityId,
           url: pub.publicUrl,
           uploaded_by_id,
@@ -801,7 +948,7 @@ export default function TripDataProvider({
       const { data: exp, error } = await supabase!
         .from('expenses')
         .insert({
-          trip_id: ACTIVE_TRIP_ID,
+          trip_id: activeTripIdRef.current!,
           label,
           day_number: dayNumber,
           kind: 'manual',
@@ -815,7 +962,7 @@ export default function TripDataProvider({
       if (error || !exp) throw error ?? new Error('Could not save expense');
       await supabase!.from('expense_splits').insert(
         parts.map((uid, i) => ({
-          trip_id: ACTIVE_TRIP_ID,
+          trip_id: activeTripIdRef.current!,
           expense_id: (exp as Expense).id,
           user_id: uid,
           amount_owed: shares[i],
@@ -889,7 +1036,7 @@ export default function TripDataProvider({
         await supabase!.from('expense_splits').delete().eq('expense_id', id);
         await supabase!.from('expense_splits').insert(
           parts.map((uid, i) => ({
-            trip_id: ACTIVE_TRIP_ID,
+            trip_id: activeTripIdRef.current!,
             expense_id: id,
             user_id: uid,
             amount_owed: shares[i],
@@ -954,7 +1101,7 @@ export default function TripDataProvider({
       const { data: exp, error } = await supabase!
         .from('expenses')
         .insert({
-          trip_id: ACTIVE_TRIP_ID,
+          trip_id: activeTripIdRef.current!,
           label,
           day_number: dayNumber,
           kind: 'receipt',
@@ -981,14 +1128,14 @@ export default function TripDataProvider({
 
       const { data: receipt, error: rErr } = await supabase!
         .from('receipts')
-        .insert({ trip_id: ACTIVE_TRIP_ID, expense_id: (exp as Expense).id, merchant: label, image_url })
+        .insert({ trip_id: activeTripIdRef.current!, expense_id: (exp as Expense).id, merchant: label, image_url })
         .select()
         .single();
       if (rErr || !receipt) throw rErr ?? new Error('Could not save receipt');
 
       if (cleanItems.length) {
         await supabase!.from('receipt_items').insert(
-          cleanItems.map((i) => ({ trip_id: ACTIVE_TRIP_ID, receipt_id: (receipt as Receipt).id, ...i }))
+          cleanItems.map((i) => ({ trip_id: activeTripIdRef.current!, receipt_id: (receipt as Receipt).id, ...i }))
         );
       }
       void recordActivity('expense_added', {
@@ -1115,7 +1262,7 @@ export default function TripDataProvider({
             .eq('id', i.id);
         } else {
           await supabase!.from('receipt_items').insert({
-            trip_id: ACTIVE_TRIP_ID,
+            trip_id: activeTripIdRef.current!,
             receipt_id: existingReceipt.id,
             name: i.name,
             quantity: i.quantity,
@@ -1194,7 +1341,7 @@ export default function TripDataProvider({
       const { data: exp, error } = await supabase!
         .from('expenses')
         .insert({
-          trip_id: ACTIVE_TRIP_ID,
+          trip_id: activeTripIdRef.current!,
           label: SETTLEMENT_LABEL,
           kind: 'settlement',
           local_amount: value,
@@ -1207,7 +1354,7 @@ export default function TripDataProvider({
       if (error || !exp) throw error ?? new Error('Could not log settlement');
       await supabase!
         .from('expense_splits')
-        .insert({ trip_id: ACTIVE_TRIP_ID, expense_id: (exp as Expense).id, user_id: toId, amount_owed: value });
+        .insert({ trip_id: activeTripIdRef.current!, expense_id: (exp as Expense).id, user_id: toId, amount_owed: value });
       await refetchAll();
     },
     [demoMode, refetchAll]
@@ -1237,7 +1384,7 @@ export default function TripDataProvider({
         .from('stat_entries')
         .upsert(
           {
-            trip_id: ACTIVE_TRIP_ID,
+            trip_id: activeTripIdRef.current!,
             user_id: me.id,
             day_number: dayNumber,
             category,
@@ -1258,6 +1405,10 @@ export default function TripDataProvider({
       needsMembership,
       claimMembership,
       joinTripByCode,
+      activeTripId,
+      myTrips,
+      setActiveTrip,
+      createTrip,
       profiles,
       settings,
       trip,
@@ -1296,6 +1447,10 @@ export default function TripDataProvider({
       needsMembership,
       claimMembership,
       joinTripByCode,
+      activeTripId,
+      myTrips,
+      setActiveTrip,
+      createTrip,
       profiles,
       settings,
       trip,

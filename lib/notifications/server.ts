@@ -138,6 +138,25 @@ function summarize(events: EventRow[]): string {
     .join(', ');
 }
 
+// Multi-trip cron entry point: run the batching rule for every trip that has
+// engaged (notification_state) rows, aggregating the notified ids. Used when
+// the cron isn't given an explicit tripId.
+export async function dispatchAllTrips(
+  enforceAge: boolean
+): Promise<{ notified: string[]; trips: number }> {
+  const db = serverClient();
+  const { data: rows } = await db.from('notification_state').select('trip_id');
+  const tripIds = Array.from(
+    new Set((rows ?? []).map((r) => r.trip_id as string).filter(Boolean))
+  );
+  const notified: string[] = [];
+  for (const tripId of tripIds) {
+    const res = await dispatchBatched(enforceAge, tripId);
+    notified.push(...res.notified);
+  }
+  return { notified, trips: tripIds.length };
+}
+
 // Evaluate the batching rule for every subscribed profile and push where due.
 // `enforceAge` is set by the cron: it also flushes batches whose oldest event
 // exceeds BATCH_MAX_AGE_MINUTES, regardless of count. `tripId` defaults to the

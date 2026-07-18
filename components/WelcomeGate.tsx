@@ -76,7 +76,7 @@ function GoogleGate() {
 // Variant B — signed in but no membership yet: claim an existing member or join
 // by code.
 function ClaimGate() {
-  const { profiles, claimMembership, joinTripByCode } = useTripData();
+  const { profiles, claimMembership, joinTripByCode, setActiveTrip } = useTripData();
   const { account, signOutAccount } = useAuth();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [code, setCode] = useState('');
@@ -163,13 +163,22 @@ function ClaimGate() {
 
         {error && <p className="mt-3 text-center text-sm text-saigon">{error}</p>}
 
-        <button
-          type="button"
-          onClick={() => signOutAccount()}
-          className="mx-auto mt-6 flex items-center gap-2 text-[13px] text-muted hover:text-ink"
-        >
-          <LogOut size={14} /> Sign out
-        </button>
+        <div className="mt-6 flex items-center justify-center gap-5">
+          <button
+            type="button"
+            onClick={() => setActiveTrip(null)}
+            className="flex items-center gap-2 text-[13px] text-muted hover:text-ink"
+          >
+            ← My trips
+          </button>
+          <button
+            type="button"
+            onClick={() => signOutAccount()}
+            className="flex items-center gap-2 text-[13px] text-muted hover:text-ink"
+          >
+            <LogOut size={14} /> Sign out
+          </button>
+        </div>
       </div>
     </div>
   );
