@@ -10,7 +10,8 @@ never broken by a half-landed change.
   behind `NEXT_PUBLIC_AUTH_ENABLED` until you complete the setup below.
 - **Phase 3:** de-hardcodes the trip (TripContext, dynamic currencies). Still
   single-trip UX.
-- **Phase 4 (later):** multi-trip UI (My Trips, create wizard, invites).
+- **Phase 4 (migration v7):** multi-trip UI (My Trips, create wizard, join by
+  code). Auth-on only; the auth-off single-trip build is unchanged.
 
 ## Verification status
 
@@ -60,7 +61,9 @@ Applying migration v6 without a signed-in session locks every anon request out
 
 ### 4. Migration
 
-- Run `supabase/migration-v6-auth-rls.sql` in the SQL Editor.
+- Run `supabase/migration-v6-auth-rls.sql`, then `supabase/migration-v7-multitrip-ui.sql`
+  in the SQL Editor. (v7 adds the `create_trip` + `claimable_members` RPCs the
+  multi-trip UI calls; harmless to apply even before you use multiple trips.)
 
 ### 5. Bootstrap the trip owner
 
