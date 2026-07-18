@@ -15,8 +15,8 @@ import {
   SUPABASE_BUCKET,
 } from '@/lib/supabase';
 import {
-  formatGbp,
-  toGbp,
+  formatBaseCurrency,
+  toBase,
   round2,
   splitEqually,
   localSharesToGbp,
@@ -57,6 +57,7 @@ import type {
   StatEntry,
   Trip,
   TripCurrency,
+  CreateTripResult,
   TripSettings,
 } from '@/lib/types';
 
@@ -127,12 +128,15 @@ export interface NewReceiptInput {
 
 export interface NewTripInput {
   name: string;
-  startDate: string; // 'YYYY-MM-DD'
-  endDate: string; // 'YYYY-MM-DD'
-  baseCurrency: string;
   ownerName: string;
-  days: { day_number: number; date: string; destination: string; accent_hex: string }[];
-  currencies: { code: string; symbol: string; rate_per_base: number }[];
+  homeCurrency: string;
+  destinations: {
+    destination: string;
+    startDate: string;
+    endDate: string;
+    accentHex: string;
+  }[];
+  destinationCurrencies: string[];
 }
 
 interface TripDataValue {
@@ -155,7 +159,7 @@ interface TripDataValue {
   activeTripId: string | null;
   myTrips: Trip[];
   setActiveTrip: (tripId: string | null) => void;
-  createTrip: (input: NewTripInput) => Promise<string>;
+  createTrip: (input: NewTripInput) => Promise<CreateTripResult>;
   profiles: Profile[];
   settings: TripSettings;
   itinerary: ItineraryItem[];
@@ -181,7 +185,7 @@ interface TripDataValue {
   addPhotos: (activityId: string, files: File[]) => Promise<void>;
   deletePhoto: (id: string) => Promise<void>;
 
-  updateRates: (vnd: number, thb: number) => Promise<void>;
+  updateCurrencyRates: (rates: Record<string, number>) => Promise<void>;
   addExpense: (input: NewExpenseInput) => Promise<void>;
   updateExpense: (id: string, input: NewExpenseInput) => Promise<void>;
   addReceiptExpense: (input: NewReceiptInput) => Promise<void>;
@@ -524,17 +528,6 @@ export default function TripDataProvider({
     [refetchAll]
   );
 
-  const joinTripByCode = useCallback(
-    async (code: string) => {
-      if (!supabase) return;
-      const { error } = await supabase.rpc('join_trip', { invite_code: code.trim() });
-      if (error) throw error;
-      await loadMyTrips();
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
   // --- multi-trip (Phase 4) -------------------------------------------------
   // The trips the signed-in account is a member of (auth-on only).
   const loadMyTrips = useCallback(async () => {
@@ -574,25 +567,43 @@ export default function TripDataProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const joinTripByCode = useCallback<TripDataValue['joinTripByCode']>(
+    async (code) => {
+      if (!supabase) return;
+      const { data, error } = await supabase.rpc('join_trip', {
+        invite_code: code.trim(),
+      });
+      if (error) throw error;
+      await loadMyTrips();
+      if (typeof data === 'string') setActiveTrip(data);
+    },
+    [loadMyTrips, setActiveTrip]
+  );
+
   const createTrip = useCallback<TripDataValue['createTrip']>(
     async (input) => {
       if (!supabase) throw new Error('Not connected.');
-      const { data, error } = await supabase.rpc('create_trip', {
+      const { data, error } = await supabase.rpc('create_trip_v2', {
         p_name: input.name,
-        p_start: input.startDate,
-        p_end: input.endDate,
-        p_base: input.baseCurrency,
         p_owner_name: input.ownerName,
-        p_days: input.days,
-        p_currencies: input.currencies,
+        p_home_currency: input.homeCurrency,
+        p_destinations: input.destinations.map((destination) => ({
+          destination: destination.destination,
+          start_date: destination.startDate,
+          end_date: destination.endDate,
+          accent_hex: destination.accentHex,
+        })),
+        p_destination_currencies: input.destinationCurrencies,
       });
       if (error) throw error;
-      const newTripId = data as string;
+      const result = data as { trip_id?: string; invite_code?: string } | null;
+      if (!result?.trip_id || !result.invite_code) {
+        throw new Error('Trip created without an invitation. Please try again.');
+      }
       await loadMyTrips();
-      setActiveTrip(newTripId);
-      return newTripId;
+      return { tripId: result.trip_id, inviteCode: result.invite_code };
     },
-    [loadMyTrips, setActiveTrip]
+    [loadMyTrips]
   );
 
   // Upload an avatar photo into the shared bucket under a stable key so it
@@ -887,17 +898,34 @@ export default function TripDataProvider({
   );
 
   // --- finance --------------------------------------------------------------
-  const updateRates = useCallback<TripDataValue['updateRates']>(
-    async (vnd, thb) => {
-      const next = { id: 1 as const, vnd_per_gbp: round2(vnd), thb_per_gbp: round2(thb) };
+  const updateCurrencyRates = useCallback<TripDataValue['updateCurrencyRates']>(
+    async (rates) => {
       if (demoMode) {
-        setSettings(next);
+        setCurrencies((previous) =>
+          previous.map((currency) =>
+            rates[currency.code] == null
+              ? currency
+              : { ...currency, rate_per_base: round2(rates[currency.code]) }
+          )
+        );
         return;
       }
-      await supabase!
-        .from('trip_settings')
-        .update({ vnd_per_gbp: next.vnd_per_gbp, thb_per_gbp: next.thb_per_gbp, updated_at: new Date().toISOString() })
-        .eq('id', 1);
+      const tripId = activeTripIdRef.current;
+      if (!tripId) throw new Error('Open a trip before updating rates.');
+      const updates = await Promise.all(
+        Object.entries(rates).map(([code, rate]) =>
+          supabase!
+            .from('trip_currencies')
+            .update({
+              rate_per_base: round2(rate),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('trip_id', tripId)
+            .eq('code', code)
+        )
+      );
+      const failed = updates.find((result) => result.error);
+      if (failed?.error) throw failed.error;
       await refetchAll();
     },
     [demoMode, refetchAll]
@@ -913,7 +941,7 @@ export default function TripDataProvider({
       participantIds,
       customSharesLocal,
     }) => {
-      const baseGbp = toGbp(amount, currency, settings);
+      const baseGbp = toBase(amount, currency, currencies);
       const parts = participantIds.length ? participantIds : [paidById];
       const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
 
@@ -970,7 +998,7 @@ export default function TripDataProvider({
       );
       void recordActivity('expense_added', {
         label,
-        amount_gbp: formatGbp(baseGbp),
+        amount_gbp: formatBaseCurrency(baseGbp, trip.base_currency, currencies),
       });
       // Immediate tier: everyone pulled into the split (except the actor,
       // filtered server-side too) gets a targeted push right away.
@@ -978,13 +1006,17 @@ export default function TripDataProvider({
         if (uid === me?.id) return;
         void recordActivity(
           'expense_split_added',
-          { label, amount_gbp: formatGbp(shares[i]), actor_name: me?.name },
+          {
+            label,
+            amount_gbp: formatBaseCurrency(shares[i], trip.base_currency, currencies),
+            actor_name: me?.name,
+          },
           uid
         );
       });
       await refetchAll();
     },
-    [demoMode, me, recordActivity, refetchAll, settings]
+    [currencies, demoMode, me, recordActivity, refetchAll, trip.base_currency]
   );
 
   // Edit an existing expense. Manual expenses rebuild splits from the new
@@ -998,7 +1030,7 @@ export default function TripDataProvider({
       const existing = expenses.find((e) => e.id === id);
       if (!existing) return;
       const isManual = existing.kind !== 'receipt';
-      const baseGbp = toGbp(amount, currency, settings);
+      const baseGbp = toBase(amount, currency, currencies);
       const parts = participantIds.length ? participantIds : [paidById];
       const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
       const patch = {
@@ -1047,7 +1079,7 @@ export default function TripDataProvider({
       }
       await refetchAll();
     },
-    [demoMode, expenses, refetchAll, settings]
+    [currencies, demoMode, expenses, refetchAll]
   );
 
   // Save a scanned/edited receipt: one expense (kind 'receipt') + a receipt
@@ -1055,7 +1087,7 @@ export default function TripDataProvider({
   const addReceiptExpense = useCallback<TripDataValue['addReceiptExpense']>(
     async ({ merchant, dayNumber, currency, total, paidById, items, imageFile }) => {
       const label = merchant.trim() || 'Receipt';
-      const baseGbp = toGbp(total, currency, settings);
+      const baseGbp = toBase(total, currency, currencies);
       const cleanItems = items
         .map((i) => ({
           name: i.name.trim() || 'Item',
@@ -1140,12 +1172,12 @@ export default function TripDataProvider({
       }
       void recordActivity('expense_added', {
         label,
-        amount_gbp: formatGbp(baseGbp),
+        amount_gbp: formatBaseCurrency(baseGbp, trip.base_currency, currencies),
         kind: 'receipt',
       });
       await refetchAll();
     },
-    [demoMode, recordActivity, refetchAll, settings]
+    [currencies, demoMode, recordActivity, refetchAll, trip.base_currency]
   );
 
   // Update an existing receipt expense + its line items. Keeps claims on
@@ -1153,7 +1185,7 @@ export default function TripDataProvider({
   const updateReceiptExpense = useCallback<TripDataValue['updateReceiptExpense']>(
     async (expenseId, { merchant, dayNumber, currency, total, paidById, items, imageFile }) => {
       const label = merchant.trim() || 'Receipt';
-      const baseGbp = toGbp(total, currency, settings);
+      const baseGbp = toBase(total, currency, currencies);
       const cleanItems = items
         .map((i) => ({
           id: i.id,
@@ -1272,7 +1304,7 @@ export default function TripDataProvider({
       }
       await refetchAll();
     },
-    [demoMode, receipts, receiptItems, refetchAll, settings]
+    [currencies, demoMode, receipts, receiptItems, refetchAll]
   );
 
   // Claim (userId) or release (null) a receipt line item.
@@ -1430,7 +1462,7 @@ export default function TripDataProvider({
       deleteItineraryItem,
       addPhotos,
       deletePhoto,
-      updateRates,
+      updateCurrencyRates,
       addExpense,
       updateExpense,
       addReceiptExpense,
@@ -1472,7 +1504,7 @@ export default function TripDataProvider({
       deleteItineraryItem,
       addPhotos,
       deletePhoto,
-      updateRates,
+      updateCurrencyRates,
       addExpense,
       updateExpense,
       addReceiptExpense,

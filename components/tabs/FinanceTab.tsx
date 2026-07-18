@@ -19,7 +19,7 @@ import UploadReceiptSheet from '../finance/UploadReceiptSheet';
 import LogExpenseSheet from '../finance/LogExpenseSheet';
 import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
-import { formatGbp, round2 } from '@/lib/currency';
+import { formatBaseCurrency, round2 } from '@/lib/currency';
 import { downloadExpensesCsv } from '@/lib/exportExpensesCsv';
 import { computeNetBalances, listSettlements, minimizeTransfers, totalSpend } from '@/lib/settle';
 import { defaultDayNumber } from '@/lib/trip';
@@ -27,7 +27,18 @@ import { formatDayMonth } from '@/lib/time';
 import type { SettledPayment, Transfer } from '@/lib/types';
 
 export default function FinanceTab() {
-  const { profiles, expenses, splits, receipts, receiptItems, me, settleUp, deleteExpense } =
+  const {
+    profiles,
+    expenses,
+    splits,
+    receipts,
+    receiptItems,
+    me,
+    trip,
+    currencies,
+    settleUp,
+    deleteExpense,
+  } =
     useTripData();
   const [sheet, setSheet] = useState<'receipt' | 'expense' | null>(null);
   const [listOpen, setListOpen] = useState(false);
@@ -38,6 +49,8 @@ export default function FinanceTab() {
   const [undoing, setUndoing] = useState<SettledPayment | null>(null);
 
   const avatarFor = (id: string) => profiles.find((p) => p.id === id)?.avatar_url;
+  const formatBase = (amount: number) =>
+    formatBaseCurrency(amount, trip.base_currency, currencies);
 
   // Everything is trip-wide: expenses persist across all days of the trip.
   // Settlement rows flow through net balances as ordinary expense+split, so
@@ -93,12 +106,12 @@ export default function FinanceTab() {
           >
             {myStatus === 'owed' && (
               <p className="font-serif text-[22px] font-semibold leading-tight text-nhatrang">
-                You are owed {formatGbp(myBalance)}
+                You are owed {formatBase(myBalance)}
               </p>
             )}
             {myStatus === 'owe' && (
               <p className="font-serif text-[22px] font-semibold leading-tight text-saigon">
-                You owe {formatGbp(Math.abs(myBalance))}
+                You owe {formatBase(Math.abs(myBalance))}
               </p>
             )}
             {myStatus === 'settled' && (
@@ -208,7 +221,7 @@ export default function FinanceTab() {
                     <Avatar name={t.toName} src={avatarFor(t.toId)} size={26} />
                     <span className="text-ink">{t.toName}</span>
                   </div>
-                  <span className="font-semibold text-ink">{formatGbp(t.amount)}</span>
+                  <span className="font-semibold text-ink">{formatBase(t.amount)}</span>
                 </button>
               ))}
             </div>
@@ -246,7 +259,7 @@ export default function FinanceTab() {
                             <span className="truncate text-ink">
                               <span className="font-medium">{s.fromName}</span> paid{' '}
                               <span className="font-medium">{s.toName}</span>{' '}
-                              {formatGbp(s.amount)}
+                              {formatBase(s.amount)}
                             </span>
                           </div>
                           {paidOn && (
@@ -314,7 +327,7 @@ export default function FinanceTab() {
                     >
                       {positive && 'gets back '}
                       {negative && 'owes '}
-                      {positive || negative ? formatGbp(Math.abs(bal)) : 'settled'}
+                      {positive || negative ? formatBase(Math.abs(bal)) : 'settled'}
                     </span>
                   </div>
                 );
@@ -329,7 +342,7 @@ export default function FinanceTab() {
             Total group spend
           </div>
           <div className="mt-1 font-serif text-[30px] font-semibold leading-tight">
-            {formatGbp(total)}
+            {formatBase(total)}
           </div>
         </div>
       </div>
@@ -344,7 +357,7 @@ export default function FinanceTab() {
       {settling && (
         <ConfirmDialog
           title="Settle Up"
-          message={`Log a payment of ${formatGbp(settling.amount)} from ${settling.fromName} to ${settling.toName}?`}
+          message={`Log a payment of ${formatBase(settling.amount)} from ${settling.fromName} to ${settling.toName}?`}
           confirmLabel="Confirm Payment"
           tone="primary"
           onCancel={() => setSettling(null)}
@@ -359,7 +372,7 @@ export default function FinanceTab() {
       {undoing && (
         <ConfirmDialog
           title="Undo settlement?"
-          message={`This reverses ${undoing.fromName}'s ${formatGbp(undoing.amount)} payment to ${undoing.toName} and restores the outstanding balance.`}
+          message={`This reverses ${undoing.fromName}'s ${formatBase(undoing.amount)} payment to ${undoing.toName} and restores the outstanding balance.`}
           confirmLabel="Undo"
           onCancel={() => setUndoing(null)}
           onConfirm={() => {

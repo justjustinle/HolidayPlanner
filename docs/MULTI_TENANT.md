@@ -12,6 +12,8 @@ never broken by a half-landed change.
   single-trip UX.
 - **Phase 4 (migration v7):** multi-trip UI (My Trips, create wizard, join by
   code). Auth-on only; the auth-off single-trip build is unchanged.
+- **Phase 5 (migration v8):** destination date ranges, per-trip currencies, and
+  automatic invite links with a branded invite landing page.
 
 ## Verification status
 
@@ -61,9 +63,11 @@ Applying migration v6 without a signed-in session locks every anon request out
 
 ### 4. Migration
 
-- Run `supabase/migration-v6-auth-rls.sql`, then `supabase/migration-v7-multitrip-ui.sql`
+- Run `supabase/migration-v6-auth-rls.sql`, then `supabase/migration-v7-multitrip-ui.sql`,
+  then `supabase/migration-v8-trip-creation-invites.sql`
   in the SQL Editor. (v7 adds the `create_trip` + `claimable_members` RPCs the
-  multi-trip UI calls; harmless to apply even before you use multiple trips.)
+  multi-trip UI calls; v8 adds `create_trip_v2`, automatic invite generation,
+  and the public-safe invite preview RPC.)
 
 ### 5. Bootstrap the trip owner
 
@@ -78,8 +82,9 @@ update profiles
 ```
 
 Invite the other four beta travellers to sign in and claim their existing member
-row (their expense/photo history follows the claim). New people need an invite
-code — create one:
+row (their expense/photo history follows the claim). Trips created after v8
+automatically receive a unique invite code and link. For the migrated beta trip,
+create its one legacy invite manually:
 
 ```sql
 insert into trip_invites (trip_id, code)

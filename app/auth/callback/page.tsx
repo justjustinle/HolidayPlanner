@@ -20,7 +20,8 @@ export default function AuthCallbackPage() {
     const go = () => {
       if (done) return;
       done = true;
-      router.replace('/');
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.replace(next?.startsWith('/') && !next.startsWith('//') ? next : '/');
     };
 
     supabase.auth.getSession().then(({ data }) => {

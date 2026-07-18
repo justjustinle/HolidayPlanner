@@ -1,6 +1,7 @@
 // Shared domain types — mirror the Supabase schema in supabase/schema.sql.
 
-export type CurrencyCode = 'VND' | 'THB' | 'GBP';
+// ISO-style three-letter code. Trips choose their own currency set.
+export type CurrencyCode = string;
 
 // A person on a trip. Content rows (paid_by_id, uploaded_by_id, splits, stats,
 // claims) all FK to this id. From Phase 1 it is trip-scoped; `user_id` links it
@@ -36,7 +37,20 @@ export interface Trip {
 export interface TripCurrency {
   code: string;
   symbol: string;
-  rate_per_base: number;
+  rate_per_base: number | null;
+}
+
+export interface CreateTripResult {
+  tripId: string;
+  inviteCode: string;
+}
+
+export interface InvitePreview {
+  trip_id: string;
+  trip_name: string;
+  start_date: string;
+  end_date: string;
+  member_count: number;
 }
 
 export interface ItineraryItem {

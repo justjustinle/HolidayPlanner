@@ -6,11 +6,9 @@ import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
 import { useTripData } from '../TripDataProvider';
 import { compressToWebp, dataUrlToBase64, fileToDataUrl } from '@/lib/image';
-import { toGbp, formatGbp, round2, symbolFor } from '@/lib/currency';
+import { toBase, formatBaseCurrency, round2, symbolFor } from '@/lib/currency';
 import { receiptTaxMultiplier } from '@/lib/settle';
 import type { CurrencyCode, Expense } from '@/lib/types';
-
-const CURRENCIES: CurrencyCode[] = ['VND', 'THB', 'GBP'];
 
 interface DraftItem {
   id?: string;
@@ -36,7 +34,7 @@ export default function UploadReceiptSheet({
   const {
     profiles,
     me,
-    settings,
+    trip,
     receipts,
     receiptItems,
     tripDays,
@@ -67,7 +65,7 @@ export default function UploadReceiptSheet({
   );
   const [day, setDay] = useState(expense?.day_number ?? defaultDay ?? 1);
   const [currency, setCurrency] = useState<CurrencyCode>(
-    expense?.local_currency ?? 'THB'
+    expense?.local_currency ?? trip.base_currency
   );
   const [totalStr, setTotalStr] = useState(
     expense ? String(expense.local_amount) : ''
@@ -122,7 +120,12 @@ export default function UploadReceiptSheet({
         nextItems.reduce((s, i) => s + (parseFloat(i.price) || 0), 0)
       );
       setMerchant(data.merchant || '');
-      setCurrency(data.currency as CurrencyCode);
+      const scannedCurrency = String(data.currency ?? '').toUpperCase();
+      setCurrency(
+        currencies.some((item) => item.code === scannedCurrency)
+          ? scannedCurrency
+          : trip.base_currency
+      );
       const scannedTotal = Number(data.total) || 0;
       setTotalStr(
         scannedTotal > 0
@@ -149,7 +152,8 @@ export default function UploadReceiptSheet({
   const multiplier = receiptTaxMultiplier(itemSubtotal, receiptTotal);
   const taxGap = round2(receiptTotal - itemSubtotal);
   const showTaxBadge = typedTotal > itemSubtotal && itemSubtotal > 0;
-  const gbp = toGbp(receiptTotal, currency, settings);
+  const gbp = toBase(receiptTotal, currency, currencies);
+  const hasRate = (currencies.find((item) => item.code === currency)?.rate_per_base ?? 0) > 0;
 
   const updateItem = (idx: number, patch: Partial<DraftItem>) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -157,6 +161,7 @@ export default function UploadReceiptSheet({
   const canSave =
     scanned &&
     receiptTotal > 0 &&
+    hasRate &&
     paidById &&
     items.some((i) => (parseFloat(i.price) || 0) > 0) &&
     !busy;
@@ -280,9 +285,9 @@ export default function UploadReceiptSheet({
               onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
               className={`${inputCls} appearance-none`}
             >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {symbolFor(c, currencies)} {c}
+              {currencies.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.symbol} {item.code}
                 </option>
               ))}
             </select>
@@ -372,7 +377,17 @@ export default function UploadReceiptSheet({
             </p>
           )}
           <p className="mb-4 mt-1 text-right text-[13px] text-muted">
-            = <span className="font-semibold text-ink">{formatGbp(gbp)}</span> base
+            {hasRate ? (
+              <>
+                ={' '}
+                <span className="font-semibold text-ink">
+                  {formatBaseCurrency(gbp, trip.base_currency, currencies)}
+                </span>{' '}
+                home
+              </>
+            ) : (
+              <span className="text-saigon">Set the {currency} exchange rate first</span>
+            )}
           </p>
 
           <div className="mb-2 text-xs uppercase tracking-wide text-muted">Paid by</div>
