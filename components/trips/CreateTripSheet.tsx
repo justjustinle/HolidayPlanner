@@ -12,6 +12,7 @@ const ACCENTS = ['#c9992e', '#2f97a6', '#b0472f', '#3f9b8a', '#7a5cc9', '#4f7fd6
 
 interface Destination {
   id: string;
+  country: string;
   city: string;
   startDate: string;
   endDate: string;
@@ -55,7 +56,8 @@ function destinationsFromTrip(startDate: string, days: TripDay[]): Destination[]
     const previous = groups[groups.length - 1];
     if (
       previous &&
-      previous.city === day.destination &&
+      previous.country === (day.country ?? day.destination) &&
+      previous.city === (day.city ?? '') &&
       previous.accentHex === day.accentHex
     ) {
       previous.endDate = date;
@@ -63,7 +65,8 @@ function destinationsFromTrip(startDate: string, days: TripDay[]): Destination[]
     }
     groups.push({
       id: newId(),
-      city: day.destination,
+      country: day.country ?? day.destination,
+      city: day.city ?? '',
       startDate: date,
       endDate: date,
       accentHex: day.accentHex,
@@ -71,7 +74,16 @@ function destinationsFromTrip(startDate: string, days: TripDay[]): Destination[]
   });
   return groups.length
     ? groups
-    : [{ id: newId(), city: '', startDate: '', endDate: '', accentHex: ACCENTS[0] }];
+    : [
+        {
+          id: newId(),
+          country: '',
+          city: '',
+          startDate: '',
+          endDate: '',
+          accentHex: ACCENTS[0],
+        },
+      ];
 }
 
 const inputClass =
@@ -89,14 +101,22 @@ export default function CreateTripSheet({
     useTripData();
   const { account } = useAuth();
   const [name, setName] = useState(editing ? trip.name : '');
-  const [ownerName, setOwnerName] = useState(account?.name ?? '');
   const [homeCurrency, setHomeCurrency] = useState(
     editing ? trip.base_currency : 'GBP'
   );
   const [destinations, setDestinations] = useState<Destination[]>(() =>
     editing
       ? destinationsFromTrip(trip.start_date, tripDays)
-      : [{ id: newId(), city: '', startDate: '', endDate: '', accentHex: ACCENTS[0] }]
+      : [
+          {
+            id: newId(),
+            country: '',
+            city: '',
+            startDate: '',
+            endDate: '',
+            accentHex: ACCENTS[0],
+          },
+        ]
   );
   const [destinationCurrencies, setDestinationCurrencies] = useState<string[]>(
     () =>
@@ -137,6 +157,7 @@ export default function CreateTripSheet({
         ...previous,
         {
           id: newId(),
+          country: '',
           city: '',
           startDate: nextDate,
           endDate: nextDate,
@@ -148,18 +169,19 @@ export default function CreateTripSheet({
 
   const validationError = useMemo(() => {
     if (!name.trim()) return 'Give the trip a name.';
-    if (!editing && !ownerName.trim()) return 'Add the name your group will see.';
     if (!/^[A-Za-z]{3}$/.test(homeCurrency.trim())) {
       return 'Home currency must be a three-letter code.';
     }
     for (let index = 0; index < destinations.length; index += 1) {
       const destination = destinations[index];
-      if (!destination.city.trim()) return `Name destination ${index + 1}.`;
+      if (!destination.country.trim()) {
+        return `Add a country for destination ${index + 1}.`;
+      }
       if (!destination.startDate || !destination.endDate) {
-        return `Add both dates for ${destination.city.trim()}.`;
+        return `Add both dates for ${destination.city.trim() || destination.country.trim()}.`;
       }
       if (destination.endDate < destination.startDate) {
-        return `${destination.city.trim()}'s end date must be after its start date.`;
+        return `${destination.city.trim() || destination.country.trim()}'s end date must be after its start date.`;
       }
       if (index > 0) {
         const expectedStart = addDays(destinations[index - 1].endDate, 1);
@@ -177,7 +199,7 @@ export default function CreateTripSheet({
       return 'Home currency does not need to be added again.';
     }
     return null;
-  }, [destinationCurrencies, destinations, editing, homeCurrency, name, ownerName]);
+  }, [destinationCurrencies, destinations, homeCurrency, name]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -193,7 +215,8 @@ export default function CreateTripSheet({
         name: name.trim(),
         homeCurrency: homeCurrency.trim().toUpperCase(),
         destinations: destinations.map((destination) => ({
-          destination: destination.city.trim(),
+          country: destination.country.trim(),
+          city: destination.city.trim(),
           startDate: destination.startDate,
           endDate: destination.endDate,
           accentHex: destination.accentHex,
@@ -209,7 +232,10 @@ export default function CreateTripSheet({
       }
       const result = await createTrip({
         ...details,
-        ownerName: ownerName.trim(),
+        ownerName:
+          account?.name?.trim() ||
+          account?.email?.split('@')[0] ||
+          'Me',
       });
       setCreated(result);
     } catch (caught) {
@@ -326,21 +352,6 @@ export default function CreateTripSheet({
           autoFocus
         />
 
-        {!editing && (
-          <>
-            <label htmlFor="owner-name" className="mb-1 block text-xs uppercase tracking-wide text-muted">
-              Your name
-            </label>
-            <input
-              id="owner-name"
-              value={ownerName}
-              onChange={(event) => setOwnerName(event.target.value)}
-              placeholder="How you show up on the trip"
-              className={`${inputClass} mb-4`}
-            />
-          </>
-        )}
-
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs uppercase tracking-wide text-muted">Destinations</p>
           {totalDays > 0 && (
@@ -361,15 +372,16 @@ export default function CreateTripSheet({
               </legend>
               <div className="flex items-start gap-2">
                 <label className="min-w-0 flex-1">
-                  <span className="mb-1 block text-xs text-muted">City</span>
+                  <span className="mb-1 block text-xs text-muted">Country</span>
                   <input
                     type="text"
-                    value={destination.city}
+                    value={destination.country}
                     onChange={(event) =>
-                      updateDestination(destination.id, { city: event.target.value })
+                      updateDestination(destination.id, { country: event.target.value })
                     }
-                    placeholder="e.g. Tokyo"
+                    placeholder="e.g. Japan"
                     className={inputClass}
+                    required
                   />
                 </label>
                 {destinations.length > 1 && (
@@ -381,12 +393,29 @@ export default function CreateTripSheet({
                       )
                     }
                     className="mt-6 flex h-11 w-11 flex-none items-center justify-center rounded-xl text-muted hover:bg-saigon/10 hover:text-saigon"
-                    aria-label={`Remove ${destination.city || `destination ${index + 1}`}`}
+                    aria-label={`Remove ${
+                      destination.city ||
+                      destination.country ||
+                      `destination ${index + 1}`
+                    }`}
                   >
                     <Trash2 size={17} />
                   </button>
                 )}
               </div>
+
+              <label className="mt-2 block">
+                <span className="mb-1 block text-xs text-muted">City (optional)</span>
+                <input
+                  type="text"
+                  value={destination.city}
+                  onChange={(event) =>
+                    updateDestination(destination.id, { city: event.target.value })
+                  }
+                  placeholder="e.g. Tokyo"
+                  className={inputClass}
+                />
+              </label>
 
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label>
@@ -417,7 +446,11 @@ export default function CreateTripSheet({
               <div
                 className="mt-3 flex items-center justify-between gap-3"
                 role="group"
-                aria-label={`Colour for ${destination.city || `destination ${index + 1}`}`}
+                aria-label={`Colour for ${
+                  destination.city ||
+                  destination.country ||
+                  `destination ${index + 1}`
+                }`}
               >
                 <span className="text-xs text-muted">Colour</span>
                 <div className="flex gap-2">

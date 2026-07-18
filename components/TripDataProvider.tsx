@@ -130,7 +130,8 @@ export interface TripDetailsInput {
   name: string;
   homeCurrency: string;
   destinations: {
-    destination: string;
+    country: string;
+    city: string;
     startDate: string;
     endDate: string;
     accentHex: string;
@@ -300,7 +301,12 @@ export default function TripDataProvider({
     // seeds these tables hasn't been applied yet).
     if (tr.data) setTrip(tr.data as Trip);
     const dayRows = (td.data ?? []) as {
-      day_number: number; date: string; destination: string; accent_hex: string;
+      day_number: number;
+      date: string;
+      destination: string;
+      accent_hex: string;
+      country?: string;
+      city?: string | null;
     }[];
     if (dayRows.length) setTripDays(dayRows.map(tripDayFromRow));
     const currencyRows = (tc.data ?? []) as TripCurrency[];
@@ -602,12 +608,13 @@ export default function TripDataProvider({
   const createTrip = useCallback<TripDataValue['createTrip']>(
     async (input) => {
       if (!supabase) throw new Error('Not connected.');
-      const { data, error } = await supabase.rpc('create_trip_v2', {
+      const { data, error } = await supabase.rpc('create_trip_v3', {
         p_name: input.name,
         p_owner_name: input.ownerName,
         p_home_currency: input.homeCurrency,
         p_destinations: input.destinations.map((destination) => ({
-          destination: destination.destination,
+          country: destination.country,
+          city: destination.city,
           start_date: destination.startDate,
           end_date: destination.endDate,
           accent_hex: destination.accentHex,
@@ -630,12 +637,13 @@ export default function TripDataProvider({
       if (!supabase || !activeTripIdRef.current) {
         throw new Error('Open a trip before editing it.');
       }
-      const { error } = await supabase.rpc('update_trip_v2', {
+      const { error } = await supabase.rpc('update_trip_v3', {
         p_trip: activeTripIdRef.current,
         p_name: input.name,
         p_home_currency: input.homeCurrency,
         p_destinations: input.destinations.map((destination) => ({
-          destination: destination.destination,
+          country: destination.country,
+          city: destination.city,
           start_date: destination.startDate,
           end_date: destination.endDate,
           accent_hex: destination.accentHex,

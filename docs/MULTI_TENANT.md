@@ -18,6 +18,8 @@ never broken by a half-landed change.
   leave/rejoin membership state.
 - **Phase 7 (migration v11):** safe editing of trip dates, destinations, and
   currency lists from the hamburger menu.
+- **Phase 8 (migration v12):** mandatory destination countries with optional
+  cities and city-first display fallback.
 
 ## Verification status
 
@@ -85,7 +87,8 @@ Applying migration v6 without a signed-in session locks every anon request out
   `supabase/migration-v8-trip-creation-invites.sql`,
   `supabase/migration-v9-fix-trip-invite-uuid.sql`, and
   `supabase/migration-v10-leave-trip.sql`, then
-  `supabase/migration-v11-edit-trip.sql`
+  `supabase/migration-v11-edit-trip.sql`, then
+  `supabase/migration-v12-country-city-destinations.sql`
   in the SQL Editor. (v7 adds the `create_trip` + `claimable_members` RPCs the
   multi-trip UI calls; v8 adds `create_trip_v2`, automatic invite generation,
   and the public-safe invite preview RPC; v10 preserves historical traveler
