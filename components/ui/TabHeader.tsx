@@ -5,6 +5,7 @@ import { Calendar, Menu, Users } from 'lucide-react';
 import AppDrawer from './AppDrawer';
 import TravelerFacepile from './TravelerFacepile';
 import WhoIsGoingSheet from './WhoIsGoingSheet';
+import InviteFriendsSheet from './InviteFriendsSheet';
 import YarnLogo from '../brand/YarnLogo';
 import { ThaiFlag, VietnamFlag } from './Flag';
 import { rangeLabelFromDays } from '@/lib/trip';
@@ -31,6 +32,7 @@ export default function TabHeader(props: TabHeaderProps) {
   const isTrip = props.variant !== 'section';
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const { trip, tripDays } = useTripData();
   const dates = rangeLabelFromDays(tripDays);
 
@@ -98,8 +100,10 @@ export default function TabHeader(props: TabHeaderProps) {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onOpenRoster={() => setRosterOpen(true)}
+        onOpenInvite={() => setInviteOpen(true)}
       />
       {rosterOpen && <WhoIsGoingSheet onClose={() => setRosterOpen(false)} />}
+      {inviteOpen && <InviteFriendsSheet onClose={() => setInviteOpen(false)} />}
     </header>
   );
 }
