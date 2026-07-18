@@ -13,8 +13,8 @@ import { hapticLight, MOTION } from '@/lib/motion';
 import { formatTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
-/** Start-time type size — keep in sync with the clock class below. */
-const START_TIME_FONT_PX = 17;
+/** Start-time type size — keep in sync with the clock style below. */
+const START_TIME_FONT_PX = 17 * 0.85; // ~14.45px
 
 export default function ItineraryCard({
   item,
