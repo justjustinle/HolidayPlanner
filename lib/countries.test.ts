@@ -20,7 +20,19 @@ test('normalizeCountryName maps aliases to canonical names', () => {
   assert.equal(normalizeCountryName('UK'), 'United Kingdom');
   assert.equal(normalizeCountryName('Maldives'), 'The Maldives');
   assert.equal(normalizeCountryName('Philippines'), 'The Philippines');
+  assert.equal(normalizeCountryName('Czech Republic'), 'Czechia');
+  assert.equal(normalizeCountryName('Holland'), 'Netherlands');
+  assert.equal(normalizeCountryName('Ivory Coast'), "Côte d'Ivoire");
   assert.equal(normalizeCountryName('Atlantis'), null);
+});
+
+test('country list covers original set plus 100 popular additions', async () => {
+  const { COUNTRY_OPTIONS } = await import('./countries');
+  assert.equal(COUNTRY_OPTIONS.length, 150);
+  assert.ok(COUNTRY_OPTIONS.includes('Germany'));
+  assert.ok(COUNTRY_OPTIONS.includes('Brazil'));
+  assert.ok(COUNTRY_OPTIONS.includes('Kenya'));
+  assert.ok(COUNTRY_OPTIONS.includes('Thailand'));
 });
 
 test('uniqueCountriesFromTripDays collates first-seen unique countries', () => {
