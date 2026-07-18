@@ -4,6 +4,8 @@
 export interface TripDay {
   dayNumber: number;
   destination: string;
+  country?: string;
+  city?: string | null;
   label: string; // e.g. "Day 1"
   dateLabel: string; // e.g. "Fri 28th Aug" (weekdays match 2026)
   accentHex: string;
@@ -73,10 +75,14 @@ export function tripDayFromRow(row: {
   date: string;
   destination: string;
   accent_hex: string;
+  country?: string;
+  city?: string | null;
 }): TripDay {
   return {
     dayNumber: row.day_number,
     destination: row.destination,
+    country: row.country ?? row.destination,
+    city: row.city ?? null,
     label: `Day ${row.day_number}`,
     dateLabel: formatTripDate(row.date),
     accentHex: row.accent_hex,
