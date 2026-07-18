@@ -528,19 +528,6 @@ export default function TripDataProvider({
     [refetchAll]
   );
 
-  const joinTripByCode = useCallback(
-    async (code: string) => {
-      if (!supabase) return;
-      const { data, error } = await supabase.rpc('join_trip', { invite_code: code.trim() });
-      if (error) throw error;
-      await loadMyTrips();
-      if (typeof data === 'string') setActiveTrip(data);
-    },
-    // loadMyTrips and setActiveTrip are declared below; both read current refs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
   // --- multi-trip (Phase 4) -------------------------------------------------
   // The trips the signed-in account is a member of (auth-on only).
   const loadMyTrips = useCallback(async () => {
@@ -579,6 +566,19 @@ export default function TripDataProvider({
     if (tripId) void refetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const joinTripByCode = useCallback<TripDataValue['joinTripByCode']>(
+    async (code) => {
+      if (!supabase) return;
+      const { data, error } = await supabase.rpc('join_trip', {
+        invite_code: code.trim(),
+      });
+      if (error) throw error;
+      await loadMyTrips();
+      if (typeof data === 'string') setActiveTrip(data);
+    },
+    [loadMyTrips, setActiveTrip]
+  );
 
   const createTrip = useCallback<TripDataValue['createTrip']>(
     async (input) => {

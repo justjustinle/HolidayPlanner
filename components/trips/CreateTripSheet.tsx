@@ -224,7 +224,7 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
+        {origin && typeof navigator.share === 'function' && (
           <button
             type="button"
             onClick={() => navigator.share({ title: `Join ${name} on Yarn`, url: inviteLink })}
