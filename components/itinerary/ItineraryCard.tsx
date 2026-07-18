@@ -3,12 +3,18 @@
 import { useMemo, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
-import { YarnTimelineNode } from './YarnTimelineRail';
+import {
+  TIMELINE_NODE_CENTER_Y_PX,
+  YarnTimelineNode,
+} from './YarnTimelineRail';
 import { useTripData } from '../TripDataProvider';
 import { YARN_BRAND } from '@/lib/brand/yarn';
 import { hapticLight, MOTION } from '@/lib/motion';
 import { formatTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
+
+/** Start-time type size — keep in sync with the clock class below. */
+const START_TIME_FONT_PX = 17;
 
 export default function ItineraryCard({
   item,
@@ -50,9 +56,20 @@ export default function ItineraryCard({
       <div
         className={`relative flex items-stretch gap-3 transition-opacity ${dimmed ? 'opacity-45' : ''}`}
       >
-        {/* Time column — start primary; optional end stacked with TO */}
-        <div className="w-[56px] flex-none self-start pt-0.5 text-right tabular-nums">
-          <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
+        {/* Time column — start primary; vertically centered on the diamond node */}
+        <div
+          className="w-[56px] flex-none self-start text-right tabular-nums"
+          style={{
+            paddingTop: Math.max(
+              0,
+              TIMELINE_NODE_CENTER_Y_PX - START_TIME_FONT_PX / 2
+            ),
+          }}
+        >
+          <div
+            className="font-semibold leading-none tracking-tight text-ink"
+            style={{ fontSize: START_TIME_FONT_PX }}
+          >
             {startClock}
           </div>
           {endClock && (

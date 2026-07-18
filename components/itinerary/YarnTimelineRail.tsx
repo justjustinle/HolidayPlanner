@@ -1,3 +1,9 @@
+/** Vertical position of the activity diamond (title-aligned). */
+export const TIMELINE_NODE_TOP_PX = 18.75;
+export const TIMELINE_NODE_SIZE_PX = 8.5;
+export const TIMELINE_NODE_CENTER_Y_PX =
+  TIMELINE_NODE_TOP_PX + TIMELINE_NODE_SIZE_PX / 2;
+
 /** Dashed vertical segment from this node into the next title-aligned marker. */
 function TimelineSegment({ accentHex }: { accentHex: string }) {
   return (
@@ -25,8 +31,13 @@ export function YarnTimelineNode({
   return (
     <div className="relative flex w-5 flex-none flex-col self-stretch">
       <span
-        className="absolute left-1/2 top-[18.75px] z-10 h-[8.5px] w-[8.5px] -translate-x-1/2 rotate-45 rounded-[1px]"
-        style={{ background: accentHex }}
+        className="absolute left-1/2 z-10 -translate-x-1/2 rotate-45 rounded-[1px]"
+        style={{
+          top: TIMELINE_NODE_TOP_PX,
+          width: TIMELINE_NODE_SIZE_PX,
+          height: TIMELINE_NODE_SIZE_PX,
+          background: accentHex,
+        }}
         aria-hidden
       />
       {/* In-flow spacer reserves the node offset so the rail stretches with the row. */}
