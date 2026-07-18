@@ -4,29 +4,34 @@ import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 
-// The Financial Matrix Controller: anyone can edit the group's baseline
-// exchange rates (local units per £1). These drive every GBP conversion.
+// The group's exchange rates: for each of the trip's local currencies, how many
+// local units equal one unit of the base currency. These drive every base-money
+// conversion. Sourced from the trip's currency list (trip_currencies); the base
+// currency row is fixed at 1 and not editable.
 export default function RateSettings() {
-  const { settings, updateRates } = useTripData();
-  const [vnd, setVnd] = useState(String(settings.vnd_per_gbp));
-  const [thb, setThb] = useState(String(settings.thb_per_gbp));
+  const { trip, currencies, updateCurrencyRate } = useTripData();
+  const locals = currencies.filter((c) => c.code !== trip.base_currency);
+
+  const [draft, setDraft] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
-  // Keep local inputs in sync if another device updates the rates.
+  // Keep inputs in sync when rates change elsewhere (another device / trip).
   useEffect(() => {
-    setVnd(String(settings.vnd_per_gbp));
-    setThb(String(settings.thb_per_gbp));
-  }, [settings.vnd_per_gbp, settings.thb_per_gbp]);
+    setDraft(Object.fromEntries(locals.map((c) => [c.code, String(c.rate_per_base)])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currencies, trip.base_currency]);
 
-  const dirty =
-    parseFloat(vnd) !== settings.vnd_per_gbp ||
-    parseFloat(thb) !== settings.thb_per_gbp;
+  const dirty = locals.some(
+    (c) => parseFloat(draft[c.code] ?? '') !== c.rate_per_base
+  );
 
   const save = async () => {
-    const v = parseFloat(vnd);
-    const t = parseFloat(thb);
-    if (!v || !t) return;
-    await updateRates(v, t);
+    for (const c of locals) {
+      const v = parseFloat(draft[c.code] ?? '');
+      if (v > 0 && v !== c.rate_per_base) {
+        await updateCurrencyRate(c.code, v);
+      }
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
@@ -34,32 +39,33 @@ export default function RateSettings() {
   const field =
     'w-full rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-[16px] text-ink outline-none focus:border-ink';
 
+  if (locals.length === 0) return null;
+
   return (
     <div className="rounded-2xl border border-black/5 bg-cream-card/60 p-4">
       <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted">
         Exchange rates
       </h2>
-      <p className="mb-3 mt-1 text-[13px] text-muted">How much local currency equals £1.</p>
+      <p className="mb-3 mt-1 text-[13px] text-muted">
+        How much local currency equals 1 {trip.base_currency}.
+      </p>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="mb-1 block text-xs text-muted">₫ VND per £1</span>
-          <input
-            value={vnd}
-            onChange={(e) => setVnd(e.target.value.replace(/[^0-9.]/g, ''))}
-            inputMode="decimal"
-            className={field}
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs text-muted">฿ THB per £1</span>
-          <input
-            value={thb}
-            onChange={(e) => setThb(e.target.value.replace(/[^0-9.]/g, ''))}
-            inputMode="decimal"
-            className={field}
-          />
-        </label>
+        {locals.map((c) => (
+          <label key={c.code} className="block">
+            <span className="mb-1 block text-xs text-muted">
+              {c.symbol} {c.code} per 1 {trip.base_currency}
+            </span>
+            <input
+              value={draft[c.code] ?? ''}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, [c.code]: e.target.value.replace(/[^0-9.]/g, '') }))
+              }
+              inputMode="decimal"
+              className={field}
+            />
+          </label>
+        ))}
       </div>
 
       <button

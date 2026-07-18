@@ -9,12 +9,15 @@ import {
   BellRing,
   Loader2,
   Users,
-  Map,
+  Plus,
+  Ticket,
 } from 'lucide-react';
 import Avatar from './Avatar';
 import YarnLogo from '../brand/YarnLogo';
 import { useTripData } from '../TripDataProvider';
 import { useAuth } from '../AuthProvider';
+import CreateTripSheet from '../trips/CreateTripSheet';
+import { formatTripDate } from '@/lib/trip';
 import {
   disablePush,
   enablePush,
@@ -32,11 +35,12 @@ export default function AppDrawer({
   onClose: () => void;
   onOpenRoster: () => void;
 }) {
-  const { me, signOut, setMyPhoto, setActiveTrip } = useTripData();
-  const { authEnabled, signOutAccount } = useAuth();
+  const { me, signOut, setMyPhoto, setActiveTrip, myTrips, activeTripId } = useTripData();
+  const { authEnabled, account, signOutAccount } = useAuth();
   const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
     'idle'
   );
+  const [creatingTrip, setCreatingTrip] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const notificationsOn = pushState === 'on';
 
@@ -119,29 +123,86 @@ export default function AppDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-3">
-          {me && (
+          {/* Identity: the Google account when auth is on, else the member. */}
+          {authEnabled && account ? (
             <div className="mb-2 flex items-center gap-3 rounded-xl px-3 py-3">
-              <Avatar name={me.name} src={me.avatar_url} size={44} />
+              <Avatar name={account.name ?? account.email ?? '?'} src={account.avatarUrl} size={44} />
               <div className="min-w-0">
-                <div className="text-[12px] text-muted">Signed in as</div>
                 <div className="truncate text-[16px] font-medium text-ink">
-                  {me.name}
+                  {account.name ?? 'Signed in'}
                 </div>
+                {account.email && (
+                  <div className="truncate text-[12px] text-muted">{account.email}</div>
+                )}
               </div>
             </div>
+          ) : (
+            me && (
+              <div className="mb-2 flex items-center gap-3 rounded-xl px-3 py-3">
+                <Avatar name={me.name} src={me.avatar_url} size={44} />
+                <div className="min-w-0">
+                  <div className="text-[12px] text-muted">Signed in as</div>
+                  <div className="truncate text-[16px] font-medium text-ink">{me.name}</div>
+                </div>
+              </div>
+            )
           )}
 
+          {/* My trips section (auth on): switch trip, create, or join. */}
           {authEnabled && (
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                setActiveTrip(null);
-              }}
-              className={itemCls}
-            >
-              <Map size={18} className="text-muted" /> My trips
-            </button>
+            <div className="mb-2 border-b border-black/5 pb-2">
+              <div className="px-3 pb-1 pt-2 text-[11px] uppercase tracking-wide text-muted">
+                My trips
+              </div>
+              {myTrips.map((t) => {
+                const current = t.id === activeTripId;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      if (!current) setActiveTrip(t.id);
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-black/5 ${
+                      current ? 'bg-black/[.04]' : ''
+                    }`}
+                  >
+                    <span
+                      className="h-8 w-1.5 flex-none rounded-full"
+                      style={{ background: current ? 'var(--city-accent)' : 'rgba(0,0,0,.15)' }}
+                      aria-hidden
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[15px] font-medium text-ink">
+                        {t.name}
+                      </span>
+                      <span className="block truncate text-[12px] text-muted">
+                        {formatTripDate(t.start_date).replace(/^\w+\s/, '')} –{' '}
+                        {formatTripDate(t.end_date).replace(/^\w+\s/, '')}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setCreatingTrip(true)}
+                className={itemCls}
+              >
+                <Plus size={18} className="text-muted" /> Create a trip
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  setActiveTrip(null);
+                }}
+                className={itemCls}
+              >
+                <Ticket size={18} className="text-muted" /> Join with a code
+              </button>
+            </div>
           )}
           <button
             type="button"
@@ -205,6 +266,15 @@ export default function AppDrawer({
           className="hidden"
         />
       </aside>
+
+      {creatingTrip && (
+        <CreateTripSheet
+          onClose={() => {
+            setCreatingTrip(false);
+            onClose();
+          }}
+        />
+      )}
     </>
   );
 }

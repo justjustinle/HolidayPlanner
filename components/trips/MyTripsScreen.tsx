@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, LogOut, Loader2, Ticket } from 'lucide-react';
+import { Plus, LogOut, Ticket } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import { useAuth } from '../AuthProvider';
 import { rangeLabelFromDays, formatTripDate, type TripDay } from '@/lib/trip';
 import CreateTripSheet from './CreateTripSheet';
+import JoinByCode from './JoinByCode';
 import type { Trip } from '@/lib/types';
 
 // Compact date range for a trip card, derived from its start/end dates.
@@ -20,27 +21,9 @@ function tripRange(trip: Trip): string {
 // Auth-on landing when no trip is open: pick an existing trip, create one, or
 // join by invite code.
 export default function MyTripsScreen() {
-  const { myTrips, setActiveTrip, joinTripByCode } = useTripData();
+  const { myTrips, setActiveTrip } = useTripData();
   const { account, signOutAccount } = useAuth();
   const [creating, setCreating] = useState(false);
-  const [code, setCode] = useState('');
-  const [joining, setJoining] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const join = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code.trim() || joining) return;
-    setJoining(true);
-    setError(null);
-    try {
-      await joinTripByCode(code);
-      setCode('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'That code did not work.');
-    } finally {
-      setJoining(false);
-    }
-  };
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
@@ -99,28 +82,12 @@ export default function MyTripsScreen() {
         <Plus size={18} /> Create a trip
       </button>
 
-      <form onSubmit={join} className="mt-8">
+      <div className="mt-8">
         <p className="mb-2 flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-muted">
           <Ticket size={14} /> Join with a code
         </p>
-        <div className="flex gap-2">
-          <input
-            aria-label="Invite code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Invite code"
-            className="min-w-0 flex-1 rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-[15px] text-ink outline-none focus:border-ink"
-          />
-          <button
-            type="submit"
-            disabled={!code.trim() || joining}
-            className="flex flex-none items-center justify-center gap-2 rounded-xl border border-black/15 bg-cream-card px-4 text-[15px] font-medium text-ink disabled:opacity-40"
-          >
-            {joining ? <Loader2 size={16} className="animate-spin" /> : 'Join'}
-          </button>
-        </div>
-        {error && <p className="mt-2 text-[13px] text-saigon">{error}</p>}
-      </form>
+        <JoinByCode />
+      </div>
 
       {creating && <CreateTripSheet onClose={() => setCreating(false)} />}
     </div>

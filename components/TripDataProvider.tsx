@@ -125,6 +125,12 @@ export interface NewReceiptInput {
   imageFile?: File | null;
 }
 
+export interface ClaimableMember {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+}
+
 export interface NewTripInput {
   name: string;
   startDate: string; // 'YYYY-MM-DD'
@@ -156,6 +162,15 @@ interface TripDataValue {
   myTrips: Trip[];
   setActiveTrip: (tripId: string | null) => void;
   createTrip: (input: NewTripInput) => Promise<string>;
+  // Unclaimed members of the trip an invite code points at (RLS-safe rpc).
+  fetchClaimableMembers: (code: string) => Promise<ClaimableMember[]>;
+  // Read-or-create the active trip's invite code (owner-only creation).
+  getOrCreateInvite: () => Promise<string | null>;
+  // Owner roster management on the active trip.
+  addPlaceholderMember: (name: string) => Promise<void>;
+  removeMember: (id: string) => Promise<void>;
+  // Set a local currency's rate (per 1 base unit) on the active trip.
+  updateCurrencyRate: (code: string, ratePerBase: number) => Promise<void>;
   profiles: Profile[];
   settings: TripSettings;
   itinerary: ItineraryItem[];
@@ -593,6 +608,98 @@ export default function TripDataProvider({
       return newTripId;
     },
     [loadMyTrips, setActiveTrip]
+  );
+
+  const fetchClaimableMembers = useCallback<TripDataValue['fetchClaimableMembers']>(
+    async (code) => {
+      if (!supabase) return [];
+      const { data, error } = await supabase.rpc('claimable_members', {
+        invite_code: code.trim(),
+      });
+      if (error) return [];
+      return (data ?? []) as ClaimableMember[];
+    },
+    []
+  );
+
+  const getOrCreateInvite = useCallback<TripDataValue['getOrCreateInvite']>(async () => {
+    const tripId = activeTripIdRef.current;
+    if (!supabase || !tripId) return null;
+    const { data: existing } = await supabase
+      .from('trip_invites')
+      .select('code')
+      .eq('trip_id', tripId)
+      .eq('revoked', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing?.code) return existing.code as string;
+    // Create one — RLS allows this only for the trip owner.
+    const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const { data: created, error } = await supabase
+      .from('trip_invites')
+      .insert({ trip_id: tripId, code, created_by: account?.id ?? null })
+      .select('code')
+      .single();
+    if (error) return null;
+    return (created?.code as string) ?? null;
+  }, [account]);
+
+  const addPlaceholderMember = useCallback<TripDataValue['addPlaceholderMember']>(
+    async (rawName) => {
+      const name = rawName.trim();
+      if (!name) return;
+      if (demoMode) {
+        setProfiles((prev) => [...prev, { id: genId(), name, avatar_url: null }]);
+        return;
+      }
+      const tripId = activeTripIdRef.current;
+      if (!supabase || !tripId) return;
+      const { error } = await supabase.from('profiles').insert({ trip_id: tripId, name });
+      if (error) throw error;
+      await refetchAll();
+    },
+    [demoMode, refetchAll]
+  );
+
+  const removeMember = useCallback<TripDataValue['removeMember']>(
+    async (id) => {
+      if (demoMode) {
+        setProfiles((prev) => prev.filter((p) => p.id !== id));
+        return;
+      }
+      if (!supabase) return;
+      const { error } = await supabase.from('profiles').delete().eq('id', id);
+      if (error) throw error;
+      await refetchAll();
+    },
+    [demoMode, refetchAll]
+  );
+
+  const updateCurrencyRate = useCallback<TripDataValue['updateCurrencyRate']>(
+    async (code, ratePerBase) => {
+      const rate = round2(ratePerBase);
+      if (!(rate > 0)) return;
+      const tripId = activeTripIdRef.current;
+      if (demoMode || !supabase || !tripId) {
+        // Demo / no DB: update the in-memory currency and mirror the two legacy
+        // FX columns so the GBP conversion math (still on trip_settings) agrees.
+        setCurrencies((prev) =>
+          prev.map((c) => (c.code === code ? { ...c, rate_per_base: rate } : c))
+        );
+        if (code === 'VND') setSettings((s) => ({ ...s, vnd_per_gbp: rate }));
+        if (code === 'THB') setSettings((s) => ({ ...s, thb_per_gbp: rate }));
+        return;
+      }
+      const { error } = await supabase
+        .from('trip_currencies')
+        .update({ rate_per_base: rate, updated_at: new Date().toISOString() })
+        .eq('trip_id', tripId)
+        .eq('code', code);
+      if (error) throw error;
+      await refetchAll();
+    },
+    [demoMode, refetchAll]
   );
 
   // Upload an avatar photo into the shared bucket under a stable key so it
@@ -1409,6 +1516,11 @@ export default function TripDataProvider({
       myTrips,
       setActiveTrip,
       createTrip,
+      fetchClaimableMembers,
+      getOrCreateInvite,
+      addPlaceholderMember,
+      removeMember,
+      updateCurrencyRate,
       profiles,
       settings,
       trip,
@@ -1451,6 +1563,11 @@ export default function TripDataProvider({
       myTrips,
       setActiveTrip,
       createTrip,
+      fetchClaimableMembers,
+      getOrCreateInvite,
+      addPlaceholderMember,
+      removeMember,
+      updateCurrencyRate,
       profiles,
       settings,
       trip,

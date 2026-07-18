@@ -7,6 +7,7 @@ import { useAuth } from './AuthProvider';
 import { ThaiFlag, VietnamFlag } from './ui/Flag';
 import PlaneJourney from './ui/PlaneJourney';
 import Avatar from './ui/Avatar';
+import JoinByCode from './trips/JoinByCode';
 
 // Shared branded header for every gate variant (flags, plane, headline).
 function GateHeader({ subtitle }: { subtitle: string }) {
@@ -73,95 +74,23 @@ function GoogleGate() {
   );
 }
 
-// Variant B — signed in but no membership yet: claim an existing member or join
-// by code.
+// Variant B — signed in but no membership on the open trip: join / claim via an
+// invite code (RLS-safe; a non-member can't read the roster directly).
 function ClaimGate() {
-  const { profiles, claimMembership, joinTripByCode, setActiveTrip } = useTripData();
+  const { setActiveTrip } = useTripData();
   const { account, signOutAccount } = useAuth();
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const unclaimed = profiles.filter((p) => !p.user_id);
-
-  const claim = async (memberId: string) => {
-    setError(null);
-    setBusyId(memberId);
-    try {
-      await claimMembership(memberId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not claim that member.');
-      setBusyId(null);
-    }
-  };
-
-  const join = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setBusyId('__join__');
-    try {
-      await joinTripByCode(code);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'That code did not work.');
-      setBusyId(null);
-    }
-  };
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-app flex-col justify-center px-6 py-8">
       <div className="animate-fade-in">
         <GateHeader subtitle={`Signed in as ${account?.email ?? 'your account'}.`} />
 
-        {unclaimed.length > 0 && (
-          <div className="mt-7">
-            <p className="mb-3 text-center text-[12px] uppercase tracking-wide text-muted">
-              Which one are you? Tap your name
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              {unclaimed.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => claim(p.id)}
-                  disabled={busyId !== null}
-                  className="flex w-16 flex-col items-center gap-1.5 disabled:opacity-40"
-                >
-                  <div className="relative">
-                    <Avatar name={p.name} src={p.avatar_url} size={52} />
-                    {busyId === p.id && (
-                      <span className="absolute inset-0 flex items-center justify-center rounded-full bg-cream/70">
-                        <Loader2 size={18} className="animate-spin" />
-                      </span>
-                    )}
-                  </div>
-                  <span className="max-w-full truncate text-[12px] text-ink">{p.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={join} className="mt-8">
+        <div className="mt-8">
           <p className="mb-2 text-center text-[12px] uppercase tracking-wide text-muted">
-            Or join with a code
+            Enter your invite code to join
           </p>
-          <input
-            aria-label="Invite code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Invite code"
-            className="w-full rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-center text-[16px] text-ink outline-none focus:border-bangkok"
-          />
-          <button
-            type="submit"
-            disabled={busyId !== null || !code.trim()}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3.5 text-[15px] font-medium text-white disabled:opacity-40"
-          >
-            {busyId === '__join__' && <Loader2 size={16} className="animate-spin" />}
-            Join the trip
-          </button>
-        </form>
-
-        {error && <p className="mt-3 text-center text-sm text-saigon">{error}</p>}
+          <JoinByCode />
+        </div>
 
         <div className="mt-6 flex items-center justify-center gap-5">
           <button
