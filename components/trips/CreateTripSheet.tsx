@@ -6,6 +6,7 @@ import Sheet from '../ui/Sheet';
 import { useTripData } from '../TripDataProvider';
 import { useAuth } from '../AuthProvider';
 import type { CreateTripResult } from '@/lib/types';
+import type { TripDay } from '@/lib/trip';
 
 const ACCENTS = ['#c9992e', '#2f97a6', '#b0472f', '#3f9b8a', '#7a5cc9', '#4f7fd6'];
 
@@ -47,19 +48,64 @@ function dateLabel(date: string): string {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+function destinationsFromTrip(startDate: string, days: TripDay[]): Destination[] {
+  const groups: Destination[] = [];
+  days.forEach((day, index) => {
+    const date = addDays(startDate, index);
+    const previous = groups[groups.length - 1];
+    if (
+      previous &&
+      previous.city === day.destination &&
+      previous.accentHex === day.accentHex
+    ) {
+      previous.endDate = date;
+      return;
+    }
+    groups.push({
+      id: newId(),
+      city: day.destination,
+      startDate: date,
+      endDate: date,
+      accentHex: day.accentHex,
+    });
+  });
+  return groups.length
+    ? groups
+    : [{ id: newId(), city: '', startDate: '', endDate: '', accentHex: ACCENTS[0] }];
+}
+
 const inputClass =
   'w-full rounded-xl border border-black/10 bg-cream-card px-3 py-2.5 text-[16px] text-ink outline-none focus:border-ink';
 
-export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
-  const { createTrip, setActiveTrip } = useTripData();
+export default function CreateTripSheet({
+  onClose,
+  mode = 'create',
+}: {
+  onClose: () => void;
+  mode?: 'create' | 'edit';
+}) {
+  const editing = mode === 'edit';
+  const { createTrip, updateTrip, setActiveTrip, trip, tripDays, currencies } =
+    useTripData();
   const { account } = useAuth();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(editing ? trip.name : '');
   const [ownerName, setOwnerName] = useState(account?.name ?? '');
-  const [homeCurrency, setHomeCurrency] = useState('GBP');
-  const [destinations, setDestinations] = useState<Destination[]>([
-    { id: newId(), city: '', startDate: '', endDate: '', accentHex: ACCENTS[0] },
-  ]);
-  const [destinationCurrencies, setDestinationCurrencies] = useState<string[]>([]);
+  const [homeCurrency, setHomeCurrency] = useState(
+    editing ? trip.base_currency : 'GBP'
+  );
+  const [destinations, setDestinations] = useState<Destination[]>(() =>
+    editing
+      ? destinationsFromTrip(trip.start_date, tripDays)
+      : [{ id: newId(), city: '', startDate: '', endDate: '', accentHex: ACCENTS[0] }]
+  );
+  const [destinationCurrencies, setDestinationCurrencies] = useState<string[]>(
+    () =>
+      editing
+        ? currencies
+            .filter((currency) => currency.code !== trip.base_currency)
+            .map((currency) => currency.code)
+        : []
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreateTripResult | null>(null);
@@ -102,7 +148,7 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
 
   const validationError = useMemo(() => {
     if (!name.trim()) return 'Give the trip a name.';
-    if (!ownerName.trim()) return 'Add the name your group will see.';
+    if (!editing && !ownerName.trim()) return 'Add the name your group will see.';
     if (!/^[A-Za-z]{3}$/.test(homeCurrency.trim())) {
       return 'Home currency must be a three-letter code.';
     }
@@ -131,7 +177,7 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
       return 'Home currency does not need to be added again.';
     }
     return null;
-  }, [destinationCurrencies, destinations, homeCurrency, name, ownerName]);
+  }, [destinationCurrencies, destinations, editing, homeCurrency, name, ownerName]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -143,9 +189,8 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const result = await createTrip({
+      const details = {
         name: name.trim(),
-        ownerName: ownerName.trim(),
         homeCurrency: homeCurrency.trim().toUpperCase(),
         destinations: destinations.map((destination) => ({
           destination: destination.city.trim(),
@@ -156,10 +201,25 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
         destinationCurrencies: destinationCurrencies.map((code) =>
           code.trim().toUpperCase()
         ),
+      };
+      if (editing) {
+        await updateTrip(details);
+        onClose();
+        return;
+      }
+      const result = await createTrip({
+        ...details,
+        ownerName: ownerName.trim(),
       });
       setCreated(result);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not create the trip.');
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : editing
+            ? 'Could not update the trip.'
+            : 'Could not create the trip.'
+      );
     } finally {
       setBusy(false);
     }
@@ -172,7 +232,7 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
     window.setTimeout(() => setCopied(null), 1500);
   };
 
-  if (created) {
+  if (created && !editing) {
     return (
       <Sheet title="Invite your group" onClose={onClose}>
         <div className="rounded-2xl bg-cream-card p-4 text-center">
@@ -252,7 +312,7 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Sheet title="Create a trip" onClose={onClose}>
+    <Sheet title={editing ? 'Edit trip' : 'Create a trip'} onClose={onClose}>
       <form onSubmit={submit}>
         <label htmlFor="trip-name" className="mb-1 block text-xs uppercase tracking-wide text-muted">
           Trip name
@@ -266,16 +326,20 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
           autoFocus
         />
 
-        <label htmlFor="owner-name" className="mb-1 block text-xs uppercase tracking-wide text-muted">
-          Your name
-        </label>
-        <input
-          id="owner-name"
-          value={ownerName}
-          onChange={(event) => setOwnerName(event.target.value)}
-          placeholder="How you show up on the trip"
-          className={`${inputClass} mb-4`}
-        />
+        {!editing && (
+          <>
+            <label htmlFor="owner-name" className="mb-1 block text-xs uppercase tracking-wide text-muted">
+              Your name
+            </label>
+            <input
+              id="owner-name"
+              value={ownerName}
+              onChange={(event) => setOwnerName(event.target.value)}
+              placeholder="How you show up on the trip"
+              className={`${inputClass} mb-4`}
+            />
+          </>
+        )}
 
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs uppercase tracking-wide text-muted">Destinations</p>
@@ -460,7 +524,7 @@ export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3.5 text-[15px] font-medium text-white disabled:opacity-40"
         >
           {busy && <Loader2 size={16} className="animate-spin" />}
-          Create trip
+          {editing ? 'Save changes' : 'Create trip'}
         </button>
       </form>
     </Sheet>

@@ -16,6 +16,8 @@ never broken by a half-landed change.
   automatic invite links with a branded invite landing page.
 - **Phase 6 (migrations v9–v10):** invite UUID compatibility and reversible
   leave/rejoin membership state.
+- **Phase 7 (migration v11):** safe editing of trip dates, destinations, and
+  currency lists from the hamburger menu.
 
 ## Verification status
 
@@ -82,7 +84,8 @@ Applying migration v6 without a signed-in session locks every anon request out
 - Run `supabase/migration-v6-auth-rls.sql`, then `supabase/migration-v7-multitrip-ui.sql`,
   `supabase/migration-v8-trip-creation-invites.sql`,
   `supabase/migration-v9-fix-trip-invite-uuid.sql`, and
-  `supabase/migration-v10-leave-trip.sql`
+  `supabase/migration-v10-leave-trip.sql`, then
+  `supabase/migration-v11-edit-trip.sql`
   in the SQL Editor. (v7 adds the `create_trip` + `claimable_members` RPCs the
   multi-trip UI calls; v8 adds `create_trip_v2`, automatic invite generation,
   and the public-safe invite preview RPC; v10 preserves historical traveler
