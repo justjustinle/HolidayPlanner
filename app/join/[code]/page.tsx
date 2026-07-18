@@ -7,6 +7,7 @@ import AuthProvider, { useAuth } from '@/components/AuthProvider';
 import TripDataProvider, { useTripData } from '@/components/TripDataProvider';
 import YarnLogo from '@/components/brand/YarnLogo';
 import AuthChoices from '@/components/auth/AuthChoices';
+import { TripCountryFlags } from '@/components/ui/Flag';
 import { supabase } from '@/lib/supabase';
 import type { InvitePreview } from '@/lib/types';
 
@@ -47,7 +48,11 @@ function InviteLanding({ code }: { code: string }) {
       if (resolveError || !row) {
         setError('This invite link is invalid or has expired.');
       } else {
-        setPreview(row as InvitePreview);
+        const invite = row as InvitePreview;
+        setPreview({
+          ...invite,
+          countries: Array.isArray(invite.countries) ? invite.countries : [],
+        });
       }
       setLoading(false);
     };
@@ -90,8 +95,9 @@ function InviteLanding({ code }: { code: string }) {
             <p className="mt-5 text-center text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--city-accent)]">
               You&apos;ve been invited
             </p>
-            <h1 className="mt-2 text-center font-serif text-[32px] font-semibold leading-tight text-ink">
-              {preview.trip_name}
+            <h1 className="mt-2 flex flex-wrap items-center justify-center gap-2 text-center font-serif text-[32px] font-semibold leading-tight text-ink">
+              <span>{preview.trip_name}</span>
+              <TripCountryFlags countries={preview.countries} size={24} />
             </h1>
 
             <div className="mt-6 rounded-2xl border border-black/10 bg-cream-card p-4">
