@@ -595,7 +595,7 @@ export default function TripDataProvider({
         })),
         p_destination_currencies: input.destinationCurrencies,
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Could not create the trip.');
       const result = data as { trip_id?: string; invite_code?: string } | null;
       if (!result?.trip_id || !result.invite_code) {
         throw new Error('Trip created without an invitation. Please try again.');
