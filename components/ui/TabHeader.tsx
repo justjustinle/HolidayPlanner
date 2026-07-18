@@ -101,7 +101,6 @@ export default function TabHeader(props: TabHeaderProps) {
       <AppDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onOpenRoster={() => setRosterOpen(true)}
         onOpenInvite={() => setInviteOpen(true)}
         onOpenEditName={() => setEditNameOpen(true)}
       />
