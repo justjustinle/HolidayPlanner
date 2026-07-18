@@ -167,7 +167,7 @@ begin
 
   -- UUID-derived codes are URL-safe and have enough entropy to be unguessable.
   loop
-    v_code := lower(substr(replace(uuid_generate_v4()::text, '-', ''), 1, 12));
+    v_code := lower(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12));
     begin
       insert into public.trip_invites (trip_id, code, created_by)
       values (v_trip, v_code, auth.uid());
