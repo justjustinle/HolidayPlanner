@@ -4,8 +4,8 @@ import { forwardRef } from 'react';
 import { formatClock } from '@/lib/time';
 import { YarnTimelineNowNode } from './YarnTimelineRail';
 
-// "You are here" diamond on today's timeline. Matches the activity rail layout
-// so it slots cleanly between cards.
+// Minimal live position marker. Empty side columns preserve the activity-row
+// geometry while leaving only the flashing circle visible.
 const NowMarker = forwardRef<
   HTMLDivElement,
   {
@@ -21,28 +21,20 @@ const NowMarker = forwardRef<
   const clock = formatClock(now);
 
   return (
-    <div ref={ref} className="relative flex items-stretch gap-3" aria-label={`Now, ${clock}`}>
-      <div className="w-[56px] flex-none self-start pt-0.5 text-right tabular-nums">
-        <div className="text-[17px] font-semibold leading-none tracking-tight text-ink">
-          {clock}
-        </div>
-      </div>
+    <div
+      ref={ref}
+      className="relative flex items-stretch gap-3"
+      aria-label={`Current time, ${clock}`}
+    >
+      <div className="w-[56px] flex-none" aria-hidden />
 
       <YarnTimelineNowNode isLast={isLast} accentHex={accentHex} />
 
-      <div className="min-w-0 flex-1" style={{ paddingBottom: isLast ? 8 : spacingAfter }}>
-        <div
-          className="flex items-center gap-2 rounded-xl px-3.5 py-2.5"
-          style={{
-            background: `color-mix(in srgb, ${accentHex} 18%, #3a352c)`,
-          }}
-        >
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-cream-card">
-            Now
-          </span>
-          <span className="text-[13px] text-cream-card/75">You are here</span>
-        </div>
-      </div>
+      <div
+        className="min-h-5 min-w-0 flex-1"
+        style={{ paddingBottom: isLast ? 8 : spacingAfter }}
+        aria-hidden
+      />
     </div>
   );
 });
