@@ -6,8 +6,8 @@ import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
 import { useTripData } from '../TripDataProvider';
 import {
-  toGbp,
-  formatGbp,
+  toBase,
+  formatBaseCurrency,
   round2,
   splitEqually,
   isEqualSplit,
@@ -16,8 +16,6 @@ import {
 import { dayByNumber } from '@/lib/trip';
 import { formatTimeLabel } from '@/lib/time';
 import type { CurrencyCode, Expense, ItineraryItem, Profile } from '@/lib/types';
-
-const CURRENCIES: CurrencyCode[] = ['VND', 'THB', 'GBP'];
 
 function equalLocalShares(
   participants: string[],
@@ -92,7 +90,17 @@ export default function LogExpenseSheet({
   expense?: Expense;
   onClose: () => void;
 }) {
-  const { profiles, me, settings, splits, itinerary, tripDays, currencies, addExpense, updateExpense } = useTripData();
+  const {
+    profiles,
+    me,
+    trip,
+    splits,
+    itinerary,
+    tripDays,
+    currencies,
+    addExpense,
+    updateExpense,
+  } = useTripData();
 
   const isReceipt = expense?.kind === 'receipt';
 
@@ -103,7 +111,9 @@ export default function LogExpenseSheet({
 
   const [label, setLabel] = useState(expense?.label ?? '');
   const [day, setDay] = useState(expense?.day_number ?? defaultDay ?? 1);
-  const [currency, setCurrency] = useState<CurrencyCode>(expense?.local_currency ?? 'THB');
+  const [currency, setCurrency] = useState<CurrencyCode>(
+    expense?.local_currency ?? trip.base_currency
+  );
   const [amountStr, setAmountStr] = useState(expense ? String(expense.local_amount) : '');
   const [paidById, setPaidById] = useState<string>(
     expense?.paid_by_id ?? me?.id ?? profiles[0]?.id ?? ''
@@ -131,9 +141,10 @@ export default function LogExpenseSheet({
 
   const amount = parseFloat(amountStr) || 0;
   const gbp = useMemo(
-    () => toGbp(amount, currency, settings),
-    [amount, currency, settings]
+    () => toBase(amount, currency, currencies),
+    [amount, currencies, currency]
   );
+  const hasRate = (currencies.find((item) => item.code === currency)?.rate_per_base ?? 0) > 0;
   const perHead = participants.length ? gbp / participants.length : 0;
 
   const activities = useMemo(
@@ -190,7 +201,12 @@ export default function LogExpenseSheet({
   };
 
   const canSave =
-    label.trim() && amount > 0 && paidById && (isReceipt || participants.length > 0) && !busy;
+    label.trim() &&
+    amount > 0 &&
+    hasRate &&
+    paidById &&
+    (isReceipt || participants.length > 0) &&
+    !busy;
 
   const save = async () => {
     if (!canSave) return;
@@ -269,7 +285,8 @@ export default function LogExpenseSheet({
 
         {/* currency picker */}
         <div className="mb-3 grid grid-cols-3 gap-2">
-          {CURRENCIES.map((c) => {
+          {currencies.map((item) => {
+            const c = item.code;
             const active = c === currency;
             return (
               <button
@@ -302,7 +319,17 @@ export default function LogExpenseSheet({
           />
         </div>
         <p className="mb-4 text-right text-[13px] text-muted">
-          = <span className="font-semibold text-ink">{formatGbp(gbp)}</span> base
+          {hasRate ? (
+            <>
+              ={' '}
+              <span className="font-semibold text-ink">
+                {formatBaseCurrency(gbp, trip.base_currency, currencies)}
+              </span>{' '}
+              home
+            </>
+          ) : (
+            <span className="text-saigon">Set the {currency} exchange rate first</span>
+          )}
         </p>
 
         {/* paid by */}
@@ -340,7 +367,7 @@ export default function LogExpenseSheet({
                 {customShares
                   ? 'custom split'
                   : participants.length
-                    ? `${formatGbp(perHead)} each`
+                    ? `${formatBaseCurrency(perHead, trip.base_currency, currencies)} each`
                     : 'pick people'}
               </span>
             </div>

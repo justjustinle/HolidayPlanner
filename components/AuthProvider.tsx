@@ -26,7 +26,7 @@ interface AuthValue {
   authReady: boolean;
   session: Session | null;
   account: Account | null;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (nextPath?: string) => Promise<void>;
   signOutAccount: () => Promise<void>;
 }
 
@@ -78,11 +78,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     };
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (nextPath?: string) => {
     if (!supabase) return;
+    const callback = new URL('/auth/callback', window.location.origin);
+    if (nextPath?.startsWith('/') && !nextPath.startsWith('//')) {
+      callback.searchParams.set('next', nextPath);
+    }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callback.toString() },
     });
   }, []);
 

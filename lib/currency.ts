@@ -1,5 +1,16 @@
 import type { CurrencyCode, TripCurrency, TripSettings } from './types';
 
+export const KNOWN_CURRENCY_SYMBOLS: Record<string, string> = {
+  GBP: '£',
+  USD: '$',
+  EUR: '€',
+  THB: '฿',
+  VND: '₫',
+  JPY: '¥',
+  AUD: '$',
+  SGD: '$',
+};
+
 // Built-in currency set used as the fallback (demo mode / before the multi-trip
 // migration). Derived from the group's two FX rates + a base GBP row, matching
 // the old hard-coded CURRENCY_SYMBOL map exactly.
@@ -14,7 +25,11 @@ export function defaultCurrencies(settings: TripSettings): TripCurrency[] {
 // Symbol for a currency code from a trip's currency list, falling back to the
 // code itself for an unknown currency.
 export function symbolFor(code: string, currencies: TripCurrency[]): string {
-  return currencies.find((c) => c.code === code)?.symbol ?? code;
+  return (
+    currencies.find((c) => c.code === code)?.symbol ??
+    KNOWN_CURRENCY_SYMBOLS[code.toUpperCase()] ??
+    code.toUpperCase()
+  );
 }
 
 // Convert a local amount into the trip's base currency using its currency list
@@ -83,6 +98,14 @@ export function fromGbp(
 // Format a GBP figure for display, always two decimals.
 export function formatGbp(n: number): string {
   return `£${round2(n).toFixed(2)}`;
+}
+
+export function formatBaseCurrency(
+  n: number,
+  baseCode: string,
+  currencies: TripCurrency[]
+): string {
+  return `${symbolFor(baseCode, currencies)}${round2(n).toFixed(2)}`;
 }
 
 // Split a total equally across `count` people, correcting the last share so

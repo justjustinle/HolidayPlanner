@@ -1,225 +1,468 @@
 'use client';
 
-import { useState } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, Copy, Loader2, Plus, Share2, Trash2 } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import { useTripData } from '../TripDataProvider';
 import { useAuth } from '../AuthProvider';
+import type { CreateTripResult } from '@/lib/types';
 
-// Fixed accent palette (the four trip cities + spares). Free hex is avoided so
-// the color-mix tints stay legible against the cream surfaces.
 const ACCENTS = ['#c9992e', '#2f97a6', '#b0472f', '#3f9b8a', '#7a5cc9', '#4f7fd6'];
 
-// Known symbols; unknown codes fall back to the code itself.
-const SYMBOLS: Record<string, string> = {
-  GBP: '£', USD: '$', EUR: '€', THB: '฿', VND: '₫', JPY: '¥', AUD: '$', SGD: '$',
-};
-const symbolFor = (code: string) => SYMBOLS[code.toUpperCase()] ?? code.toUpperCase();
-
-interface Leg {
-  destination: string;
-  nights: number;
+interface Destination {
+  id: string;
+  city: string;
+  startDate: string;
+  endDate: string;
   accentHex: string;
 }
-interface LocalCurrency {
-  code: string;
-  ratePerBase: string; // local units per 1 base unit
+
+function newId(): string {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
 }
 
-function addDays(startISO: string, offset: number): string {
-  const [y, m, d] = startISO.split('-').map(Number);
-  const dt = new Date(y, (m ?? 1) - 1, (d ?? 1) + offset);
-  const mm = String(dt.getMonth() + 1).padStart(2, '0');
-  const dd = String(dt.getDate()).padStart(2, '0');
-  return `${dt.getFullYear()}-${mm}-${dd}`;
+function addDays(date: string, amount: number): string {
+  if (!date) return '';
+  const [year, month, day] = date.split('-').map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day + amount));
+  return value.toISOString().slice(0, 10);
 }
+
+function inclusiveDays(start: string, end: string): number {
+  if (!start || !end || end < start) return 0;
+  const startMs = Date.parse(`${start}T00:00:00Z`);
+  const endMs = Date.parse(`${end}T00:00:00Z`);
+  return Math.round((endMs - startMs) / 86_400_000) + 1;
+}
+
+function dateLabel(date: string): string {
+  if (!date) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+const inputClass =
+  'w-full rounded-xl border border-black/10 bg-cream-card px-3 py-2.5 text-[16px] text-ink outline-none focus:border-ink';
 
 export default function CreateTripSheet({ onClose }: { onClose: () => void }) {
-  const { createTrip } = useTripData();
+  const { createTrip, setActiveTrip } = useTripData();
   const { account } = useAuth();
-
   const [name, setName] = useState('');
   const [ownerName, setOwnerName] = useState(account?.name ?? '');
-  const [startDate, setStartDate] = useState('');
-  const [baseCurrency, setBaseCurrency] = useState('GBP');
-  const [legs, setLegs] = useState<Leg[]>([
-    { destination: '', nights: 3, accentHex: ACCENTS[0] },
+  const [homeCurrency, setHomeCurrency] = useState('GBP');
+  const [destinations, setDestinations] = useState<Destination[]>([
+    { id: newId(), city: '', startDate: '', endDate: '', accentHex: ACCENTS[0] },
   ]);
-  const [locals, setLocals] = useState<LocalCurrency[]>([]);
+  const [destinationCurrencies, setDestinationCurrencies] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [created, setCreated] = useState<CreateTripResult | null>(null);
+  const [origin, setOrigin] = useState('');
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
-  const totalDays = legs.reduce((n, l) => n + Math.max(1, l.nights), 0);
-  const inputCls =
-    'w-full rounded-xl border border-black/10 bg-cream-card px-3 py-2.5 text-[15px] text-ink outline-none focus:border-ink';
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
-  const setLeg = (i: number, patch: Partial<Leg>) =>
-    setLegs((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  const tripStart = destinations[0]?.startDate ?? '';
+  const tripEnd = destinations[destinations.length - 1]?.endDate ?? '';
+  const totalDays = inclusiveDays(tripStart, tripEnd);
+  const inviteLink = created && origin ? `${origin}/join/${created.inviteCode}` : '';
 
-  const submit = async () => {
-    if (busy) return;
-    if (!name.trim()) return setError('Give the trip a name.');
-    if (!startDate) return setError('Pick a start date.');
-    if (!legs.every((l) => l.destination.trim())) return setError('Name each destination.');
-    setBusy(true);
-    setError(null);
+  const updateDestination = (id: string, patch: Partial<Destination>) => {
+    setDestinations((previous) =>
+      previous.map((destination) =>
+        destination.id === id ? { ...destination, ...patch } : destination
+      )
+    );
+  };
 
-    // Build sequential days across the legs from the start date.
-    const days: { day_number: number; date: string; destination: string; accent_hex: string }[] = [];
-    let offset = 0;
-    for (const leg of legs) {
-      for (let n = 0; n < Math.max(1, leg.nights); n++) {
-        days.push({
-          day_number: offset + 1,
-          date: addDays(startDate, offset),
-          destination: leg.destination.trim(),
-          accent_hex: leg.accentHex,
-        });
-        offset += 1;
+  const addDestination = () => {
+    setDestinations((previous) => {
+      const prior = previous[previous.length - 1];
+      const nextDate = prior?.endDate ? addDays(prior.endDate, 1) : '';
+      return [
+        ...previous,
+        {
+          id: newId(),
+          city: '',
+          startDate: nextDate,
+          endDate: nextDate,
+          accentHex: ACCENTS[previous.length % ACCENTS.length],
+        },
+      ];
+    });
+  };
+
+  const validationError = useMemo(() => {
+    if (!name.trim()) return 'Give the trip a name.';
+    if (!ownerName.trim()) return 'Add the name your group will see.';
+    if (!/^[A-Za-z]{3}$/.test(homeCurrency.trim())) {
+      return 'Home currency must be a three-letter code.';
+    }
+    for (let index = 0; index < destinations.length; index += 1) {
+      const destination = destinations[index];
+      if (!destination.city.trim()) return `Name destination ${index + 1}.`;
+      if (!destination.startDate || !destination.endDate) {
+        return `Add both dates for ${destination.city.trim()}.`;
+      }
+      if (destination.endDate < destination.startDate) {
+        return `${destination.city.trim()}'s end date must be after its start date.`;
+      }
+      if (index > 0) {
+        const expectedStart = addDays(destinations[index - 1].endDate, 1);
+        if (destination.startDate !== expectedStart) {
+          return 'Destination dates must follow one another without gaps or overlaps.';
+        }
       }
     }
+    const codes = destinationCurrencies.map((code) => code.trim().toUpperCase());
+    if (codes.some((code) => !/^[A-Z]{3}$/.test(code))) {
+      return 'Destination currencies must use three-letter codes.';
+    }
+    if (new Set(codes).size !== codes.length) return 'Remove duplicate destination currencies.';
+    if (codes.includes(homeCurrency.trim().toUpperCase())) {
+      return 'Home currency does not need to be added again.';
+    }
+    return null;
+  }, [destinationCurrencies, destinations, homeCurrency, name, ownerName]);
 
-    const base = baseCurrency.toUpperCase();
-    const currencies = [
-      { code: base, symbol: symbolFor(base), rate_per_base: 1 },
-      ...locals
-        .filter((c) => c.code.trim() && Number(c.ratePerBase) > 0)
-        .map((c) => ({
-          code: c.code.toUpperCase(),
-          symbol: symbolFor(c.code),
-          rate_per_base: Number(c.ratePerBase),
-        })),
-    ];
-
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (busy) return;
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setBusy(true);
+    setError(null);
     try {
-      await createTrip({
+      const result = await createTrip({
         name: name.trim(),
-        startDate,
-        endDate: days[days.length - 1]?.date ?? startDate,
-        baseCurrency: base,
         ownerName: ownerName.trim(),
-        days,
-        currencies,
+        homeCurrency: homeCurrency.trim().toUpperCase(),
+        destinations: destinations.map((destination) => ({
+          destination: destination.city.trim(),
+          startDate: destination.startDate,
+          endDate: destination.endDate,
+          accentHex: destination.accentHex,
+        })),
+        destinationCurrencies: destinationCurrencies.map((code) =>
+          code.trim().toUpperCase()
+        ),
       });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create the trip.');
+      setCreated(result);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not create the trip.');
+    } finally {
       setBusy(false);
     }
   };
 
-  return (
-    <Sheet title="Create a trip" onClose={onClose}>
-      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Trip name</label>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Japan 2027" className={`${inputCls} mb-3`} autoFocus />
+  const copy = async (value: string, kind: 'code' | 'link') => {
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(kind);
+    window.setTimeout(() => setCopied(null), 1500);
+  };
 
-      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Your name</label>
-      <input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="How you show up on the trip" className={`${inputCls} mb-3`} />
+  if (created) {
+    return (
+      <Sheet title="Invite your group" onClose={onClose}>
+        <div className="rounded-2xl bg-cream-card p-4 text-center">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-nhatrang/15 text-nhatrang">
+            <Check size={21} />
+          </div>
+          <h3 className="mt-3 font-serif text-[22px] font-semibold text-ink">{name}</h3>
+          <p className="mt-1 text-[13px] text-muted">
+            {dateLabel(tripStart)} – {dateLabel(tripEnd)} · {totalDays} days
+          </p>
+        </div>
 
-      <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Start date</label>
-      <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${inputCls} mb-4`} />
+        <p className="mb-3 mt-5 text-[14px] leading-relaxed text-muted">
+          Your trip is ready. Share this private link so your group can sign in to Yarn
+          and join the holiday.
+        </p>
 
-      <div className="mb-1 flex items-center justify-between">
-        <label className="text-xs uppercase tracking-wide text-muted">Destinations</label>
-        <span className="text-[11px] text-muted">{totalDays} day{totalDays === 1 ? '' : 's'} total</span>
-      </div>
-      <div className="mb-2 space-y-2">
-        {legs.map((leg, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              value={leg.destination}
-              onChange={(e) => setLeg(i, { destination: e.target.value })}
-              placeholder="City"
-              className={`${inputCls} flex-1`}
-            />
-            <input
-              type="number"
-              min={1}
-              value={leg.nights}
-              onChange={(e) => setLeg(i, { nights: Math.max(1, Number(e.target.value) || 1) })}
-              aria-label="Days in this destination"
-              className={`${inputCls} w-16 text-center`}
-            />
-            <div className="flex gap-1">
-              {ACCENTS.slice(0, 4).map((hex) => (
-                <button
-                  key={hex}
-                  type="button"
-                  onClick={() => setLeg(i, { accentHex: hex })}
-                  aria-label={`Accent ${hex}`}
-                  className={`h-6 w-6 rounded-full ${leg.accentHex === hex ? 'ring-2 ring-ink ring-offset-1' : ''}`}
-                  style={{ background: hex }}
-                />
-              ))}
-            </div>
-            {legs.length > 1 && (
+        <div className="space-y-3">
+          <div>
+            <p className="mb-1 text-xs uppercase tracking-wide text-muted">Invite code</p>
+            <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-cream-card px-3 py-2.5">
+              <code className="min-w-0 flex-1 text-[15px] font-semibold text-ink">
+                {created.inviteCode}
+              </code>
               <button
                 type="button"
-                onClick={() => setLegs((prev) => prev.filter((_, idx) => idx !== i))}
-                aria-label="Remove destination"
-                className="text-muted/60 hover:text-saigon"
+                onClick={() => copy(created.inviteCode, 'code')}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-black/5"
+                aria-label="Copy invite code"
               >
-                <Trash2 size={16} />
+                {copied === 'code' ? <Check size={17} /> : <Copy size={17} />}
               </button>
-            )}
+            </div>
           </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={() => setLegs((prev) => [...prev, { destination: '', nights: 2, accentHex: ACCENTS[prev.length % ACCENTS.length] }])}
-        className="mb-4 flex items-center gap-1 text-[13px] font-medium text-ink"
-      >
-        <Plus size={15} /> Add destination
-      </button>
 
-      <div className="mb-1 grid grid-cols-2 gap-2">
-        <div>
-          <label className="mb-1 block text-xs uppercase tracking-wide text-muted">Base currency</label>
-          <input value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value.slice(0, 3))} className={inputCls} />
+          <div>
+            <p className="mb-1 text-xs uppercase tracking-wide text-muted">Invite link</p>
+            <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-cream-card px-3 py-2.5">
+              <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{inviteLink}</span>
+              <button
+                type="button"
+                onClick={() => copy(inviteLink, 'link')}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-black/5"
+                aria-label="Copy invite link"
+              >
+                {copied === 'link' ? <Check size={17} /> : <Copy size={17} />}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="mb-2 mt-2 space-y-2">
-        {locals.map((c, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              value={c.code}
-              onChange={(e) => setLocals((prev) => prev.map((x, idx) => (idx === i ? { ...x, code: e.target.value.slice(0, 3) } : x)))}
-              placeholder="THB"
-              className={`${inputCls} w-24`}
-            />
-            <input
-              type="number"
-              value={c.ratePerBase}
-              onChange={(e) => setLocals((prev) => prev.map((x, idx) => (idx === i ? { ...x, ratePerBase: e.target.value } : x)))}
-              placeholder={`per 1 ${baseCurrency.toUpperCase()}`}
-              className={`${inputCls} flex-1`}
-            />
-            <button type="button" onClick={() => setLocals((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove currency" className="text-muted/60 hover:text-saigon">
-              <Trash2 size={16} />
-            </button>
+
+        {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
+          <button
+            type="button"
+            onClick={() => navigator.share({ title: `Join ${name} on Yarn`, url: inviteLink })}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-black/15 bg-cream-card py-3 text-[14px] font-medium text-ink"
+          >
+            <Share2 size={17} /> Share invite
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTrip(created.tripId);
+            onClose();
+          }}
+          className="mt-3 w-full rounded-xl bg-ink py-3.5 text-[15px] font-medium text-white"
+        >
+          Open trip
+        </button>
+        <span className="sr-only" aria-live="polite">
+          {copied ? `${copied} copied` : ''}
+        </span>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet title="Create a trip" onClose={onClose}>
+      <form onSubmit={submit}>
+        <label htmlFor="trip-name" className="mb-1 block text-xs uppercase tracking-wide text-muted">
+          Trip name
+        </label>
+        <input
+          id="trip-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="e.g. Japan 2027"
+          className={`${inputClass} mb-3`}
+          autoFocus
+        />
+
+        <label htmlFor="owner-name" className="mb-1 block text-xs uppercase tracking-wide text-muted">
+          Your name
+        </label>
+        <input
+          id="owner-name"
+          value={ownerName}
+          onChange={(event) => setOwnerName(event.target.value)}
+          placeholder="How you show up on the trip"
+          className={`${inputClass} mb-4`}
+        />
+
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs uppercase tracking-wide text-muted">Destinations</p>
+          {totalDays > 0 && (
+            <span className="text-[12px] text-muted" aria-live="polite">
+              {totalDays} day{totalDays === 1 ? '' : 's'} total
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {destinations.map((destination, index) => (
+            <fieldset
+              key={destination.id}
+              className="rounded-2xl border border-black/10 bg-cream-card/60 p-3"
+            >
+              <legend className="px-1 text-[12px] font-medium text-muted">
+                Destination {index + 1}
+              </legend>
+              <div className="flex items-start gap-2">
+                <label className="min-w-0 flex-1">
+                  <span className="mb-1 block text-xs text-muted">City</span>
+                  <input
+                    type="text"
+                    value={destination.city}
+                    onChange={(event) =>
+                      updateDestination(destination.id, { city: event.target.value })
+                    }
+                    placeholder="e.g. Tokyo"
+                    className={inputClass}
+                  />
+                </label>
+                {destinations.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDestinations((previous) =>
+                        previous.filter((item) => item.id !== destination.id)
+                      )
+                    }
+                    className="mt-6 flex h-11 w-11 flex-none items-center justify-center rounded-xl text-muted hover:bg-saigon/10 hover:text-saigon"
+                    aria-label={`Remove ${destination.city || `destination ${index + 1}`}`}
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <label>
+                  <span className="mb-1 block text-xs text-muted">Start date</span>
+                  <input
+                    type="date"
+                    value={destination.startDate}
+                    onChange={(event) =>
+                      updateDestination(destination.id, { startDate: event.target.value })
+                    }
+                    className={inputClass}
+                  />
+                </label>
+                <label>
+                  <span className="mb-1 block text-xs text-muted">End date</span>
+                  <input
+                    type="date"
+                    min={destination.startDate || undefined}
+                    value={destination.endDate}
+                    onChange={(event) =>
+                      updateDestination(destination.id, { endDate: event.target.value })
+                    }
+                    className={inputClass}
+                  />
+                </label>
+              </div>
+
+              <div
+                className="mt-3 flex items-center justify-between gap-3"
+                role="group"
+                aria-label={`Colour for ${destination.city || `destination ${index + 1}`}`}
+              >
+                <span className="text-xs text-muted">Colour</span>
+                <div className="flex gap-2">
+                  {ACCENTS.map((hex) => (
+                    <button
+                      key={hex}
+                      type="button"
+                      onClick={() => updateDestination(destination.id, { accentHex: hex })}
+                      aria-label={`Use colour ${hex}`}
+                      aria-pressed={destination.accentHex === hex}
+                      className={`h-7 w-7 rounded-full ${
+                        destination.accentHex === hex ? 'ring-2 ring-ink ring-offset-2' : ''
+                      }`}
+                      style={{ background: hex }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </fieldset>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={addDestination}
+          className="mb-5 mt-3 flex items-center gap-1 text-[13px] font-medium text-ink"
+        >
+          <Plus size={15} /> Add destination
+        </button>
+
+        <label htmlFor="home-currency" className="mb-1 block text-xs uppercase tracking-wide text-muted">
+          Home currency
+        </label>
+        <input
+          id="home-currency"
+          value={homeCurrency}
+          onChange={(event) =>
+            setHomeCurrency(event.target.value.replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase())
+          }
+          inputMode="text"
+          autoCapitalize="characters"
+          className={`${inputClass} mb-3 max-w-32`}
+        />
+
+        {destinationCurrencies.length > 0 && (
+          <div className="mb-2 space-y-2">
+            {destinationCurrencies.map((currency, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <label className="min-w-0 flex-1">
+                  <span className="sr-only">Destination currency {index + 1}</span>
+                  <input
+                    value={currency}
+                    onChange={(event) =>
+                      setDestinationCurrencies((previous) =>
+                        previous.map((code, itemIndex) =>
+                          itemIndex === index
+                            ? event.target.value
+                                .replace(/[^a-z]/gi, '')
+                                .slice(0, 3)
+                                .toUpperCase()
+                            : code
+                        )
+                      )
+                    }
+                    placeholder="e.g. JPY"
+                    autoCapitalize="characters"
+                    className={inputClass}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDestinationCurrencies((previous) =>
+                      previous.filter((_, itemIndex) => itemIndex !== index)
+                    )
+                  }
+                  className="flex h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-saigon/10 hover:text-saigon"
+                  aria-label={`Remove destination currency ${index + 1}`}
+                >
+                  <Trash2 size={17} />
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={() => setLocals((prev) => [...prev, { code: '', ratePerBase: '' }])}
-        className="mb-5 flex items-center gap-1 text-[13px] font-medium text-ink"
-      >
-        <Plus size={15} /> Add local currency
-      </button>
+        )}
 
-      {error && <p className="mb-3 text-center text-[13px] text-saigon">{error}</p>}
+        <button
+          type="button"
+          onClick={() => setDestinationCurrencies((previous) => [...previous, ''])}
+          className="mb-5 flex items-center gap-1 text-[13px] font-medium text-ink"
+        >
+          <Plus size={15} /> Add destination currencies
+        </button>
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={busy}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3.5 text-[15px] font-medium text-white disabled:opacity-40"
-      >
-        {busy && <Loader2 size={16} className="animate-spin" />}
-        Create trip
-      </button>
+        {error && (
+          <p className="mb-3 text-center text-[13px] text-saigon" role="alert">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={busy}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3.5 text-[15px] font-medium text-white disabled:opacity-40"
+        >
+          {busy && <Loader2 size={16} className="animate-spin" />}
+          Create trip
+        </button>
+      </form>
     </Sheet>
   );
 }
