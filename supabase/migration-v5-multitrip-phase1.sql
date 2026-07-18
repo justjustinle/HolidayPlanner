@@ -154,6 +154,27 @@ update activity_events
 alter table activity_events alter column trip_id
   set default '11111111-1111-1111-1111-111111111111';
 
+-- notification_state has a (profile_id, trip_id) PK, and the live app may have
+-- ALREADY written rows under the uuid trip_id (Phase 1 code uses it). A blind
+-- relabel of the legacy 'thailand-vietnam-2026' row would then collide with an
+-- existing uuid row. So: fold the legacy watermarks into the uuid row (keeping
+-- the latest of each timestamp), drop the now-duplicate legacy rows, then
+-- relabel whatever legacy rows remain.
+update notification_state n
+   set last_seen_at = greatest(n.last_seen_at, l.last_seen_at),
+       last_notified_at = greatest(n.last_notified_at, l.last_notified_at)
+  from notification_state l
+ where l.profile_id = n.profile_id
+   and n.trip_id = '11111111-1111-1111-1111-111111111111'
+   and l.trip_id = 'thailand-vietnam-2026';
+
+delete from notification_state
+ where trip_id = 'thailand-vietnam-2026'
+   and profile_id in (
+     select profile_id from notification_state
+      where trip_id = '11111111-1111-1111-1111-111111111111'
+   );
+
 update notification_state
   set trip_id = '11111111-1111-1111-1111-111111111111'
   where trip_id = 'thailand-vietnam-2026';
