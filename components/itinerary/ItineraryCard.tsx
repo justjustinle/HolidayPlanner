@@ -4,9 +4,9 @@ import { useMemo, useRef, useState } from 'react';
 import { MapPin, MessageCircle } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
 import {
-  CardEdgeTimeline,
+  TimelineRail,
+  TIMELINE_GUTTER_PX,
   TIMELINE_TIME_COL_PX,
-  TIMELINE_TIME_TO_NODE_GAP_PX,
 } from './YarnTimelineRail';
 import {
   useCardLongPress,
@@ -85,9 +85,9 @@ export default function ItineraryCard({
         className={`reorder-surface relative flex items-stretch transition-opacity ${
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
-        style={{ gap: TIMELINE_TIME_TO_NODE_GAP_PX }}
+        style={{ gap: TIMELINE_GUTTER_PX }}
       >
-        {/* Time — compact, right beside the diamond */}
+        {/* Time */}
         <div
           className="relative flex-none self-start text-right tabular-nums"
           style={{ width: TIMELINE_TIME_COL_PX }}
@@ -110,12 +110,14 @@ export default function ItineraryCard({
           </div>
         </div>
 
-        {/* Card — diamond sits on its left border (no separate gutter column) */}
+        {/* Diamond + dashed rail — reserved column, clear of time and card */}
+        <TimelineRail isLast={isLast} accentHex={accentHex} />
+
+        {/* Activity card */}
         <div
           className="relative min-w-0 flex-1"
           style={{ paddingBottom: isLast ? 8 : spacingAfter }}
         >
-          <CardEdgeTimeline isLast={isLast} accentHex={accentHex} />
           <div
             role="button"
             tabIndex={0}

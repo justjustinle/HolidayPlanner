@@ -27,7 +27,7 @@ import {
 import { formatTimeLabel, nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
 import { hapticLight } from '@/lib/motion';
 import type { ItineraryItem } from '@/lib/types';
-import { TIMELINE_TIME_COL_PX, TIMELINE_TIME_TO_NODE_GAP_PX } from '../itinerary/YarnTimelineRail';
+import { TIMELINE_GUTTER_PX, TIMELINE_RAIL_COL_PX, TIMELINE_TIME_COL_PX } from '../itinerary/YarnTimelineRail';
 
 type TimelineRow =
   | { kind: 'now' }
@@ -631,10 +631,11 @@ function InsertionLine({ accentHex }: { accentHex: string }) {
   return (
     <div
       className="relative z-10 my-0.5 flex items-center"
-      style={{ gap: TIMELINE_TIME_TO_NODE_GAP_PX }}
+      style={{ gap: TIMELINE_GUTTER_PX }}
       aria-hidden
     >
       <div className="flex-none" style={{ width: TIMELINE_TIME_COL_PX }} />
+      <div className="flex-none" style={{ width: TIMELINE_RAIL_COL_PX }} />
       <div
         className="h-0.5 min-w-0 flex-1 rounded-full"
         style={{ background: accentHex }}

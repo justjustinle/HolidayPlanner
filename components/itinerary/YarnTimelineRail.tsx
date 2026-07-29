@@ -1,14 +1,25 @@
 /**
- * Timeline geometry: time hugs a diamond that sits on the card’s left border.
- * The rail lane takes no layout width — diamond + dashed line are absolutely
- * pinned to the card edge so there’s no floating gutter.
+ * Timeline geometry: time · gutter · rail (diamond + dashed line) · gutter · card.
+ * The diamond is centered in a reserved rail column so it never overlaps the
+ * clock or the activity card.
  */
 
 /** Approx clock column for “HH:MM” tabular figures. */
 export const TIMELINE_TIME_COL_PX = 36;
 
-/** Half-diamond overhang past the card’s left border. */
+/**
+ * Rail column width — fits a 9px square rotated 45° (bounding box ≈ 12.7px).
+ */
+export const TIMELINE_RAIL_COL_PX = 14;
+
+/** Diamond edge length before rotation. */
 export const TIMELINE_NODE_SIZE_PX = 9;
+
+/** Horizontal air between time↔rail and rail↔card. */
+export const TIMELINE_GUTTER_PX = 14;
+
+/** @deprecated Use TIMELINE_GUTTER_PX — kept for any stray imports. */
+export const TIMELINE_TIME_TO_NODE_GAP_PX = TIMELINE_GUTTER_PX;
 
 /** Matches activity card `py-3`. */
 export const TIMELINE_TIME_PAD_TOP_PX = 12;
@@ -23,9 +34,6 @@ export const TIMELINE_NODE_TOP_PX =
 export const TIMELINE_NODE_CENTER_Y_PX =
   TIMELINE_NODE_TOP_PX + TIMELINE_NODE_SIZE_PX / 2;
 
-/** Air between the clock and the diamond (diamond half-width is ~4.5px). */
-export const TIMELINE_TIME_TO_NODE_GAP_PX = 10;
-
 function dashedRailStyle(accentHex: string): {
   backgroundImage: string;
   opacity: number;
@@ -37,11 +45,10 @@ function dashedRailStyle(accentHex: string): {
 }
 
 /**
- * Diamond + dashed yarn pinned to the left edge of the activity card.
- * Parent must be `position: relative` and include the row’s bottom spacing
- * so the dashed segment can bridge into the next diamond.
+ * Diamond + dashed yarn in a dedicated rail column (no card-edge overhang).
+ * Parent row should use `TIMELINE_GUTTER_PX` between time, rail, and card.
  */
-export function CardEdgeTimeline({
+export function TimelineRail({
   isLast = false,
   accentHex,
 }: {
@@ -50,11 +57,12 @@ export function CardEdgeTimeline({
 }) {
   return (
     <div
-      className="pointer-events-none absolute inset-y-0 left-0 z-10 w-0"
+      className="pointer-events-none relative flex-none self-stretch"
+      style={{ width: TIMELINE_RAIL_COL_PX }}
       aria-hidden
     >
       <span
-        className="absolute left-0 -translate-x-1/2 rotate-45 rounded-[1px]"
+        className="absolute left-1/2 -translate-x-1/2 rotate-45 rounded-[1px]"
         style={{
           top: TIMELINE_NODE_TOP_PX,
           width: TIMELINE_NODE_SIZE_PX,
@@ -64,7 +72,7 @@ export function CardEdgeTimeline({
       />
       {!isLast && (
         <div
-          className="absolute left-0 w-0.5 -translate-x-1/2"
+          className="absolute left-1/2 w-0.5 -translate-x-1/2"
           style={{
             top: TIMELINE_NODE_CENTER_Y_PX,
             // Stretch through this row’s padding into the next diamond.
@@ -77,8 +85,11 @@ export function CardEdgeTimeline({
   );
 }
 
-/** Live “now” ping pinned the same way as activity diamonds. */
-export function CardEdgeNowMarker({
+/** @deprecated Prefer TimelineRail — same geometry, old name. */
+export const CardEdgeTimeline = TimelineRail;
+
+/** Live “now” ping in the same rail column as activity diamonds. */
+export function TimelineNowMarker({
   isLast = false,
   accentHex,
 }: {
@@ -87,11 +98,12 @@ export function CardEdgeNowMarker({
 }) {
   return (
     <div
-      className="pointer-events-none absolute inset-y-0 left-0 z-10 w-0"
+      className="pointer-events-none relative flex-none self-stretch"
+      style={{ width: TIMELINE_RAIL_COL_PX }}
       aria-hidden
     >
       <span
-        className="absolute left-0 top-1.5 flex h-3.5 w-3.5 -translate-x-1/2 items-center justify-center rounded-full bg-cream"
+        className="absolute left-1/2 top-1.5 flex h-3.5 w-3.5 -translate-x-1/2 items-center justify-center rounded-full bg-cream"
         style={{ boxShadow: `inset 0 0 0 1.5px ${accentHex}` }}
       >
         <span
@@ -105,7 +117,7 @@ export function CardEdgeNowMarker({
       </span>
       {!isLast && (
         <div
-          className="absolute left-0 top-[18px] w-0.5 -translate-x-1/2"
+          className="absolute left-1/2 top-[18px] w-0.5 -translate-x-1/2"
           style={{
             bottom: -6,
             ...dashedRailStyle(accentHex),
@@ -115,3 +127,6 @@ export function CardEdgeNowMarker({
     </div>
   );
 }
+
+/** @deprecated Prefer TimelineNowMarker. */
+export const CardEdgeNowMarker = TimelineNowMarker;
