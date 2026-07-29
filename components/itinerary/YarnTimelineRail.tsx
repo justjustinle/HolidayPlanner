@@ -34,6 +34,15 @@ export const TIMELINE_NODE_TOP_PX =
 export const TIMELINE_NODE_CENTER_Y_PX =
   TIMELINE_NODE_TOP_PX + TIMELINE_NODE_SIZE_PX / 2;
 
+/**
+ * How far the dashed segment extends into the next row so it meets the next
+ * diamond (tucks under its center — closes the hairline gap above the tip).
+ */
+export const TIMELINE_RAIL_OVERLAP_PX = Math.ceil(TIMELINE_NODE_CENTER_Y_PX);
+
+/** Solid tip so a transparent dash gap never opens above the next diamond. */
+const TIMELINE_RAIL_JOIN_PX = 18;
+
 function dashedRailStyle(accentHex: string): {
   backgroundImage: string;
   opacity: number;
@@ -42,6 +51,41 @@ function dashedRailStyle(accentHex: string): {
     backgroundImage: `repeating-linear-gradient(to bottom, ${accentHex} 0 5px, transparent 5px 9px)`,
     opacity: 0.55,
   };
+}
+
+function TimelineDash({
+  top,
+  accentHex,
+}: {
+  top: number | string;
+  accentHex: string;
+}) {
+  return (
+    <div
+      className="absolute left-1/2 w-0.5 -translate-x-1/2"
+      style={{
+        top,
+        bottom: -TIMELINE_RAIL_OVERLAP_PX,
+        ...dashedRailStyle(accentHex),
+      }}
+    >
+      {/* Solid caps so transparent dash gaps never open at either diamond. */}
+      <span
+        className="absolute left-0 right-0 top-0"
+        style={{
+          height: TIMELINE_RAIL_JOIN_PX,
+          background: accentHex,
+        }}
+      />
+      <span
+        className="absolute bottom-0 left-0 right-0"
+        style={{
+          height: TIMELINE_RAIL_JOIN_PX,
+          background: accentHex,
+        }}
+      />
+    </div>
+  );
 }
 
 /**
@@ -62,7 +106,7 @@ export function TimelineRail({
       aria-hidden
     >
       <span
-        className="absolute left-1/2 -translate-x-1/2 rotate-45 rounded-[1px]"
+        className="absolute left-1/2 z-[1] -translate-x-1/2 rotate-45 rounded-[1px]"
         style={{
           top: TIMELINE_NODE_TOP_PX,
           width: TIMELINE_NODE_SIZE_PX,
@@ -70,17 +114,7 @@ export function TimelineRail({
           background: accentHex,
         }}
       />
-      {!isLast && (
-        <div
-          className="absolute left-1/2 w-0.5 -translate-x-1/2"
-          style={{
-            top: TIMELINE_NODE_CENTER_Y_PX,
-            // Stretch through this row’s padding into the next diamond.
-            bottom: -6,
-            ...dashedRailStyle(accentHex),
-          }}
-        />
-      )}
+      {!isLast && <TimelineDash top={TIMELINE_NODE_CENTER_Y_PX} accentHex={accentHex} />}
     </div>
   );
 }
@@ -103,7 +137,7 @@ export function TimelineNowMarker({
       aria-hidden
     >
       <span
-        className="absolute left-1/2 top-1.5 flex h-3.5 w-3.5 -translate-x-1/2 items-center justify-center rounded-full bg-cream"
+        className="absolute left-1/2 top-1.5 z-[1] flex h-3.5 w-3.5 -translate-x-1/2 items-center justify-center rounded-full bg-cream"
         style={{ boxShadow: `inset 0 0 0 1.5px ${accentHex}` }}
       >
         <span
@@ -115,15 +149,7 @@ export function TimelineNowMarker({
           style={{ background: accentHex }}
         />
       </span>
-      {!isLast && (
-        <div
-          className="absolute left-1/2 top-[18px] w-0.5 -translate-x-1/2"
-          style={{
-            bottom: -6,
-            ...dashedRailStyle(accentHex),
-          }}
-        />
-      )}
+      {!isLast && <TimelineDash top={18} accentHex={accentHex} />}
     </div>
   );
 }
