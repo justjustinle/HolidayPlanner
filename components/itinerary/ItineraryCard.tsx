@@ -103,11 +103,11 @@ export default function ItineraryCard({
               {startClock}
             </div>
             {endClock && (
-              <div className="mt-1.5 text-[11px] font-medium leading-snug tracking-tight text-muted">
-                <span className="text-[9px] font-semibold uppercase tracking-wider">
-                  TO
-                </span>{' '}
-                {endClock}
+              <div className="mt-1 text-[10px] font-medium leading-tight tracking-tight text-muted">
+                <div className="text-[8px] font-semibold uppercase tracking-wider">
+                  to
+                </div>
+                <div>{endClock}</div>
               </div>
             )}
           </div>
