@@ -4,8 +4,9 @@ import { useMemo, useRef, useState } from 'react';
 import { MapPin, MessageCircle } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
 import {
+  TIMELINE_CARD_OVERLAP_PX,
   TIMELINE_TIME_COL_PX,
-  TimelineRailBelow,
+  YarnTimelineNode,
 } from './YarnTimelineRail';
 import {
   useCardLongPress,
@@ -81,16 +82,16 @@ export default function ItineraryCard({
     <>
       <div
         data-activity-row={item.id}
-        className={`reorder-surface relative flex items-stretch gap-1.5 transition-opacity ${
+        className={`reorder-surface relative flex items-stretch gap-0 transition-opacity ${
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
       >
-        {/* Time column — same py-3 + leading-snug as the card title row */}
+        {/* Time — right-aligned, hugging the diamond rail */}
         <div
-          className="relative flex flex-none flex-col self-stretch text-center tabular-nums"
+          className="relative flex-none self-start text-right tabular-nums"
           style={{ width: TIMELINE_TIME_COL_PX }}
         >
-          <div className="relative z-[1] flex-none py-3">
+          <div className="py-3 pr-1.5">
             <div
               className="font-semibold leading-snug tracking-tight text-ink"
               style={{ fontSize: START_TIME_FONT_PX }}
@@ -106,7 +107,14 @@ export default function ItineraryCard({
               </div>
             )}
           </div>
-          {!isLast && <TimelineRailBelow accentHex={accentHex} />}
+        </div>
+
+        {/* Diamond + dashed rail — overlaps the card’s left edge like a bullet */}
+        <div
+          className="relative z-10 flex-none self-stretch"
+          style={{ marginRight: -TIMELINE_CARD_OVERLAP_PX }}
+        >
+          <YarnTimelineNode isLast={isLast} accentHex={accentHex} />
         </div>
 
         {/* Activity card — tap opens View activity; hold to reorder */}

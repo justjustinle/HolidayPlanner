@@ -71,18 +71,20 @@ export function isEndAfterStart(
   return timeToMinutes(endLabel) > timeToMinutes(startLabel);
 }
 
-/** Vertical padding after a timeline row. Scales gently with the gap to the
- *  next activity, but never exceeds MAX so distant events don’t leave a void. */
+/** Vertical padding after a timeline row. Scales with the real time gap so a
+ *  15-minute step stays tight while multi-hour gaps breathe — without leaving
+ *  a huge void between distant events. */
 export function timelineGapPx(
   fromLabel: string | null | undefined,
   toLabel: string | null | undefined
 ): number {
-  const MIN = 16;
-  const MAX = 56;
+  const MIN = 8;
+  const MAX = 44;
   if (!fromLabel || !toLabel) return MIN;
   const delta = timeToMinutes(toLabel) - timeToMinutes(fromLabel);
   if (!Number.isFinite(delta) || delta <= 0) return MIN;
-  return Math.min(MAX, Math.max(MIN, Math.round(delta * 0.2)));
+  // ~0.28px per minute → 15m≈8, 60m≈17, 150m≈42
+  return Math.min(MAX, Math.max(MIN, Math.round(delta * 0.28)));
 }
 
 // Compact paid-on date for settle-up rows (e.g. "12/07"). Uses local calendar day.
