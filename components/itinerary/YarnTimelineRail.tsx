@@ -38,22 +38,25 @@ export const TIMELINE_NODE_CENTER_Y_PX =
 const DIAMOND_HALF_DIAG_PX = (TIMELINE_NODE_SIZE_PX * Math.SQRT2) / 2;
 
 /**
- * Visual top tip of the next diamond, relative to its row top.
- * (`top` + rotate-45 around center) — the tip sits above the unrotated box.
+ * How far the rail extends into the next row — through the next diamond’s
+ * center so the join sits under the opaque node.
  */
-const TIMELINE_DIAMOND_TIP_Y_PX =
-  TIMELINE_NODE_CENTER_Y_PX - DIAMOND_HALF_DIAG_PX;
-
-/**
- * How far the rail extends into the next row: a couple of px past the next
- * diamond’s visual tip so the dash tucks under the node (no hairline gap).
- */
-export const TIMELINE_RAIL_OVERLAP_PX = Math.ceil(TIMELINE_DIAMOND_TIP_Y_PX) + 2;
+export const TIMELINE_RAIL_OVERLAP_PX = Math.ceil(TIMELINE_NODE_CENTER_Y_PX);
 
 /** Dash: 5px solid + 4px gap. */
 const DASH_SOLID_PX = 5;
 const DASH_GAP_PX = 4;
 const DASH_PERIOD_PX = DASH_SOLID_PX + DASH_GAP_PX;
+
+/**
+ * Keep this much solid (undashed) at each end so the line always plugs into
+ * the diamond — never ends on a transparent dash gap.
+ * Tall enough that a clear solid stem sits above the next tip.
+ */
+const TIMELINE_RAIL_SOLID_CAP_PX = DASH_PERIOD_PX * 2;
+
+/** Page surface — matches `.city-tint` (accent wash over cream). */
+const CITY_TINT = 'color-mix(in srgb, var(--city-accent) 12%, #f7f1e6)';
 
 function TimelineDash({
   top,
@@ -62,30 +65,29 @@ function TimelineDash({
   top: number | string;
   accentHex: string;
 }) {
-  const stroke = `color-mix(in srgb, ${accentHex} 55%, transparent)`;
+  // Opaque muted stroke (mix with cream, not transparent) so gaps can punch
+  // cleanly without alpha fringe.
+  const stroke = `color-mix(in srgb, ${accentHex} 55%, #f7f1e6)`;
   return (
     <div
       className="absolute left-1/2 w-0.5 -translate-x-1/2"
       style={{
         top,
         bottom: -TIMELINE_RAIL_OVERLAP_PX,
-        /*
-          Paint from the bottom up so the pixels at the next diamond tip are
-          always the solid part of the dash — never a transparent gap.
-        */
-        backgroundImage: `repeating-linear-gradient(to top, ${stroke} 0 ${DASH_SOLID_PX}px, transparent ${DASH_SOLID_PX}px ${DASH_PERIOD_PX}px)`,
       }}
     >
+      {/* Continuous solid backbone — reaches both diamonds with no holes. */}
+      <span className="absolute inset-0" style={{ background: stroke }} />
       {/*
-        Short solid stub through the tip (covers AA / subpixel rounding).
-        Kept shorter than one dash period so the rail still reads as dashed.
+        Dash gaps only in the middle. Pattern paints from the bottom up so the
+        pixels just above each solid cap are always backbone (never a cream gap).
       */}
       <span
         className="absolute left-0 right-0"
         style={{
-          bottom: 0,
-          height: Math.ceil(DIAMOND_HALF_DIAG_PX) + 2,
-          background: stroke,
+          top: TIMELINE_RAIL_SOLID_CAP_PX,
+          bottom: TIMELINE_RAIL_SOLID_CAP_PX,
+          backgroundImage: `repeating-linear-gradient(to top, transparent 0 ${DASH_SOLID_PX}px, ${CITY_TINT} ${DASH_SOLID_PX}px ${DASH_PERIOD_PX}px)`,
         }}
       />
     </div>
@@ -110,7 +112,7 @@ export function TimelineRail({
       aria-hidden
     >
       <span
-        className="absolute left-1/2 z-[1] -translate-x-1/2 rotate-45 rounded-[1px]"
+        className="absolute left-1/2 z-[1] -translate-x-1/2 rotate-45"
         style={{
           top: TIMELINE_NODE_TOP_PX,
           width: TIMELINE_NODE_SIZE_PX,
