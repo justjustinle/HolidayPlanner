@@ -5,7 +5,6 @@ import { MapPin, MessageCircle } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
 import {
   TIMELINE_TIME_COL_PX,
-  TIMELINE_TIME_PAD_TOP_PX,
   TimelineRailBelow,
 } from './YarnTimelineRail';
 import {
@@ -18,8 +17,8 @@ import { hapticLight, MOTION } from '@/lib/motion';
 import { formatTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
 
-/** Start-time type size — keep in sync with the clock style below. */
-const START_TIME_FONT_PX = 17 * 0.85; // ~14.45px
+/** Start-time type size — keep in sync with the activity title (`text-[15px]`). */
+const START_TIME_FONT_PX = 15;
 
 export default function ItineraryCard({
   item,
@@ -86,17 +85,14 @@ export default function ItineraryCard({
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
       >
-        {/* Time column — start clock aligns with card title; rail only below */}
+        {/* Time column — same py-3 + leading-snug as the card title row */}
         <div
           className="relative flex flex-none flex-col self-stretch text-center tabular-nums"
           style={{ width: TIMELINE_TIME_COL_PX }}
         >
-          <div
-            className="relative z-[1] flex-none"
-            style={{ paddingTop: TIMELINE_TIME_PAD_TOP_PX }}
-          >
+          <div className="relative z-[1] flex-none py-3">
             <div
-              className="font-semibold leading-none tracking-tight text-ink"
+              className="font-semibold leading-snug tracking-tight text-ink"
               style={{ fontSize: START_TIME_FONT_PX }}
             >
               {startClock}

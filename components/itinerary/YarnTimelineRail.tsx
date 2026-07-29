@@ -2,7 +2,8 @@
 export const TIMELINE_TIME_COL_PX = 40;
 
 /**
- * Matches activity card `py-3` so the start clock lines up with the title.
+ * Matches activity card `py-3`. Prefer sharing the `py-3` class on the clock
+ * block rather than hard-coding this elsewhere.
  */
 export const TIMELINE_TIME_PAD_TOP_PX = 12;
 
