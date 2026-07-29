@@ -23,8 +23,8 @@ export const TIMELINE_NODE_TOP_PX =
 export const TIMELINE_NODE_CENTER_Y_PX =
   TIMELINE_NODE_TOP_PX + TIMELINE_NODE_SIZE_PX / 2;
 
-/** Tiny air between the clock and the diamond. */
-export const TIMELINE_TIME_TO_NODE_GAP_PX = 6;
+/** Air between the clock and the diamond (diamond half-width is ~4.5px). */
+export const TIMELINE_TIME_TO_NODE_GAP_PX = 10;
 
 function dashedRailStyle(accentHex: string): {
   backgroundImage: string;
