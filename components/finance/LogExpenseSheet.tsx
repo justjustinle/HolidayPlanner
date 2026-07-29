@@ -15,6 +15,14 @@ import {
 } from '@/lib/currency';
 import { dayByNumber } from '@/lib/trip';
 import { formatTimeLabel } from '@/lib/time';
+import {
+  clearExpenseDraft,
+  isExpenseDraftPristine,
+  onPageHidden,
+  readExpenseDraft,
+  writeExpenseDraft,
+  type ExpenseCreateDraft,
+} from '@/lib/createDrafts';
 import type { CurrencyCode, Expense, ItineraryItem, Profile } from '@/lib/types';
 
 function equalLocalShares(
@@ -100,44 +108,119 @@ export default function LogExpenseSheet({
     currencies,
     addExpense,
     updateExpense,
+    activeTripId,
   } = useTripData();
 
   const isReceipt = expense?.kind === 'receipt';
+  const creating = !expense;
+  const tripKey = activeTripId;
+  const saved = creating ? readExpenseDraft(tripKey) : null;
 
   const existingSplits = useMemo(
     () => (expense ? splits.filter((s) => s.expense_id === expense.id) : []),
     [expense, splits]
   );
 
-  const [label, setLabel] = useState(expense?.label ?? '');
-  const [day, setDay] = useState(expense?.day_number ?? defaultDay ?? 1);
-  const [currency, setCurrency] = useState<CurrencyCode>(
-    expense?.local_currency ?? trip.base_currency
+  const [label, setLabel] = useState(
+    () => expense?.label ?? saved?.label ?? ''
   );
-  const [amountStr, setAmountStr] = useState(expense ? String(expense.local_amount) : '');
+  const [day, setDay] = useState(
+    () => expense?.day_number ?? saved?.day ?? defaultDay ?? 1
+  );
+  const [currency, setCurrency] = useState<CurrencyCode>(
+    () =>
+      expense?.local_currency ??
+      saved?.currency ??
+      trip.base_currency
+  );
+  const [amountStr, setAmountStr] = useState(
+    () => (expense ? String(expense.local_amount) : saved?.amountStr ?? '')
+  );
   const [paidById, setPaidById] = useState<string>(
-    expense?.paid_by_id ?? me?.id ?? profiles[0]?.id ?? ''
+    () =>
+      expense?.paid_by_id ??
+      saved?.paidById ??
+      me?.id ??
+      profiles[0]?.id ??
+      ''
   );
   const [participants, setParticipants] = useState<string[]>(() => {
-    if (!expense) return profiles.map((p) => p.id);
-    const existing = existingSplits.map((s) => s.user_id);
-    return existing.length ? existing : profiles.map((p) => p.id);
+    if (expense) {
+      const existing = existingSplits.map((s) => s.user_id);
+      return existing.length ? existing : profiles.map((p) => p.id);
+    }
+    if (saved?.participants?.length) return saved.participants;
+    return profiles.map((p) => p.id);
   });
   // null = equal split. Otherwise local-currency amounts keyed by user id.
   const [customShares, setCustomShares] = useState<Record<string, number> | null>(() => {
-    if (!expense || existingSplits.length === 0) return null;
-    if (isEqualSplit(expense.base_amount_gbp, existingSplits.map((s) => s.amount_owed))) {
-      return null;
+    if (expense) {
+      if (existingSplits.length === 0) return null;
+      if (isEqualSplit(expense.base_amount_gbp, existingSplits.map((s) => s.amount_owed))) {
+        return null;
+      }
+      return localSharesFromGbpSplits(
+        existingSplits,
+        expense.local_amount,
+        expense.base_amount_gbp
+      );
     }
-    return localSharesFromGbpSplits(
-      existingSplits,
-      expense.local_amount,
-      expense.base_amount_gbp
-    );
+    return saved?.customShares ?? null;
   });
   const [busy, setBusy] = useState(false);
   const [pickingActivity, setPickingActivity] = useState(false);
   const [editingCustomSplit, setEditingCustomSplit] = useState(false);
+
+  const draftRef = useRef<ExpenseCreateDraft | null>(null);
+  if (creating) {
+    draftRef.current = {
+      v: 1,
+      open: true,
+      label,
+      day,
+      currency,
+      amountStr,
+      paidById,
+      participants,
+      customShares,
+    };
+  }
+
+  useEffect(() => {
+    if (!creating || !draftRef.current) return;
+    writeExpenseDraft(draftRef.current, tripKey);
+  }, [
+    creating,
+    tripKey,
+    label,
+    day,
+    currency,
+    amountStr,
+    paidById,
+    participants,
+    customShares,
+  ]);
+
+  useEffect(() => {
+    if (!creating) return;
+    return onPageHidden(() => {
+      if (draftRef.current) writeExpenseDraft(draftRef.current, tripKey);
+    });
+  }, [creating, tripKey]);
+
+  const dismiss = () => {
+    if (creating) {
+      if (
+        isExpenseDraftPristine({ label, amountStr, customShares }) ||
+        !draftRef.current
+      ) {
+        clearExpenseDraft(tripKey);
+      } else {
+        writeExpenseDraft({ ...draftRef.current, open: false }, tripKey);
+      }
+    }
+    onClose();
+  };
 
   const amount = parseFloat(amountStr) || 0;
   const gbp = useMemo(
@@ -228,7 +311,10 @@ export default function LogExpenseSheet({
             : undefined,
       };
       if (expense) await updateExpense(expense.id, input);
-      else await addExpense(input);
+      else {
+        await addExpense(input);
+        clearExpenseDraft(tripKey);
+      }
       onClose();
     } finally {
       setBusy(false);
@@ -251,7 +337,7 @@ export default function LogExpenseSheet({
 
   return (
     <>
-      <Sheet title={expense ? 'Edit expense' : 'Log an expense'} onClose={onClose}>
+      <Sheet title={expense ? 'Edit expense' : 'Log an expense'} onClose={dismiss}>
         <div className="relative mb-3">
           <input
             value={label}

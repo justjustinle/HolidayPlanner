@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
@@ -8,6 +8,14 @@ import { useTripData } from '../TripDataProvider';
 import { compressToWebp, dataUrlToBase64, fileToDataUrl } from '@/lib/image';
 import { toBase, formatBaseCurrency, round2, symbolFor } from '@/lib/currency';
 import { receiptTaxMultiplier } from '@/lib/settle';
+import {
+  clearReceiptDraft,
+  isReceiptDraftPristine,
+  onPageHidden,
+  readReceiptDraft,
+  writeReceiptDraft,
+  type ReceiptCreateDraft,
+} from '@/lib/createDrafts';
 import type { CurrencyCode, Expense } from '@/lib/types';
 
 interface DraftItem {
@@ -22,6 +30,9 @@ interface DraftItem {
 // existing receipt expense. Tax/service above the item sum is spread
 // proportionally at settlement via receiptTaxMultiplier (everyone who claims
 // an item pays their share of the gap).
+//
+// Create mode persists the form (and a capped preview) so leaving for Maps /
+// WhatsApp or switching tabs doesn’t discard an in-progress upload.
 export default function UploadReceiptSheet({
   defaultDay,
   expense,
@@ -41,6 +52,7 @@ export default function UploadReceiptSheet({
     currencies,
     addReceiptExpense,
     updateReceiptExpense,
+    activeTripId,
   } = useTripData();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,38 +63,144 @@ export default function UploadReceiptSheet({
     ? receiptItems.filter((i) => i.receipt_id === existingReceipt.id)
     : [];
   const isEditing = expense?.kind === 'receipt' && !!existingReceipt;
+  const creating = !isEditing;
+  const tripKey = activeTripId;
+  const saved = creating ? readReceiptDraft(tripKey) : null;
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(
-    existingReceipt?.image_url ?? null
+    () => existingReceipt?.image_url ?? saved?.preview ?? null
   );
   const [scanning, setScanning] = useState(false);
-  const [scanned, setScanned] = useState(isEditing); // edit mode skips pick/scan
+  const [scanned, setScanned] = useState(() =>
+    isEditing ? true : (saved?.scanned ?? false)
+  );
   const [error, setError] = useState<string | null>(null);
 
   const [merchant, setMerchant] = useState(
-    existingReceipt?.merchant ?? expense?.label ?? ''
+    () => existingReceipt?.merchant ?? expense?.label ?? saved?.merchant ?? ''
   );
-  const [day, setDay] = useState(expense?.day_number ?? defaultDay ?? 1);
+  const [day, setDay] = useState(
+    () => expense?.day_number ?? saved?.day ?? defaultDay ?? 1
+  );
   const [currency, setCurrency] = useState<CurrencyCode>(
-    expense?.local_currency ?? trip.base_currency
+    () =>
+      expense?.local_currency ??
+      saved?.currency ??
+      trip.base_currency
   );
   const [totalStr, setTotalStr] = useState(
-    expense ? String(expense.local_amount) : ''
+    () => (expense ? String(expense.local_amount) : saved?.totalStr ?? '')
   );
   const [paidById, setPaidById] = useState<string>(
-    expense?.paid_by_id ?? me?.id ?? profiles[0]?.id ?? ''
+    () =>
+      expense?.paid_by_id ??
+      saved?.paidById ??
+      me?.id ??
+      profiles[0]?.id ??
+      ''
   );
-  const [items, setItems] = useState<DraftItem[]>(() =>
-    existingItems.map((i) => ({
-      id: i.id,
-      name: i.name,
-      quantity: i.quantity,
-      price: String(i.local_amount),
-      claimed_by_id: i.claimed_by_id,
-    }))
-  );
+  const [items, setItems] = useState<DraftItem[]>(() => {
+    if (isEditing) {
+      return existingItems.map((i) => ({
+        id: i.id,
+        name: i.name,
+        quantity: i.quantity,
+        price: String(i.local_amount),
+        claimed_by_id: i.claimed_by_id,
+      }));
+    }
+    return saved?.items ?? [];
+  });
   const [busy, setBusy] = useState(false);
+
+  const draftRef = useRef<ReceiptCreateDraft | null>(null);
+  if (creating) {
+    draftRef.current = {
+      v: 1,
+      open: true,
+      merchant,
+      day,
+      currency,
+      totalStr,
+      paidById,
+      items: items.map(({ name, quantity, price, claimed_by_id }) => ({
+        name,
+        quantity,
+        price,
+        claimed_by_id,
+      })),
+      scanned,
+      preview,
+    };
+  }
+
+  useEffect(() => {
+    if (!creating || !draftRef.current) return;
+    writeReceiptDraft(draftRef.current, tripKey);
+  }, [
+    creating,
+    tripKey,
+    merchant,
+    day,
+    currency,
+    totalStr,
+    paidById,
+    items,
+    scanned,
+    preview,
+  ]);
+
+  useEffect(() => {
+    if (!creating) return;
+    return onPageHidden(() => {
+      if (draftRef.current) writeReceiptDraft(draftRef.current, tripKey);
+    });
+  }, [creating, tripKey]);
+
+  // Rebuild a File from a persisted preview so scan/save still work after resume.
+  useEffect(() => {
+    if (!creating || file || !preview?.startsWith('data:')) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(preview);
+        const blob = await res.blob();
+        if (cancelled) return;
+        setFile(
+          new File([blob], 'receipt.webp', {
+            type: blob.type || 'image/webp',
+          })
+        );
+      } catch {
+        /* ignore — user can re-pick */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creating, preview]);
+
+  const dismiss = () => {
+    if (creating) {
+      if (
+        isReceiptDraftPristine({
+          merchant,
+          totalStr,
+          items,
+          preview,
+          scanned,
+        }) ||
+        !draftRef.current
+      ) {
+        clearReceiptDraft(tripKey);
+      } else {
+        writeReceiptDraft({ ...draftRef.current, open: false }, tripKey);
+      }
+    }
+    onClose();
+  };
 
   const currencySymbol = symbolFor(currency, currencies);
 
@@ -192,6 +310,7 @@ export default function UploadReceiptSheet({
         await updateReceiptExpense(expense.id, payload);
       } else {
         await addReceiptExpense(payload);
+        clearReceiptDraft(tripKey);
       }
       onClose();
     } finally {
@@ -203,7 +322,7 @@ export default function UploadReceiptSheet({
     'w-full rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-[15px] text-ink outline-none focus:border-ink';
 
   return (
-    <Sheet title={isEditing ? 'Edit receipt' : 'Upload a receipt'} onClose={onClose}>
+    <Sheet title={isEditing ? 'Edit receipt' : 'Upload a receipt'} onClose={dismiss}>
       {/* stage 1: pick + scan (create only) */}
       {!scanned && (
         <>

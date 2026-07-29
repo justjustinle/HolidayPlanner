@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   Check,
@@ -24,6 +24,12 @@ import { downloadExpensesCsv } from '@/lib/exportExpensesCsv';
 import { computeNetBalances, listSettlements, minimizeTransfers, totalSpend } from '@/lib/settle';
 import { defaultDayNumber } from '@/lib/trip';
 import { formatDayMonth } from '@/lib/time';
+import {
+  readExpenseDraft,
+  readReceiptDraft,
+  writeExpenseDraft,
+  writeReceiptDraft,
+} from '@/lib/createDrafts';
 import type { SettledPayment, Transfer } from '@/lib/types';
 
 export default function FinanceTab() {
@@ -38,6 +44,7 @@ export default function FinanceTab() {
     currencies,
     settleUp,
     deleteExpense,
+    activeTripId,
   } =
     useTripData();
   const [sheet, setSheet] = useState<'receipt' | 'expense' | null>(null);
@@ -47,6 +54,40 @@ export default function FinanceTab() {
   // Outstanding transfer awaiting settle confirmation; settlement awaiting undo.
   const [settling, setSettling] = useState<Transfer | null>(null);
   const [undoing, setUndoing] = useState<SettledPayment | null>(null);
+
+  // Reopen in-progress create sheets after tab switches / app resume.
+  useEffect(() => {
+    const sync = () => {
+      if (readExpenseDraft(activeTripId)?.open) setSheet('expense');
+      else if (readReceiptDraft(activeTripId)?.open) setSheet('receipt');
+    };
+    sync();
+    const onVis = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pageshow', sync);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pageshow', sync);
+    };
+  }, [activeTripId]);
+
+  const openExpenseSheet = () => {
+    const existing = readExpenseDraft(activeTripId);
+    if (existing && !existing.open) {
+      writeExpenseDraft({ ...existing, open: true }, activeTripId);
+    }
+    setSheet('expense');
+  };
+
+  const openReceiptSheet = () => {
+    const existing = readReceiptDraft(activeTripId);
+    if (existing && !existing.open) {
+      writeReceiptDraft({ ...existing, open: true }, activeTripId);
+    }
+    setSheet('receipt');
+  };
 
   const avatarFor = (id: string) => profiles.find((p) => p.id === id)?.avatar_url;
   const formatBase = (amount: number) =>
@@ -125,13 +166,13 @@ export default function FinanceTab() {
         {/* add actions */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => setSheet('receipt')}
+            onClick={openReceiptSheet}
             className="flex items-center justify-center gap-2 rounded-xl bg-ink py-3 text-[14px] font-medium text-white"
           >
             <ScanLine size={17} /> Upload receipt
           </button>
           <button
-            onClick={() => setSheet('expense')}
+            onClick={openExpenseSheet}
             className="flex items-center justify-center gap-2 rounded-xl border border-black/10 bg-cream-card py-3 text-[14px] font-medium text-ink"
           >
             <Receipt size={17} /> Log an expense
