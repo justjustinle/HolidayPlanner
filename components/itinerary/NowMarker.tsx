@@ -27,7 +27,7 @@ const NowMarker = forwardRef<
   return (
     <div
       ref={ref}
-      className="relative flex items-stretch gap-2"
+      className="relative flex items-stretch gap-1.5"
       aria-label={`Current time, ${clock}`}
     >
       <div

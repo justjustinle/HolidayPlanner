@@ -625,7 +625,7 @@ export default function ItineraryTab({
 function InsertionLine({ accentHex }: { accentHex: string }) {
   return (
     <div
-      className="relative z-10 my-0.5 flex items-center gap-2"
+      className="relative z-10 my-0.5 flex items-center gap-1.5"
       aria-hidden
     >
       <div className="flex-none" style={{ width: TIMELINE_TIME_COL_PX }} />

@@ -82,7 +82,7 @@ export default function ItineraryCard({
     <>
       <div
         data-activity-row={item.id}
-        className={`relative flex items-stretch gap-2 transition-opacity ${
+        className={`relative flex items-stretch gap-1.5 transition-opacity ${
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
       >

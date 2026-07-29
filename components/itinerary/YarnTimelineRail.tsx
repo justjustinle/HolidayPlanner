@@ -1,5 +1,5 @@
 /** Time-column width — dashed rail runs through the center of the clocks. */
-export const TIMELINE_TIME_COL_PX = 48;
+export const TIMELINE_TIME_COL_PX = 40;
 
 /** Vertical align of the start clock with the activity card title. */
 export const TIMELINE_TIME_PAD_TOP_PX = 12;
