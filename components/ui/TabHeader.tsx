@@ -9,9 +9,12 @@ import InviteFriendsSheet from './InviteFriendsSheet';
 import EditNameSheet from './EditNameSheet';
 import CreateTripSheet from '../trips/CreateTripSheet';
 import YarnLogo from '../brand/YarnLogo';
-import { TripCountryFlags } from './Flag';
-import { uniqueCountriesFromTripDays } from '@/lib/countries';
-import { rangeLabelFromDays } from '@/lib/trip';
+import { CountryFlag } from './Flag';
+import {
+  countryFromDestinationLabel,
+  normalizeCountryName,
+} from '@/lib/countries';
+import { dayByNumber, rangeLabelFromDays, type TripDay } from '@/lib/trip';
 import { useTripData } from '../TripDataProvider';
 
 type TabHeaderProps =
@@ -19,17 +22,38 @@ type TabHeaderProps =
       /** Itinerary-only trip identity chrome. */
       variant?: 'trip';
       title?: never;
+      /** Selected itinerary day — drives the city→country flag. */
+      dayNumber?: number;
     }
   | {
       /** Expenses / Stats: page title + Yarn mark top-right. */
       variant: 'section';
       title: string;
+      dayNumber?: never;
     };
 
 // Shared two-column trip header: 40px icon rail + flexible content.
 const TRIP_HEADER_GRID = 'grid grid-cols-[40px_1fr]';
 
-// Itinerary: hamburger + trip title/flags/dates/facepile.
+/** Width of the header country flag (3:2 aspect). Fills the right-rail slot. */
+const CITY_FLAG_SIZE = 56;
+
+function countryForTripDay(day: TripDay | undefined): string | null {
+  if (!day) return null;
+  if (day.country) {
+    return normalizeCountryName(day.country) ?? day.country;
+  }
+  const city = (day.city ?? day.destination)?.trim();
+  if (city) {
+    const fromCity = countryFromDestinationLabel(city);
+    if (fromCity) return fromCity;
+  }
+  return day.destination
+    ? countryFromDestinationLabel(day.destination)
+    : null;
+}
+
+// Itinerary: hamburger + trip title/dates/facepile + city country flag.
 // Expenses & Stats: hamburger + section title, Yarn logo top-right (no trip chrome).
 export default function TabHeader(props: TabHeaderProps) {
   const isTrip = props.variant !== 'section';
@@ -40,37 +64,53 @@ export default function TabHeader(props: TabHeaderProps) {
   const [editTripOpen, setEditTripOpen] = useState(false);
   const { trip, tripDays } = useTripData();
   const dates = rangeLabelFromDays(tripDays);
-  const tripCountries = uniqueCountriesFromTripDays(tripDays);
+  const selectedDay = isTrip
+    ? dayByNumber(props.dayNumber ?? 1, tripDays)
+    : undefined;
+  const cityCountry = countryForTripDay(selectedDay);
 
   return (
     <header className="px-5 pt-4">
       {isTrip ? (
-        <div className={TRIP_HEADER_GRID}>
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open menu"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-black/5"
-          >
-            <Menu size={22} strokeWidth={2} />
-          </button>
+        <div className="flex items-start justify-between gap-3">
+          <div className={`${TRIP_HEADER_GRID} min-w-0 flex-1`}>
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-ink hover:bg-black/5"
+            >
+              <Menu size={22} strokeWidth={2} />
+            </button>
 
-          <h1 className="flex min-w-0 items-center gap-2 font-serif text-[26px] font-semibold leading-tight text-ink">
-            <span className="min-w-0 truncate">{trip.name}</span>
-            <TripCountryFlags countries={tripCountries} size={20} />
-          </h1>
+            <h1 className="min-w-0 truncate font-serif text-[26px] font-semibold leading-tight text-ink">
+              {trip.name}
+            </h1>
 
-          <span className="mt-1 flex items-center justify-center text-muted" aria-hidden>
-            <Calendar size={14} />
-          </span>
-          <p className="mt-1 text-[13px] leading-snug text-muted">{dates}</p>
+            <span
+              className="mt-1 flex items-center justify-center text-muted"
+              aria-hidden
+            >
+              <Calendar size={14} />
+            </span>
+            <p className="mt-1 text-[13px] leading-snug text-muted">{dates}</p>
 
-          <span className="mt-2 flex items-center justify-center text-muted" aria-hidden>
-            <Users size={14} />
-          </span>
-          <div className="mt-2">
-            <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
+            <span
+              className="mt-2 flex items-center justify-center text-muted"
+              aria-hidden
+            >
+              <Users size={14} />
+            </span>
+            <div className="mt-2">
+              <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
+            </div>
           </div>
+
+          {cityCountry && (
+            <span className="mt-1 flex flex-none items-start" aria-hidden={false}>
+              <CountryFlag country={cityCountry} size={CITY_FLAG_SIZE} />
+            </span>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3">
