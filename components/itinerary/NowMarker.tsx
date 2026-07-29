@@ -3,12 +3,12 @@
 import { forwardRef } from 'react';
 import { formatClock } from '@/lib/time';
 import {
+  TIMELINE_GUTTER_PX,
   TIMELINE_TIME_COL_PX,
-  TIMELINE_TIME_TO_NODE_GAP_PX,
-  CardEdgeNowMarker,
+  TimelineNowMarker,
 } from './YarnTimelineRail';
 
-// Same time + card-edge rail geometry as activity rows.
+// Same time + rail + card geometry as activity rows.
 const NowMarker = forwardRef<
   HTMLDivElement,
   {
@@ -27,7 +27,7 @@ const NowMarker = forwardRef<
     <div
       ref={ref}
       className="relative flex items-stretch"
-      style={{ gap: TIMELINE_TIME_TO_NODE_GAP_PX }}
+      style={{ gap: TIMELINE_GUTTER_PX }}
       aria-label={`Current time, ${clock}`}
     >
       <div
@@ -36,13 +36,13 @@ const NowMarker = forwardRef<
         aria-hidden
       />
 
+      <TimelineNowMarker isLast={isLast} accentHex={accentHex} />
+
       <div
         className="relative min-h-5 min-w-0 flex-1"
         style={{ paddingBottom: isLast ? 8 : spacingAfter }}
         aria-hidden
-      >
-        <CardEdgeNowMarker isLast={isLast} accentHex={accentHex} />
-      </div>
+      />
     </div>
   );
 });
