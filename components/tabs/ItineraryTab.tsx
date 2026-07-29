@@ -1,21 +1,55 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
-import ItineraryCard from '../itinerary/ItineraryCard';
+import ItineraryCard, { ItineraryDragGhost } from '../itinerary/ItineraryCard';
 import NowMarker from '../itinerary/NowMarker';
 import AddCardSheet from '../itinerary/AddCardSheet';
+import ReorderToast from '../itinerary/ReorderToast';
+import {
+  ReorderHint,
+  readReorderHintSeen,
+  writeReorderHintSeen,
+  type ReorderArmDetail,
+} from '../itinerary/reorderGestures';
 import TabHeader from '../ui/TabHeader';
 import DayPicker from '../ui/DayPicker';
 import { dayByNumber, dayNumberForDateInTrip } from '@/lib/trip';
 import { YARN_DEFAULT_ACCENT, setYarnFavicon } from '@/lib/brand/setYarnFavicon';
-import { nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
+import {
+  computeReorderTimes,
+  insertIndexFromY,
+  REORDER_UNDO_MS,
+  type ReorderTimesResult,
+} from '@/lib/reorder';
+import { formatTimeLabel, nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
+import { hapticLight } from '@/lib/motion';
 import type { ItineraryItem } from '@/lib/types';
 
 type TimelineRow =
   | { kind: 'now' }
   | { kind: 'item'; item: ItineraryItem; past: boolean };
+
+type DragState = {
+  itemId: string;
+  pointerId: number;
+  /** Offset from card top to the initial press Y. */
+  grabOffsetY: number;
+  clientY: number;
+  left: number;
+  width: number;
+  height: number;
+  insertIndex: number;
+  preview: ReorderTimesResult;
+};
+
+type UndoState = {
+  itemId: string;
+  previous: Omit<ItineraryItem, 'id' | 'photo_url' | 'created_at'>;
+  nextTimeLabel: string;
+  overlaps: boolean;
+};
 
 function rowStartLabel(row: TimelineRow, now: Date): string {
   if (row.kind === 'now') {
@@ -26,6 +60,21 @@ function rowStartLabel(row: TimelineRow, now: Date): string {
   return row.item.time_label;
 }
 
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const style = window.getComputedStyle(node);
+    if (
+      /(auto|scroll)/.test(style.overflowY) &&
+      node.scrollHeight > node.clientHeight + 1
+    ) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
 export default function ItineraryTab({
   day,
   onDayChange,
@@ -34,24 +83,30 @@ export default function ItineraryTab({
   day: number;
   onDayChange: (day: number) => void;
 }) {
-  const { itinerary, trip, tripDays } = useTripData();
+  const { itinerary, trip, tripDays, updateItineraryItem } = useTripData();
   const [adding, setAdding] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const nowRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const didScrollToNow = useRef(false);
+  const dragRef = useRef<DragState | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [undo, setUndo] = useState<UndoState | null>(null);
+  const [hintVisible, setHintVisible] = useState(false);
+  const undoTimerRef = useRef<number | null>(null);
+  const scrollLockRef = useRef<{ el: HTMLElement; overflow: string } | null>(
+    null
+  );
 
   const selected = dayByNumber(day, tripDays);
   const todayDay = dayNumberForDateInTrip(now, trip.start_date, tripDays.length);
   const isToday = todayDay !== null && day === todayDay;
 
-  // Keep the "now" marker in sync with device time while this tab is open.
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(id);
   }, []);
 
-  // Theme the app after the selected day's city: its dot color becomes the
-  // global accent (used by the tab bar, day chips, and add buttons).
   useEffect(() => {
     document.documentElement.style.setProperty(
       '--city-accent',
@@ -61,11 +116,14 @@ export default function ItineraryTab({
 
   const accent = selected?.accentHex ?? YARN_DEFAULT_ACCENT;
 
-  // Themed yarn mark in the browser tab while this view is open.
   useEffect(() => {
     setYarnFavicon(accent);
     return () => setYarnFavicon(YARN_DEFAULT_ACCENT);
   }, [accent]);
+
+  useEffect(() => {
+    setHintVisible(!readReorderHintSeen());
+  }, []);
 
   const items = useMemo(
     () =>
@@ -74,6 +132,8 @@ export default function ItineraryTab({
         .sort((a, b) => timeToMinutes(a.time_label) - timeToMinutes(b.time_label)),
     [itinerary, day]
   );
+
+  const reorderEnabled = items.length > 1 && !adding;
 
   const rows: TimelineRow[] = useMemo(() => {
     if (!isToday) {
@@ -94,20 +154,235 @@ export default function ItineraryTab({
     return out;
   }, [items, isToday, now]);
 
-  // Scroll the now marker into view once when (re)landing on today.
   useEffect(() => {
     if (!isToday) {
       didScrollToNow.current = false;
       return;
     }
-    if (didScrollToNow.current) return;
+    if (didScrollToNow.current || drag) return;
     const el = nowRef.current;
     if (!el) return;
     didScrollToNow.current = true;
     requestAnimationFrame(() => {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     });
-  }, [isToday, rows]);
+  }, [isToday, rows, drag]);
+
+  const clearUndoTimer = () => {
+    if (undoTimerRef.current !== null) {
+      window.clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+  };
+
+  const dismissHint = useCallback(() => {
+    writeReorderHintSeen();
+    setHintVisible(false);
+  }, []);
+
+  const unlockScroll = useCallback(() => {
+    const locked = scrollLockRef.current;
+    if (!locked) return;
+    locked.el.style.overflowY = locked.overflow;
+    scrollLockRef.current = null;
+  }, []);
+
+  const measureInsert = useCallback(
+    (clientY: number, draggedId: string): { insertIndex: number; preview: ReorderTimesResult } => {
+      const others = items.filter((i) => i.id !== draggedId);
+      const centers: number[] = [];
+      for (const other of others) {
+        const el = listRef.current?.querySelector(
+          `[data-activity-row="${other.id}"]`
+        ) as HTMLElement | null;
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        centers.push(rect.top + rect.height / 2);
+      }
+      const insertIndex = insertIndexFromY(clientY, centers);
+      const dragged = items.find((i) => i.id === draggedId);
+      const preview = computeReorderTimes(
+        others,
+        insertIndex,
+        dragged ?? { time_label: '09:00', end_time_label: null }
+      );
+      return { insertIndex, preview };
+    },
+    [items]
+  );
+
+  const autoScroll = useCallback((clientY: number) => {
+    const scroller =
+      scrollLockRef.current?.el ?? getScrollParent(listRef.current);
+    if (!scroller) return;
+    const rect = scroller.getBoundingClientRect();
+    const edge = 56;
+    const maxStep = 18;
+    if (clientY < rect.top + edge) {
+      const t = (rect.top + edge - clientY) / edge;
+      scroller.scrollTop -= Math.ceil(maxStep * Math.min(1, t));
+    } else if (clientY > rect.bottom - edge) {
+      const t = (clientY - (rect.bottom - edge)) / edge;
+      scroller.scrollTop += Math.ceil(maxStep * Math.min(1, t));
+    }
+  }, []);
+
+  const finishDrag = useCallback(
+    async (state: DragState | null, commit: boolean) => {
+      dragRef.current = null;
+      setDrag(null);
+      unlockScroll();
+      document.body.style.touchAction = '';
+      document.body.style.userSelect = '';
+
+      if (!commit || !state) return;
+      const item = items.find((i) => i.id === state.itemId);
+      if (!item) return;
+
+      const next = state.preview;
+      if (
+        next.time_label === item.time_label &&
+        next.end_time_label === item.end_time_label
+      ) {
+        return;
+      }
+
+      const previous = {
+        day_number: item.day_number,
+        time_label: item.time_label,
+        end_time_label: item.end_time_label,
+        title: item.title,
+        location: item.location,
+        notes: item.notes,
+      };
+
+      await updateItineraryItem(item.id, {
+        ...previous,
+        time_label: next.time_label,
+        end_time_label: next.end_time_label,
+      });
+
+      hapticLight();
+      dismissHint();
+      clearUndoTimer();
+      setUndo({
+        itemId: item.id,
+        previous,
+        nextTimeLabel: next.time_label,
+        overlaps: next.overlaps,
+      });
+      undoTimerRef.current = window.setTimeout(() => {
+        setUndo(null);
+        undoTimerRef.current = null;
+      }, REORDER_UNDO_MS);
+    },
+    [dismissHint, items, unlockScroll, updateItineraryItem]
+  );
+
+  const onReorderArm = useCallback(
+    (detail: ReorderArmDetail) => {
+      if (!reorderEnabled) return;
+      const measured = measureInsert(detail.clientY, detail.itemId);
+      const next: DragState = {
+        itemId: detail.itemId,
+        pointerId: detail.pointerId,
+        grabOffsetY: detail.clientY - detail.rect.top,
+        clientY: detail.clientY,
+        left: detail.rect.left,
+        width: detail.rect.width,
+        height: detail.rect.height,
+        insertIndex: measured.insertIndex,
+        preview: measured.preview,
+      };
+      dragRef.current = next;
+      setDrag(next);
+
+      const scroller = getScrollParent(listRef.current);
+      if (scroller) {
+        scrollLockRef.current = {
+          el: scroller,
+          overflow: scroller.style.overflowY,
+        };
+        scroller.style.overflowY = 'hidden';
+      }
+      document.body.style.touchAction = 'none';
+      document.body.style.userSelect = 'none';
+    },
+    [measureInsert, reorderEnabled]
+  );
+
+  // Global pointer tracking while a drag is active.
+  useEffect(() => {
+    if (!drag) return;
+
+    const onMove = (e: PointerEvent) => {
+      const current = dragRef.current;
+      if (!current || e.pointerId !== current.pointerId) return;
+      e.preventDefault();
+      autoScroll(e.clientY);
+      const measured = measureInsert(e.clientY, current.itemId);
+      const next: DragState = {
+        ...current,
+        clientY: e.clientY,
+        insertIndex: measured.insertIndex,
+        preview: measured.preview,
+      };
+      dragRef.current = next;
+      setDrag(next);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      const current = dragRef.current;
+      if (!current || e.pointerId !== current.pointerId) return;
+      void finishDrag(current, true);
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') void finishDrag(dragRef.current, false);
+    };
+
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [autoScroll, drag, finishDrag, measureInsert]);
+
+  useEffect(
+    () => () => {
+      clearUndoTimer();
+      unlockScroll();
+    },
+    [unlockScroll]
+  );
+
+  const handleUndo = async () => {
+    if (!undo) return;
+    clearUndoTimer();
+    const snapshot = undo;
+    setUndo(null);
+    await updateItineraryItem(snapshot.itemId, snapshot.previous);
+    hapticLight();
+  };
+
+  const draggedItem = drag
+    ? items.find((i) => i.id === drag.itemId) ?? null
+    : null;
+
+  const othersForLine = drag
+    ? items.filter((i) => i.id !== drag.itemId)
+    : [];
+  const lineBeforeId =
+    drag && drag.insertIndex < othersForLine.length
+      ? othersForLine[drag.insertIndex].id
+      : null;
+  const lineAfterLast =
+    Boolean(drag) && drag!.insertIndex >= othersForLine.length;
 
   const showEmpty = items.length === 0 && !isToday;
 
@@ -149,12 +424,17 @@ export default function ItineraryTab({
           </div>
         )}
 
+        <ReorderHint
+          visible={hintVisible && reorderEnabled}
+          onDismiss={dismissHint}
+        />
+
         {showEmpty ? (
           <div className="mt-6 rounded-2xl border-2 border-dashed border-black/10 p-8 text-center text-muted">
             Nothing planned for {selected?.label ?? 'this day'} yet. Tap + to add an activity.
           </div>
         ) : (
-          <div className="pb-24 pt-1">
+          <div ref={listRef} className="pb-24 pt-1">
             {rows.map((row, i) => {
               const isLast = i === rows.length - 1;
               const next = rows[i + 1];
@@ -176,17 +456,29 @@ export default function ItineraryTab({
                   />
                 );
               }
+
+              const showLineBefore =
+                lineBeforeId !== null && lineBeforeId === row.item.id;
+
               return (
-                <ItineraryCard
-                  key={row.item.id}
-                  item={row.item}
-                  accentHex={accent}
-                  isLast={isLast}
-                  dimmed={row.past}
-                  spacingAfter={spacingAfter}
-                />
+                <div key={row.item.id} className="relative">
+                  {showLineBefore && (
+                    <InsertionLine accentHex={accent} />
+                  )}
+                  <ItineraryCard
+                    item={row.item}
+                    accentHex={accent}
+                    isLast={isLast && !lineAfterLast}
+                    dimmed={row.past}
+                    spacingAfter={spacingAfter}
+                    reorderEnabled={reorderEnabled}
+                    isDragSource={drag?.itemId === row.item.id}
+                    onReorderArm={onReorderArm}
+                  />
+                </div>
               );
             })}
+            {lineAfterLast && <InsertionLine accentHex={accent} />}
             {items.length === 0 && isToday && (
               <div className="mt-2 rounded-2xl border-2 border-dashed border-black/10 p-6 text-center text-[13px] text-muted">
                 Nothing planned for today yet. Tap + to add an activity.
@@ -199,6 +491,48 @@ export default function ItineraryTab({
       {adding && (
         <AddCardSheet day={day} onClose={() => setAdding(false)} />
       )}
+
+      {drag && draggedItem && (
+        <ItineraryDragGhost
+          item={draggedItem}
+          accentHex={accent}
+          timeLabel={drag.preview.time_label}
+          endTimeLabel={drag.preview.end_time_label}
+          left={drag.left}
+          width={drag.width}
+          top={drag.clientY - drag.grabOffsetY}
+        />
+      )}
+
+      {undo && (
+        <ReorderToast
+          message={`Moved to ${formatTimeLabel(undo.nextTimeLabel)}`}
+          detail={
+            undo.overlaps ? 'Overlaps another activity on this day' : null
+          }
+          onUndo={() => void handleUndo()}
+          onDismiss={() => {
+            clearUndoTimer();
+            setUndo(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function InsertionLine({ accentHex }: { accentHex: string }) {
+  return (
+    <div
+      className="relative z-10 my-0.5 flex items-center gap-2"
+      aria-hidden
+    >
+      <div className="w-[56px] flex-none" />
+      <div className="w-5 flex-none" />
+      <div
+        className="h-0.5 min-w-0 flex-1 rounded-full"
+        style={{ background: accentHex }}
+      />
     </div>
   );
 }

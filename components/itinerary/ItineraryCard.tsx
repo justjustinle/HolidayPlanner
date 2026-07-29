@@ -1,12 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
 import {
   TIMELINE_NODE_CENTER_Y_PX,
   YarnTimelineNode,
 } from './YarnTimelineRail';
+import {
+  useCardLongPress,
+  type ReorderArmDetail,
+} from './reorderGestures';
 import { useTripData } from '../TripDataProvider';
 import { YARN_BRAND } from '@/lib/brand/yarn';
 import { hapticLight, MOTION } from '@/lib/motion';
@@ -23,15 +27,23 @@ export default function ItineraryCard({
   dimmed = false,
   /** Extra space after this row (capped time-gap between activities). */
   spacingAfter = 16,
+  reorderEnabled = false,
+  isDragSource = false,
+  /** Preview clocks while this card is the drag source (ghost owns the live time). */
+  onReorderArm,
 }: {
   item: ItineraryItem;
   accentHex: string;
   isLast?: boolean;
   dimmed?: boolean;
   spacingAfter?: number;
+  reorderEnabled?: boolean;
+  isDragSource?: boolean;
+  onReorderArm?: (detail: ReorderArmDetail) => void;
 }) {
   const { photos } = useTripData();
   const [viewing, setViewing] = useState(false);
+  const suppressClickRef = useRef(false);
 
   const activityPhotos = useMemo(
     () => photos.filter((p) => p.activity_id === item.id),
@@ -47,14 +59,28 @@ export default function ItineraryCard({
     : null;
 
   const openView = () => {
+    if (isDragSource) return;
     hapticLight();
     setViewing(true);
   };
 
+  const longPress = useCardLongPress({
+    enabled: reorderEnabled && Boolean(onReorderArm),
+    itemId: item.id,
+    suppressedRef: suppressClickRef,
+    onArm: (detail) => {
+      suppressClickRef.current = true;
+      onReorderArm?.(detail);
+    },
+  });
+
   return (
     <>
       <div
-        className={`relative flex items-stretch gap-3 transition-opacity ${dimmed ? 'opacity-45' : ''}`}
+        data-activity-row={item.id}
+        className={`relative flex items-stretch gap-3 transition-opacity ${
+          dimmed && !isDragSource ? 'opacity-45' : ''
+        } ${isDragSource ? 'opacity-35' : ''}`}
       >
         {/* Time column — start primary; vertically centered on the diamond node */}
         <div
@@ -84,7 +110,7 @@ export default function ItineraryCard({
 
         <YarnTimelineNode isLast={isLast} accentHex={accentHex} />
 
-        {/* Activity card — tap opens View activity sheet */}
+        {/* Activity card — tap opens View activity; hold to reorder */}
         <div
           className="min-w-0 flex-1"
           style={{ paddingBottom: isLast ? 8 : spacingAfter }}
@@ -99,9 +125,16 @@ export default function ItineraryCard({
                 openView();
               }
             }}
-            className="cursor-pointer rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow"
+            onPointerDown={longPress.onPointerDown}
+            onPointerMove={longPress.onPointerMove}
+            onPointerUp={longPress.onPointerUp}
+            onPointerCancel={longPress.onPointerCancel}
+            onClickCapture={longPress.onClickCapture}
+            className="cursor-pointer select-none rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow touch-manipulation"
             style={{
               transition: `box-shadow ${MOTION.snappy} ${MOTION.easeOut}`,
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
             }}
           >
             <div className="flex items-start justify-between gap-2">
@@ -149,9 +182,73 @@ export default function ItineraryCard({
         </div>
       </div>
 
-      {viewing && (
+      {viewing && !isDragSource && (
         <ViewActivitySheet item={item} onClose={() => setViewing(false)} />
       )}
     </>
+  );
+}
+
+/** Floating card clone shown under the finger while reordering. */
+export function ItineraryDragGhost({
+  item,
+  accentHex,
+  timeLabel,
+  endTimeLabel,
+  left,
+  width,
+  top,
+}: {
+  item: ItineraryItem;
+  accentHex: string;
+  timeLabel: string;
+  endTimeLabel: string | null;
+  left: number;
+  width: number;
+  top: number;
+}) {
+  const startClock = formatTimeLabel(timeLabel);
+  const endClock = endTimeLabel ? formatTimeLabel(endTimeLabel) : null;
+
+  return (
+    <div
+      className="pointer-events-none fixed z-50"
+      style={{
+        left,
+        top,
+        width,
+        transform: 'scale(1.03)',
+        filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.18))',
+      }}
+      aria-hidden
+    >
+      <div
+        className="rounded-xl border bg-cream-card px-3.5 py-3"
+        style={{ borderColor: accentHex }}
+      >
+        <div className="mb-1.5 flex items-baseline gap-2 tabular-nums">
+          <span
+            className="text-[13px] font-semibold text-ink"
+            style={{ color: accentHex }}
+          >
+            {startClock}
+          </span>
+          {endClock && (
+            <span className="text-[11px] font-medium text-muted">
+              <span className="text-[9px] font-semibold uppercase tracking-wider">
+                TO
+              </span>{' '}
+              {endClock}
+            </span>
+          )}
+        </div>
+        <h3 className="text-[15px] font-medium leading-snug text-ink">
+          {item.title}
+        </h3>
+        {item.location && (
+          <p className="mt-1 truncate text-[12px] text-muted">{item.location}</p>
+        )}
+      </div>
+    </div>
   );
 }
