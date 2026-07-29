@@ -527,7 +527,7 @@ export default function ItineraryTab({
 
   return (
     <div>
-      <TabHeader />
+      <TabHeader dayNumber={day} />
 
       <div className="px-5">
         <DayPicker value={day} onChange={onDayChange} days={tripDays} />
