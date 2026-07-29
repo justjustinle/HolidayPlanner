@@ -1,11 +1,16 @@
-/** Time-column width — dashed rail runs through the center of the clocks. */
+/** Time-column width — dashed rail sits under the clocks (does not pierce them). */
 export const TIMELINE_TIME_COL_PX = 40;
 
-/** Vertical align of the start clock with the activity card title. */
+/**
+ * Matches activity card `py-3` so the start clock lines up with the title.
+ */
 export const TIMELINE_TIME_PAD_TOP_PX = 12;
 
-/** @deprecated kept for any lingering imports — same as TIMELINE_TIME_PAD_TOP_PX + half line */
+/** @deprecated alias — prefer TIMELINE_TIME_PAD_TOP_PX */
 export const TIMELINE_NODE_CENTER_Y_PX = TIMELINE_TIME_PAD_TOP_PX + 7;
+
+/** Small clear gap between the clock block and the dashed rail. */
+export const TIMELINE_RAIL_GAP_PX = 6;
 
 function dashedRailStyle(accentHex: string): {
   backgroundImage: string;
@@ -18,8 +23,29 @@ function dashedRailStyle(accentHex: string): {
 }
 
 /**
- * Dashed yarn rail drawn through the time column (no diamond nodes).
- * Extends slightly past the row so consecutive rails meet without a gap.
+ * Dashed yarn below the clocks only — never drawn behind the time text.
+ * Extends slightly past the row so consecutive rails meet in the spacing gap.
+ */
+export function TimelineRailBelow({ accentHex }: { accentHex: string }) {
+  return (
+    <div
+      className="pointer-events-none relative min-h-[8px] w-full flex-1"
+      aria-hidden
+    >
+      <div
+        className="absolute left-1/2 w-0.5 -translate-x-1/2"
+        style={{
+          top: TIMELINE_RAIL_GAP_PX,
+          height: `calc(100% + 12px - ${TIMELINE_RAIL_GAP_PX}px)`,
+          ...dashedRailStyle(accentHex),
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * Full-height dashed rail for rows without clock text (e.g. the now marker).
  */
 export function TimelineRail({
   isLast = false,

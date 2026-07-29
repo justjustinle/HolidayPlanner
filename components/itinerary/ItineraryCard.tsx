@@ -6,7 +6,7 @@ import ViewActivitySheet from './ViewActivitySheet';
 import {
   TIMELINE_TIME_COL_PX,
   TIMELINE_TIME_PAD_TOP_PX,
-  TimelineRail,
+  TimelineRailBelow,
 } from './YarnTimelineRail';
 import {
   useCardLongPress,
@@ -86,14 +86,13 @@ export default function ItineraryCard({
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
       >
-        {/* Time column — dashed rail runs through the clocks; no diamond nodes */}
+        {/* Time column — start clock aligns with card title; rail only below */}
         <div
-          className="relative flex-none self-stretch text-center tabular-nums"
+          className="relative flex flex-none flex-col self-stretch text-center tabular-nums"
           style={{ width: TIMELINE_TIME_COL_PX }}
         >
-          <TimelineRail isLast={isLast} accentHex={accentHex} />
           <div
-            className="relative z-[1]"
+            className="relative z-[1] flex-none"
             style={{ paddingTop: TIMELINE_TIME_PAD_TOP_PX }}
           >
             <div
@@ -111,6 +110,7 @@ export default function ItineraryCard({
               </div>
             )}
           </div>
+          {!isLast && <TimelineRailBelow accentHex={accentHex} />}
         </div>
 
         {/* Activity card — tap opens View activity; hold to reorder */}
