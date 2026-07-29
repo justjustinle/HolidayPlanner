@@ -39,7 +39,7 @@ const TRIP_HEADER_GRID = 'grid grid-cols-[40px_1fr]';
  * Flag width (3:2). Height ≈ date row + facepile row so it sits flush with
  * those two meta lines on the right.
  */
-const CITY_FLAG_SIZE = 72;
+const CITY_FLAG_SIZE = 61; // ~15% smaller than 72
 
 function countryForTripDay(day: TripDay | undefined): string | null {
   if (!day) return null;
