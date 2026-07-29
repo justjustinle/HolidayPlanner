@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  type MutableRefObject,
+  type PointerEvent as ReactPointerEvent,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import {
   REORDER_HINT_KEY,
   REORDER_LONG_PRESS_MS,
@@ -57,6 +63,8 @@ export type ReorderArmDetail = {
   clientY: number;
   /** Card surface rect at arm time (for ghost sizing). */
   rect: DOMRect;
+  /** Element that received the press — used for pointer capture. */
+  target: HTMLElement;
 };
 
 /**
@@ -68,18 +76,22 @@ export function useCardLongPress({
   itemId,
   onArm,
   suppressedRef,
+  /** When true, ignore pointerup/cancel on the card (parent owns the drag). */
+  draggingRef,
 }: {
   enabled: boolean;
   itemId: string;
   onArm: (detail: ReorderArmDetail) => void;
   /** When true, the next click should be ignored (post-drag). */
   suppressedRef: MutableRefObject<boolean>;
+  draggingRef?: MutableRefObject<boolean>;
 }) {
   const timerRef = useRef<number | null>(null);
   const startRef = useRef<{ x: number; y: number; pointerId: number } | null>(
     null
   );
   const targetRef = useRef<HTMLElement | null>(null);
+  const armedRef = useRef(false);
 
   const clearTimer = () => {
     if (timerRef.current !== null) {
@@ -94,6 +106,7 @@ export function useCardLongPress({
     if (!enabled) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     clearTimer();
+    armedRef.current = false;
     startRef.current = {
       x: e.clientX,
       y: e.clientY,
@@ -101,17 +114,26 @@ export function useCardLongPress({
     };
     targetRef.current = e.currentTarget;
     const start = startRef.current;
+    const el = e.currentTarget;
     timerRef.current = window.setTimeout(() => {
       timerRef.current = null;
-      const el = targetRef.current;
       if (!el || !start) return;
+      armedRef.current = true;
       hapticLight();
+      // Block pan/zoom on this surface for the rest of the gesture.
+      el.style.touchAction = 'none';
+      try {
+        el.setPointerCapture(start.pointerId);
+      } catch {
+        /* capture can fail if the pointer already ended */
+      }
       onArm({
         itemId,
         pointerId: start.pointerId,
         clientX: start.x,
         clientY: start.y,
         rect: el.getBoundingClientRect(),
+        target: el,
       });
     }, REORDER_LONG_PRESS_MS);
   };
@@ -119,6 +141,8 @@ export function useCardLongPress({
   const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
     const start = startRef.current;
     if (!start || start.pointerId !== e.pointerId) return;
+    // After arm, parent tracks movement — don't cancel here.
+    if (armedRef.current || draggingRef?.current) return;
     if (timerRef.current === null) return;
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
@@ -130,10 +154,16 @@ export function useCardLongPress({
 
   const onPointerUpOrCancel = (e: ReactPointerEvent<HTMLElement>) => {
     const start = startRef.current;
-    if (start && start.pointerId === e.pointerId) {
-      clearTimer();
+    if (!start || start.pointerId !== e.pointerId) return;
+    // If a drag is active, parent owns end — leave capture/touchAction alone.
+    if (armedRef.current || draggingRef?.current) {
       startRef.current = null;
+      return;
     }
+    clearTimer();
+    startRef.current = null;
+    const el = targetRef.current;
+    if (el) el.style.touchAction = '';
   };
 
   const onClickCapture = (e: ReactMouseEvent | ReactPointerEvent) => {

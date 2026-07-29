@@ -97,6 +97,10 @@ export default function ItineraryTab({
   const scrollLockRef = useRef<{ el: HTMLElement; overflow: string } | null>(
     null
   );
+  const dragTargetRef = useRef<HTMLElement | null>(null);
+  const dragListenersRef = useRef<(() => void) | null>(null);
+  const movedDuringDragRef = useRef(false);
+  const armOriginYRef = useRef(0);
 
   const selected = dayByNumber(day, tripDays);
   const todayDay = dayNumberForDateInTrip(now, trip.start_date, tripDays.length);
@@ -227,15 +231,30 @@ export default function ItineraryTab({
     }
   }, []);
 
+  const detachDragListeners = useCallback(() => {
+    dragListenersRef.current?.();
+    dragListenersRef.current = null;
+    const target = dragTargetRef.current;
+    if (target) {
+      target.style.touchAction = '';
+      dragTargetRef.current = null;
+    }
+  }, []);
+
   const finishDrag = useCallback(
     async (state: DragState | null, commit: boolean) => {
+      detachDragListeners();
       dragRef.current = null;
       setDrag(null);
       unlockScroll();
       document.body.style.touchAction = '';
       document.body.style.userSelect = '';
+      document.documentElement.style.touchAction = '';
 
       if (!commit || !state) return;
+      // Ignore accidental "drops" with no real movement (common after iOS cancel).
+      if (!movedDuringDragRef.current) return;
+
       const item = items.find((i) => i.id === state.itemId);
       if (!item) return;
 
@@ -276,12 +295,36 @@ export default function ItineraryTab({
         undoTimerRef.current = null;
       }, REORDER_UNDO_MS);
     },
-    [dismissHint, items, unlockScroll, updateItineraryItem]
+    [detachDragListeners, dismissHint, items, unlockScroll, updateItineraryItem]
+  );
+
+  const applyDragY = useCallback(
+    (clientY: number) => {
+      const current = dragRef.current;
+      if (!current) return;
+      if (Math.abs(clientY - armOriginYRef.current) > 6) {
+        movedDuringDragRef.current = true;
+      }
+      autoScroll(clientY);
+      const measured = measureInsert(clientY, current.itemId);
+      const next: DragState = {
+        ...current,
+        clientY,
+        insertIndex: measured.insertIndex,
+        preview: measured.preview,
+      };
+      dragRef.current = next;
+      setDrag(next);
+    },
+    [autoScroll, measureInsert]
   );
 
   const onReorderArm = useCallback(
     (detail: ReorderArmDetail) => {
       if (!reorderEnabled) return;
+      // Replace any prior session.
+      detachDragListeners();
+
       const measured = measureInsert(detail.clientY, detail.itemId);
       const next: DragState = {
         itemId: detail.itemId,
@@ -295,6 +338,9 @@ export default function ItineraryTab({
         preview: measured.preview,
       };
       dragRef.current = next;
+      movedDuringDragRef.current = false;
+      armOriginYRef.current = detail.clientY;
+      dragTargetRef.current = detail.target;
       setDrag(next);
 
       const scroller = getScrollParent(listRef.current);
@@ -306,59 +352,105 @@ export default function ItineraryTab({
         scroller.style.overflowY = 'hidden';
       }
       document.body.style.touchAction = 'none';
+      document.documentElement.style.touchAction = 'none';
       document.body.style.userSelect = 'none';
-    },
-    [measureInsert, reorderEnabled]
-  );
 
-  // Global pointer tracking while a drag is active.
-  useEffect(() => {
-    if (!drag) return;
-
-    const onMove = (e: PointerEvent) => {
-      const current = dragRef.current;
-      if (!current || e.pointerId !== current.pointerId) return;
-      e.preventDefault();
-      autoScroll(e.clientY);
-      const measured = measureInsert(e.clientY, current.itemId);
-      const next: DragState = {
-        ...current,
-        clientY: e.clientY,
-        insertIndex: measured.insertIndex,
-        preview: measured.preview,
+      const onPointerMove = (e: PointerEvent) => {
+        const current = dragRef.current;
+        if (!current) return;
+        // After iOS pointercancel, pointerId may no longer match — still track
+        // if this is the active drag session.
+        if (
+          e.pointerId !== current.pointerId &&
+          e.pointerType !== 'touch'
+        ) {
+          return;
+        }
+        e.preventDefault();
+        applyDragY(e.clientY);
       };
-      dragRef.current = next;
-      setDrag(next);
-    };
 
-    const onUp = (e: PointerEvent) => {
-      const current = dragRef.current;
-      if (!current || e.pointerId !== current.pointerId) return;
-      void finishDrag(current, true);
-    };
+      const onTouchMove = (e: TouchEvent) => {
+        if (!dragRef.current) return;
+        // Critical on iOS: block scroll takeover and keep driving the ghost.
+        e.preventDefault();
+        const t = e.touches[0];
+        if (t) applyDragY(t.clientY);
+      };
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') void finishDrag(dragRef.current, false);
-    };
+      const endWithCommit = () => {
+        const current = dragRef.current;
+        if (!current) return;
+        void finishDrag(current, true);
+      };
 
-    window.addEventListener('pointermove', onMove, { passive: false });
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [autoScroll, drag, finishDrag, measureInsert]);
+      const onPointerUp = (e: PointerEvent) => {
+        const current = dragRef.current;
+        if (!current) return;
+        if (
+          e.pointerId !== current.pointerId &&
+          e.pointerType !== 'touch'
+        ) {
+          return;
+        }
+        endWithCommit();
+      };
+
+      // iOS often fires pointercancel when it would scroll. Do NOT commit —
+      // touchmove/touchend continue the gesture after we preventDefault.
+      const onPointerCancel = () => {
+        /* keep session alive for touch events */
+      };
+
+      const onTouchEnd = (e: TouchEvent) => {
+        if (!dragRef.current) return;
+        if (e.touches.length > 0) return;
+        endWithCommit();
+      };
+
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') void finishDrag(dragRef.current, false);
+      };
+
+      // Attach synchronously (don't wait for React useEffect) so the first
+      // finger move after long-press is captured.
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerCancel);
+      window.addEventListener('touchmove', onTouchMove, {
+        passive: false,
+        capture: true,
+      });
+      window.addEventListener('touchend', onTouchEnd);
+      window.addEventListener('touchcancel', onTouchEnd);
+      window.addEventListener('keydown', onKey);
+
+      dragListenersRef.current = () => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerCancel);
+        window.removeEventListener('touchmove', onTouchMove, true);
+        window.removeEventListener('touchend', onTouchEnd);
+        window.removeEventListener('touchcancel', onTouchEnd);
+        window.removeEventListener('keydown', onKey);
+      };
+    },
+    [
+      applyDragY,
+      detachDragListeners,
+      finishDrag,
+      measureInsert,
+      reorderEnabled,
+    ]
+  );
 
   useEffect(
     () => () => {
       clearUndoTimer();
+      detachDragListeners();
       unlockScroll();
     },
-    [unlockScroll]
+    [detachDragListeners, unlockScroll]
   );
 
   const handleUndo = async () => {
@@ -490,6 +582,14 @@ export default function ItineraryTab({
 
       {adding && (
         <AddCardSheet day={day} onClose={() => setAdding(false)} />
+      )}
+
+      {drag && (
+        <div
+          className="fixed inset-0 z-40"
+          style={{ touchAction: 'none' }}
+          aria-hidden
+        />
       )}
 
       {drag && draggedItem && (

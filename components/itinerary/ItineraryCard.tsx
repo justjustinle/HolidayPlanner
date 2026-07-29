@@ -44,6 +44,8 @@ export default function ItineraryCard({
   const { photos } = useTripData();
   const [viewing, setViewing] = useState(false);
   const suppressClickRef = useRef(false);
+  const draggingRef = useRef(isDragSource);
+  draggingRef.current = isDragSource;
 
   const activityPhotos = useMemo(
     () => photos.filter((p) => p.activity_id === item.id),
@@ -68,6 +70,7 @@ export default function ItineraryCard({
     enabled: reorderEnabled && Boolean(onReorderArm),
     itemId: item.id,
     suppressedRef: suppressClickRef,
+    draggingRef,
     onArm: (detail) => {
       suppressClickRef.current = true;
       onReorderArm?.(detail);
@@ -130,11 +133,13 @@ export default function ItineraryCard({
             onPointerUp={longPress.onPointerUp}
             onPointerCancel={longPress.onPointerCancel}
             onClickCapture={longPress.onClickCapture}
-            className="cursor-pointer select-none rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow touch-manipulation"
+            className="cursor-pointer select-none rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow"
             style={{
               transition: `box-shadow ${MOTION.snappy} ${MOTION.easeOut}`,
               WebkitUserSelect: 'none',
               userSelect: 'none',
+              // Allow vertical page scroll until long-press arms; then JS sets none.
+              touchAction: isDragSource ? 'none' : 'pan-y',
             }}
           >
             <div className="flex items-start justify-between gap-2">
