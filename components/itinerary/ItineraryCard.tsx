@@ -4,9 +4,9 @@ import { useMemo, useRef, useState } from 'react';
 import { MapPin, MessageCircle } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
 import {
-  TIMELINE_CARD_OVERLAP_PX,
+  CardEdgeTimeline,
   TIMELINE_TIME_COL_PX,
-  YarnTimelineNode,
+  TIMELINE_TIME_TO_NODE_GAP_PX,
 } from './YarnTimelineRail';
 import {
   useCardLongPress,
@@ -82,16 +82,17 @@ export default function ItineraryCard({
     <>
       <div
         data-activity-row={item.id}
-        className={`reorder-surface relative flex items-stretch gap-0 transition-opacity ${
+        className={`reorder-surface relative flex items-stretch transition-opacity ${
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
+        style={{ gap: TIMELINE_TIME_TO_NODE_GAP_PX }}
       >
-        {/* Time — right-aligned, hugging the diamond rail */}
+        {/* Time — compact, right beside the diamond */}
         <div
           className="relative flex-none self-start text-right tabular-nums"
           style={{ width: TIMELINE_TIME_COL_PX }}
         >
-          <div className="py-3 pr-1.5">
+          <div className="py-3">
             <div
               className="font-semibold leading-snug tracking-tight text-ink"
               style={{ fontSize: START_TIME_FONT_PX }}
@@ -109,19 +110,12 @@ export default function ItineraryCard({
           </div>
         </div>
 
-        {/* Diamond + dashed rail — overlaps the card’s left edge like a bullet */}
+        {/* Card — diamond sits on its left border (no separate gutter column) */}
         <div
-          className="relative z-10 flex-none self-stretch"
-          style={{ marginRight: -TIMELINE_CARD_OVERLAP_PX }}
-        >
-          <YarnTimelineNode isLast={isLast} accentHex={accentHex} />
-        </div>
-
-        {/* Activity card — tap opens View activity; hold to reorder */}
-        <div
-          className="min-w-0 flex-1"
+          className="relative min-w-0 flex-1"
           style={{ paddingBottom: isLast ? 8 : spacingAfter }}
         >
+          <CardEdgeTimeline isLast={isLast} accentHex={accentHex} />
           <div
             role="button"
             tabIndex={0}
@@ -138,10 +132,9 @@ export default function ItineraryCard({
             onPointerCancel={longPress.onPointerCancel}
             onClickCapture={longPress.onClickCapture}
             onContextMenu={longPress.onContextMenu}
-            className="reorder-surface cursor-pointer select-none rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow"
+            className="reorder-surface relative cursor-pointer select-none rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow"
             style={{
               transition: `box-shadow ${MOTION.snappy} ${MOTION.easeOut}`,
-              // Allow vertical page scroll until long-press arms; then JS sets none.
               touchAction: isDragSource ? 'none' : 'pan-y',
             }}
           >

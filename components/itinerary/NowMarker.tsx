@@ -3,12 +3,12 @@
 import { forwardRef } from 'react';
 import { formatClock } from '@/lib/time';
 import {
-  TIMELINE_CARD_OVERLAP_PX,
   TIMELINE_TIME_COL_PX,
-  YarnTimelineNowNode,
+  TIMELINE_TIME_TO_NODE_GAP_PX,
+  CardEdgeNowMarker,
 } from './YarnTimelineRail';
 
-// Minimal live position marker — same time + rail geometry as activity rows.
+// Same time + card-edge rail geometry as activity rows.
 const NowMarker = forwardRef<
   HTMLDivElement,
   {
@@ -26,7 +26,8 @@ const NowMarker = forwardRef<
   return (
     <div
       ref={ref}
-      className="relative flex items-stretch gap-0"
+      className="relative flex items-stretch"
+      style={{ gap: TIMELINE_TIME_TO_NODE_GAP_PX }}
       aria-label={`Current time, ${clock}`}
     >
       <div
@@ -36,18 +37,12 @@ const NowMarker = forwardRef<
       />
 
       <div
-        className="relative z-10 flex-none self-stretch"
-        style={{ marginRight: -TIMELINE_CARD_OVERLAP_PX }}
-        aria-hidden
-      >
-        <YarnTimelineNowNode isLast={isLast} accentHex={accentHex} />
-      </div>
-
-      <div
-        className="min-h-5 min-w-0 flex-1"
+        className="relative min-h-5 min-w-0 flex-1"
         style={{ paddingBottom: isLast ? 8 : spacingAfter }}
         aria-hidden
-      />
+      >
+        <CardEdgeNowMarker isLast={isLast} accentHex={accentHex} />
+      </div>
     </div>
   );
 });
