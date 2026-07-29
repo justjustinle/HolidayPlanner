@@ -26,6 +26,7 @@ import {
 import { formatTimeLabel, nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
 import { hapticLight } from '@/lib/motion';
 import type { ItineraryItem } from '@/lib/types';
+import { TIMELINE_TIME_COL_PX } from '../itinerary/YarnTimelineRail';
 
 type TimelineRow =
   | { kind: 'now' }
@@ -627,8 +628,7 @@ function InsertionLine({ accentHex }: { accentHex: string }) {
       className="relative z-10 my-0.5 flex items-center gap-2"
       aria-hidden
     >
-      <div className="w-[56px] flex-none" />
-      <div className="w-5 flex-none" />
+      <div className="flex-none" style={{ width: TIMELINE_TIME_COL_PX }} />
       <div
         className="h-0.5 min-w-0 flex-1 rounded-full"
         style={{ background: accentHex }}

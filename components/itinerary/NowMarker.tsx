@@ -2,10 +2,14 @@
 
 import { forwardRef } from 'react';
 import { formatClock } from '@/lib/time';
-import { YarnTimelineNowNode } from './YarnTimelineRail';
+import {
+  TIMELINE_TIME_COL_PX,
+  TimelineNowDot,
+  TimelineRail,
+} from './YarnTimelineRail';
 
-// Minimal live position marker. Empty side columns preserve the activity-row
-// geometry while leaving only the flashing circle visible.
+// Minimal live position marker. Time column keeps the dashed rail geometry;
+// only the flashing circle is visible on the rail.
 const NowMarker = forwardRef<
   HTMLDivElement,
   {
@@ -23,12 +27,17 @@ const NowMarker = forwardRef<
   return (
     <div
       ref={ref}
-      className="relative flex items-stretch gap-3"
+      className="relative flex items-stretch gap-2"
       aria-label={`Current time, ${clock}`}
     >
-      <div className="w-[56px] flex-none" aria-hidden />
-
-      <YarnTimelineNowNode isLast={isLast} accentHex={accentHex} />
+      <div
+        className="relative flex-none self-stretch"
+        style={{ width: TIMELINE_TIME_COL_PX }}
+        aria-hidden
+      >
+        <TimelineRail isLast={isLast} accentHex={accentHex} />
+        <TimelineNowDot accentHex={accentHex} />
+      </div>
 
       <div
         className="min-h-5 min-w-0 flex-1"

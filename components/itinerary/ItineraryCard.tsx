@@ -4,8 +4,9 @@ import { useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
 import {
-  TIMELINE_NODE_CENTER_Y_PX,
-  YarnTimelineNode,
+  TIMELINE_TIME_COL_PX,
+  TIMELINE_TIME_PAD_TOP_PX,
+  TimelineRail,
 } from './YarnTimelineRail';
 import {
   useCardLongPress,
@@ -81,37 +82,36 @@ export default function ItineraryCard({
     <>
       <div
         data-activity-row={item.id}
-        className={`relative flex items-stretch gap-3 transition-opacity ${
+        className={`relative flex items-stretch gap-2 transition-opacity ${
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
       >
-        {/* Time column — start primary; vertically centered on the diamond node */}
+        {/* Time column — dashed rail runs through the clocks; no diamond nodes */}
         <div
-          className="w-[56px] flex-none self-start text-right tabular-nums"
-          style={{
-            paddingTop: Math.max(
-              0,
-              TIMELINE_NODE_CENTER_Y_PX - START_TIME_FONT_PX / 2
-            ),
-          }}
+          className="relative flex-none self-stretch text-center tabular-nums"
+          style={{ width: TIMELINE_TIME_COL_PX }}
         >
+          <TimelineRail isLast={isLast} accentHex={accentHex} />
           <div
-            className="font-semibold leading-none tracking-tight text-ink"
-            style={{ fontSize: START_TIME_FONT_PX }}
+            className="relative z-[1]"
+            style={{ paddingTop: TIMELINE_TIME_PAD_TOP_PX }}
           >
-            {startClock}
-          </div>
-          {endClock && (
-            <div className="mt-1.5 text-[12px] font-medium leading-snug tracking-tight text-muted">
-              <span className="text-[10px] font-semibold uppercase tracking-wider">
-                TO
-              </span>{' '}
-              {endClock}
+            <div
+              className="font-semibold leading-none tracking-tight text-ink"
+              style={{ fontSize: START_TIME_FONT_PX }}
+            >
+              {startClock}
             </div>
-          )}
+            {endClock && (
+              <div className="mt-1.5 text-[11px] font-medium leading-snug tracking-tight text-muted">
+                <span className="text-[9px] font-semibold uppercase tracking-wider">
+                  TO
+                </span>{' '}
+                {endClock}
+              </div>
+            )}
+          </div>
         </div>
-
-        <YarnTimelineNode isLast={isLast} accentHex={accentHex} />
 
         {/* Activity card — tap opens View activity; hold to reorder */}
         <div
