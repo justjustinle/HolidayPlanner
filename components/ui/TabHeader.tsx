@@ -35,8 +35,11 @@ type TabHeaderProps =
 // Shared two-column trip header: 40px icon rail + flexible content.
 const TRIP_HEADER_GRID = 'grid grid-cols-[40px_1fr]';
 
-/** Width of the header country flag (3:2 aspect). Fills the right-rail slot. */
-const CITY_FLAG_SIZE = 56;
+/**
+ * Flag width (3:2). Height ≈ date row + facepile row so it sits flush with
+ * those two meta lines on the right.
+ */
+const CITY_FLAG_SIZE = 72;
 
 function countryForTripDay(day: TripDay | undefined): string | null {
   if (!day) return null;
@@ -53,7 +56,7 @@ function countryForTripDay(day: TripDay | undefined): string | null {
     : null;
 }
 
-// Itinerary: hamburger + trip title/dates/facepile + city country flag.
+// Itinerary: hamburger + trip title; dates/facepile with city country flag.
 // Expenses & Stats: hamburger + section title, Yarn logo top-right (no trip chrome).
 export default function TabHeader(props: TabHeaderProps) {
   const isTrip = props.variant !== 'section';
@@ -72,8 +75,9 @@ export default function TabHeader(props: TabHeaderProps) {
   return (
     <header className="px-5 pt-4">
       {isTrip ? (
-        <div className="flex items-start justify-between gap-3">
-          <div className={`${TRIP_HEADER_GRID} min-w-0 flex-1`}>
+        <div>
+          {/* Title row — full width, no flag */}
+          <div className={TRIP_HEADER_GRID}>
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
@@ -82,35 +86,44 @@ export default function TabHeader(props: TabHeaderProps) {
             >
               <Menu size={22} strokeWidth={2} />
             </button>
-
-            <h1 className="min-w-0 truncate font-serif text-[26px] font-semibold leading-tight text-ink">
+            <h1 className="min-w-0 self-center truncate font-serif text-[26px] font-semibold leading-tight text-ink">
               {trip.name}
             </h1>
-
-            <span
-              className="mt-1 flex items-center justify-center text-muted"
-              aria-hidden
-            >
-              <Calendar size={14} />
-            </span>
-            <p className="mt-1 text-[13px] leading-snug text-muted">{dates}</p>
-
-            <span
-              className="mt-2 flex items-center justify-center text-muted"
-              aria-hidden
-            >
-              <Users size={14} />
-            </span>
-            <div className="mt-2">
-              <TravelerFacepile onOpen={() => setRosterOpen(true)} size={23} />
-            </div>
           </div>
 
-          {cityCountry && (
-            <span className="mt-1 flex flex-none items-start" aria-hidden={false}>
-              <CountryFlag country={cityCountry} size={CITY_FLAG_SIZE} />
-            </span>
-          )}
+          {/* Date + facepile, with country flag aligned to both rows */}
+          <div className="mt-1 flex items-stretch gap-3">
+            <div className={`${TRIP_HEADER_GRID} min-w-0 flex-1`}>
+              <span
+                className="flex items-center justify-center text-muted"
+                aria-hidden
+              >
+                <Calendar size={14} />
+              </span>
+              <p className="self-center text-[13px] leading-snug text-muted">
+                {dates}
+              </p>
+
+              <span
+                className="mt-2 flex items-center justify-center text-muted"
+                aria-hidden
+              >
+                <Users size={14} />
+              </span>
+              <div className="mt-2 self-center">
+                <TravelerFacepile
+                  onOpen={() => setRosterOpen(true)}
+                  size={23}
+                />
+              </div>
+            </div>
+
+            {cityCountry && (
+              <div className="flex flex-none items-center justify-center">
+                <CountryFlag country={cityCountry} size={CITY_FLAG_SIZE} />
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3">
