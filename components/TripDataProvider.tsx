@@ -823,6 +823,33 @@ export default function TripDataProvider({
     [demoMode, me]
   );
 
+  // --- KPI event log ----------------------------------------------------
+  // Internal launch analytics (NOT consumer-facing): every meaningful write is
+  // recorded to activity_events tagged with the actor profile, so we can report
+  // activity-per-user. This shares the activity_events table with the
+  // notification log but deliberately does NOT poke the dispatcher — these
+  // event types aren't in EVENT_CONFIG, so they never trigger a push and never
+  // surface in the app. The report is produced out-of-band by
+  // scripts/kpi-activity-export.mjs. Logging is best-effort: a failure here must
+  // never break the user's action.
+  const logKpiEvent = useCallback(
+    async (eventType: string, payload: Record<string, unknown> = {}) => {
+      if (demoMode || !me) return;
+      try {
+        await supabase!.from('activity_events').insert({
+          trip_id: activeTripIdRef.current!,
+          event_type: eventType,
+          actor_id: me.id,
+          recipient_id: null,
+          payload,
+        });
+      } catch {
+        /* analytics logging is best-effort — never surface to the user */
+      }
+    },
+    [demoMode, me]
+  );
+
   // Opening or returning to the app marks the trip's activity as seen, so
   // already-viewed events can never trigger a push later.
   useEffect(() => {
@@ -882,9 +909,10 @@ export default function TripDataProvider({
           notes: input.notes,
         })
         .eq('id', id);
+      void logKpiEvent('activity_edited', { activity_id: id, title: input.title, day_number: input.day_number });
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, logKpiEvent, refetchAll]
   );
 
   const deleteItineraryItem = useCallback<TripDataValue['deleteItineraryItem']>(
@@ -894,10 +922,12 @@ export default function TripDataProvider({
         setPhotos((prev) => prev.filter((p) => p.activity_id !== id));
         return;
       }
+      const removed = itinerary.find((i) => i.id === id);
       await supabase!.from('itinerary_items').delete().eq('id', id);
+      void logKpiEvent('activity_deleted', { activity_id: id, title: removed?.title });
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, itinerary, logKpiEvent, refetchAll]
   );
 
   // --- photos ---------------------------------------------------------------
@@ -973,9 +1003,10 @@ export default function TripDataProvider({
         const path = photo.url.slice(idx + marker.length).split('?')[0];
         await supabase!.storage.from(SUPABASE_BUCKET).remove([decodeURIComponent(path)]);
       }
+      void logKpiEvent('photo_deleted', { photo_id: id, activity_id: photo?.activity_id });
       await refetchAll();
     },
-    [demoMode, photos, refetchAll]
+    [demoMode, logKpiEvent, photos, refetchAll]
   );
 
   // --- finance --------------------------------------------------------------
@@ -1007,9 +1038,10 @@ export default function TripDataProvider({
       );
       const failed = updates.find((result) => result.error);
       if (failed?.error) throw failed.error;
+      void logKpiEvent('rates_updated', { rates });
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, logKpiEvent, refetchAll]
   );
 
   const addExpense = useCallback<TripDataValue['addExpense']>(
@@ -1158,9 +1190,15 @@ export default function TripDataProvider({
       } else {
         await supabase!.from('receipts').update({ merchant: label }).eq('expense_id', id);
       }
+      void logKpiEvent('expense_edited', {
+        expense_id: id,
+        label,
+        amount_gbp: formatBaseCurrency(baseGbp, trip.base_currency, currencies),
+        kind: existing.kind,
+      });
       await refetchAll();
     },
-    [currencies, demoMode, expenses, refetchAll]
+    [currencies, demoMode, expenses, logKpiEvent, refetchAll, trip.base_currency]
   );
 
   // Save a scanned/edited receipt: one expense (kind 'receipt') + a receipt
@@ -1383,9 +1421,14 @@ export default function TripDataProvider({
           });
         }
       }
+      void logKpiEvent('receipt_edited', {
+        expense_id: expenseId,
+        label,
+        amount_gbp: formatBaseCurrency(baseGbp, trip.base_currency, currencies),
+      });
       await refetchAll();
     },
-    [currencies, demoMode, receipts, receiptItems, refetchAll]
+    [currencies, demoMode, logKpiEvent, receipts, receiptItems, refetchAll, trip.base_currency]
   );
 
   // Claim (userId) or release (null) a receipt line item.
@@ -1397,8 +1440,9 @@ export default function TripDataProvider({
       );
       if (demoMode) return;
       await supabase!.from('receipt_items').update({ claimed_by_id: userId }).eq('id', itemId);
+      void logKpiEvent(userId ? 'item_claimed' : 'item_released', { item_id: itemId, claimed_by_id: userId });
     },
-    [demoMode]
+    [demoMode, logKpiEvent]
   );
 
   const deleteExpense = useCallback<TripDataValue['deleteExpense']>(
@@ -1411,10 +1455,12 @@ export default function TripDataProvider({
         setReceiptItems((prev) => prev.filter((i) => !receiptIds.includes(i.receipt_id)));
         return;
       }
+      const removed = expenses.find((e) => e.id === id);
       await supabase!.from('expenses').delete().eq('id', id); // cascades receipt + items
+      void logKpiEvent('expense_deleted', { expense_id: id, label: removed?.label, kind: removed?.kind });
       await refetchAll();
     },
-    [demoMode, receipts, refetchAll]
+    [demoMode, expenses, logKpiEvent, receipts, refetchAll]
   );
 
   // Log a peer-to-peer settlement. Modeled as a GBP 'settlement' expense paid
@@ -1468,9 +1514,10 @@ export default function TripDataProvider({
       await supabase!
         .from('expense_splits')
         .insert({ trip_id: activeTripIdRef.current!, expense_id: (exp as Expense).id, user_id: toId, amount_owed: value });
+      void logKpiEvent('settlement_added', { from_id: fromId, to_id: toId, amount_gbp: value });
       await refetchAll();
     },
-    [demoMode, refetchAll]
+    [demoMode, logKpiEvent, refetchAll]
   );
 
   // --- stats ------------------------------------------------------------
@@ -1506,8 +1553,9 @@ export default function TripDataProvider({
           },
           { onConflict: 'user_id,day_number,category' }
         );
+      void logKpiEvent('stat_updated', { category, day_number: dayNumber, count: clamped });
     },
-    [demoMode, me]
+    [demoMode, logKpiEvent, me]
   );
 
   const value = useMemo<TripDataValue>(

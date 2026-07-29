@@ -1,0 +1,37 @@
+# Internal KPI export (NOT consumer-facing). Manually dispatched: reads the
+# activity_events log from Supabase and produces a per-user activity report,
+# uploaded as a build artifact. Reuses the same SUPABASE_URL / SUPABASE_ANON_KEY
+# secrets as notifications-e2e. The sandbox blocks direct Supabase egress, so
+# this must run from Actions (or anywhere with network + credentials).
+name: kpi-activity-export
+
+on:
+  workflow_dispatch:
+    inputs:
+      trip_id:
+        description: 'Trip id to report on, or "all" for every trip'
+        required: false
+        default: '11111111-1111-1111-1111-111111111111'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate activity KPI report
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TRIP_ID: ${{ github.event.inputs.trip_id }}
+        run: node scripts/kpi-activity-export.mjs
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: kpi-activity-report
+          path: |
+            kpi-activity-report.json
+            kpi-activity-report.md
+          if-no-files-found: error
