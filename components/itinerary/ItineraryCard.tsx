@@ -153,7 +153,7 @@ export default function ItineraryCard({
                   </p>
                 )}
                 {item.notes && (
-                  <div className="mt-1.5 flex max-w-full items-start gap-1 rounded-md bg-black/[.04] px-1.5 py-1">
+                  <div className="mt-1.5 flex max-w-full items-start gap-1">
                     <MessageCircle
                       size={12}
                       className="mt-0.5 flex-none text-muted"

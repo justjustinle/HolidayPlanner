@@ -124,7 +124,7 @@ export default function ViewActivitySheet({
         )}
 
         {item.notes && (
-          <div className="mt-3 flex max-w-full items-start gap-1.5 rounded-xl bg-black/[.04] px-2.5 py-2">
+          <div className="mt-3 flex max-w-full items-start gap-1.5">
             <MessageCircle
               size={14}
               className="mt-0.5 flex-none text-muted"
