@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Camera, MapPin, Pencil, Trash2 } from 'lucide-react';
+import { Camera, MapPin, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import AddCardSheet from './AddCardSheet';
@@ -12,6 +12,13 @@ import { dayByNumber } from '@/lib/trip';
 import { hapticLight } from '@/lib/motion';
 import { formatTimeLabel } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
+
+function mapsSearchUrl(location: string): string {
+  if (location.startsWith('http://') || location.startsWith('https://')) {
+    return location;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+}
 
 export default function ViewActivitySheet({
   item,
@@ -52,7 +59,31 @@ export default function ViewActivitySheet({
 
   return (
     <>
-      <Sheet title="View activity" onClose={onClose}>
+      <Sheet
+        title="Activity"
+        titleClassName="font-semibold"
+        onClose={onClose}
+        headerActions={
+          <>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label="Edit activity"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted"
+            >
+              <Pencil size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              aria-label="Delete activity"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-saigon"
+            >
+              <Trash2 size={18} />
+            </button>
+          </>
+        }
+      >
         {day && (
           <div className="mb-3 flex items-center gap-2 text-[12px] text-muted">
             <span
@@ -80,16 +111,29 @@ export default function ViewActivitySheet({
         </p>
 
         {item.location && (
-          <p className="mt-3 inline-flex max-w-full items-center gap-1.5 text-[14px] text-muted">
-            <MapPin size={14} className="flex-none" />
+          <a
+            href={mapsSearchUrl(item.location)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex max-w-full items-center gap-1.5 text-[14px] underline decoration-[color-mix(in_srgb,var(--city-accent)_55%,transparent)] underline-offset-[3px]"
+            style={{ color: 'var(--city-accent)' }}
+          >
+            <MapPin size={14} className="flex-none opacity-80" />
             <span className="truncate">{item.location}</span>
-          </p>
+          </a>
         )}
 
         {item.notes && (
-          <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed text-ink/80">
-            {item.notes}
-          </p>
+          <div className="mt-3 flex max-w-full items-start gap-1.5 rounded-xl bg-black/[.04] px-2.5 py-2">
+            <MessageCircle
+              size={14}
+              className="mt-0.5 flex-none text-muted"
+              aria-hidden
+            />
+            <p className="min-w-0 flex-1 whitespace-pre-wrap text-[13px] italic leading-relaxed text-ink/75">
+              {item.notes}
+            </p>
+          </div>
         )}
 
         {previewPhotos.length > 0 && (
@@ -118,34 +162,17 @@ export default function ViewActivitySheet({
           </div>
         )}
 
-        <div className="mt-6 space-y-2">
+        <div className="mt-5">
           <button
             type="button"
             onClick={() => setMemoriesOpen(true)}
-            className="flex w-full items-center gap-3 rounded-xl border border-black/10 bg-cream-card px-4 py-3.5 text-left text-[15px] font-medium text-ink"
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3.5 text-[15px] font-medium text-cream-card"
+            style={{ background: 'var(--city-accent)' }}
           >
-            <Camera size={18} className="flex-none text-muted" />
-            <span className="min-w-0 flex-1">
-              {photoCount > 0
-                ? `Photos (${photoCount})`
-                : 'Add photos'}
+            <Camera size={18} className="flex-none" />
+            <span>
+              {photoCount > 0 ? `Photos (${photoCount})` : 'Add photos'}
             </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="flex w-full items-center gap-3 rounded-xl border border-black/10 bg-cream-card px-4 py-3.5 text-left text-[15px] font-medium text-ink"
-          >
-            <Pencil size={18} className="flex-none text-muted" />
-            Edit activity
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="flex w-full items-center gap-3 rounded-xl border border-black/10 bg-cream-card px-4 py-3.5 text-left text-[15px] font-medium text-saigon"
-          >
-            <Trash2 size={18} className="flex-none" />
-            Delete activity
           </button>
         </div>
       </Sheet>

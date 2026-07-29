@@ -7,10 +7,16 @@ export default function Sheet({
   title,
   onClose,
   children,
+  /** Optional icons/actions rendered left of the close button. */
+  headerActions,
+  /** Extra classes for the title (e.g. font-semibold). */
+  titleClassName,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  headerActions?: React.ReactNode;
+  titleClassName?: string;
 }) {
   return (
     <div
@@ -23,11 +29,23 @@ export default function Sheet({
         className="no-scrollbar max-h-[85%] w-full animate-sheet-up overflow-auto rounded-t-[24px] bg-cream px-5 pb-8 pt-4 shadow-sheet"
       >
         <div className="mx-auto mb-4 h-1 w-9 rounded-full bg-black/15" />
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-serif text-[19px] text-ink">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="text-muted">
-            <X size={20} />
-          </button>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2
+            className={`min-w-0 font-serif text-[19px] text-ink ${titleClassName ?? ''}`}
+          >
+            {title}
+          </h2>
+          <div className="flex flex-none items-center gap-1">
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
         {children}
       </div>
