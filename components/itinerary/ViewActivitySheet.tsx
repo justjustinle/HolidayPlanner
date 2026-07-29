@@ -80,19 +80,10 @@ export default function ViewActivitySheet({
         </p>
 
         {item.location && (
-          <a
-            href={
-              item.location.startsWith('http')
-                ? item.location
-                : `https://maps.google.com/?q=${encodeURIComponent(item.location)}`
-            }
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex max-w-full items-center gap-1.5 text-[14px] text-muted"
-          >
+          <p className="mt-3 inline-flex max-w-full items-center gap-1.5 text-[14px] text-muted">
             <MapPin size={14} className="flex-none" />
             <span className="truncate">{item.location}</span>
-          </a>
+          </p>
         )}
 
         {item.notes && (

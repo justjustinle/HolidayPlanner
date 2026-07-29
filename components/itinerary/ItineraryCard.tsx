@@ -110,20 +110,10 @@ export default function ItineraryCard({
                   {item.title}
                 </h3>
                 {item.location && (
-                  <a
-                    href={
-                      item.location.startsWith('http')
-                        ? item.location
-                        : `https://maps.google.com/?q=${encodeURIComponent(item.location)}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="mt-1 inline-flex max-w-full items-center gap-1 text-[12px] text-muted"
-                  >
+                  <p className="mt-1 inline-flex max-w-full items-center gap-1 text-[12px] text-muted">
                     <MapPin size={12} className="flex-none" />
                     <span className="truncate">{item.location}</span>
-                  </a>
+                  </p>
                 )}
                 {item.notes && (
                   <p className="mt-1.5 whitespace-pre-wrap text-[12px] leading-snug text-muted">
