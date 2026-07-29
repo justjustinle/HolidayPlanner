@@ -16,7 +16,7 @@ export const TIMELINE_RAIL_COL_PX = 14;
 export const TIMELINE_NODE_SIZE_PX = 9;
 
 /** Horizontal air between time↔rail and rail↔card. */
-export const TIMELINE_GUTTER_PX = 10;
+export const TIMELINE_GUTTER_PX = 14;
 
 /** @deprecated Use TIMELINE_GUTTER_PX — kept for any stray imports. */
 export const TIMELINE_TIME_TO_NODE_GAP_PX = TIMELINE_GUTTER_PX;
