@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, MessageCircle } from 'lucide-react';
 import ViewActivitySheet from './ViewActivitySheet';
 import {
   TIMELINE_TIME_COL_PX,
@@ -154,9 +154,16 @@ export default function ItineraryCard({
                   </p>
                 )}
                 {item.notes && (
-                  <p className="mt-1.5 whitespace-pre-wrap text-[12px] leading-snug text-muted">
-                    {item.notes}
-                  </p>
+                  <div className="mt-1.5 flex max-w-full items-start gap-1 rounded-md bg-black/[.04] px-1.5 py-1">
+                    <MessageCircle
+                      size={12}
+                      className="mt-0.5 flex-none text-muted"
+                      aria-hidden
+                    />
+                    <p className="min-w-0 flex-1 whitespace-pre-wrap text-[12px] italic leading-snug text-muted">
+                      {item.notes}
+                    </p>
+                  </div>
                 )}
               </div>
 
