@@ -253,13 +253,29 @@ export default function AppShell() {
     const onDown = (e: PointerEvent) => {
       if (pointerId !== null) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if (settlingRef.current) return;
       if (document.documentElement.classList.contains('reorder-select-lock')) {
+        return;
+      }
+      if (document.querySelector('[data-app-overlay]')) {
         return;
       }
       const target = e.target as Element | null;
       ignored = Boolean(target?.closest?.('[data-swipe-ignore]'));
       if (ignored) return;
+
+      // Interrupt an in-flight snap so rapid flicks feel responsive.
+      if (settlingRef.current) {
+        if (settleTimerRef.current != null) {
+          window.clearTimeout(settleTimerRef.current);
+          settleTimerRef.current = null;
+        }
+        settlingRef.current = false;
+        const w = pageWidthRef.current || 1;
+        const visual = Math.round(tabIndexRef.current - dragRef.current / w);
+        const snapped = Math.max(0, Math.min(TAB_ORDER.length - 1, visual));
+        commitIndex(snapped);
+        paintTrack(snapped, 0, false);
+      }
 
       pointerId = e.pointerId;
       startX = e.clientX;
@@ -343,6 +359,7 @@ export default function AppShell() {
 
       const targetDrag = (idx - next) * w;
       settlingRef.current = true;
+      dragRef.current = targetDrag;
 
       // Frame 1: transition off → on at current offset; frame 2: animate to snap.
       paintTrack(idx, dx, false);

@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+
 // Centered "are you sure?" dialog for destructive actions. Tapping the scrim
 // or Cancel dismisses without doing anything.
 export default function ConfirmDialog({
@@ -19,8 +22,13 @@ export default function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     <div
+      data-app-overlay
       onClick={onCancel}
       className="fixed inset-0 z-50 mx-auto flex max-w-app animate-fade-in items-center justify-center px-8"
       style={{ background: 'rgba(30,20,10,.35)' }}
@@ -48,6 +56,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

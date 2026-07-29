@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, Download, Loader2, Trash2, X } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
@@ -33,6 +34,8 @@ export default function MemoriesModal({
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [dragY, setDragY] = useState(0);
   const [closing, setClosing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const mine = useMemo(
     () =>
@@ -144,8 +147,11 @@ export default function MemoriesModal({
     transition: dragY > 0 && !closing ? 'none' : 'transform 0.16s ease, opacity 0.16s ease',
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
+      data-app-overlay
       className={`fixed inset-0 z-50 mx-auto flex max-w-app flex-col ${
         closing ? '' : 'animate-fade-in'
       }`}
@@ -296,6 +302,7 @@ export default function MemoriesModal({
           }}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

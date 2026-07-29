@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   LogOut,
@@ -67,7 +68,10 @@ export default function AppDrawer({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!open || !mounted) return null;
 
   const onTogglePush = async () => {
     if (!me || pushState === 'busy') return;
@@ -94,8 +98,8 @@ export default function AppDrawer({
   const itemCls =
     'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] text-ink hover:bg-black/5';
 
-  return (
-    <>
+  return createPortal(
+    <div data-app-overlay>
       <div
         className="fixed inset-0 z-40 bg-ink/35 animate-fade-in"
         onClick={onClose}
@@ -236,6 +240,7 @@ export default function AppDrawer({
           className="hidden"
         />
       </aside>
-    </>
+    </div>,
+    document.body
   );
 }
