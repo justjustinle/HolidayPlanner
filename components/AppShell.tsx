@@ -11,7 +11,7 @@ import {
   landingDayNumber,
   writeStoredItineraryDay,
 } from '@/lib/trip';
-import { MOTION } from '@/lib/motion';
+import { hapticLight, MOTION } from '@/lib/motion';
 
 type TabKey = 'itinerary' | 'finance' | 'stats';
 
@@ -20,6 +20,15 @@ const TABS: { key: TabKey; label: string; icon: typeof CalendarDays }[] = [
   { key: 'finance', label: 'Expenses', icon: Wallet },
   { key: 'stats', label: 'Stats', icon: Trophy },
 ];
+
+const TAB_ORDER: TabKey[] = TABS.map((t) => t.key);
+
+/** Min horizontal travel (px) to count as a tab swipe. */
+const SWIPE_MIN_DX = 56;
+/** Horizontal must dominate vertical by this ratio. */
+const SWIPE_AXIS_RATIO = 1.25;
+/** Ignore very slow drags (ms). */
+const SWIPE_MAX_MS = 650;
 
 // Prefer the device-local trip day when it matches a pill; otherwise keep the
 // last day the user had selected (in-memory + localStorage across cold opens).
@@ -30,6 +39,13 @@ function resolveItineraryDay(previous: number): number {
 /** Accent bar width under each tab (centered on the button). */
 const INDICATOR_WIDTH = 40;
 
+function neighborTab(current: TabKey, direction: -1 | 1): TabKey | null {
+  const i = TAB_ORDER.indexOf(current);
+  const next = i + direction;
+  if (next < 0 || next >= TAB_ORDER.length) return null;
+  return TAB_ORDER[next];
+}
+
 export default function AppShell() {
   const { demoMode } = useTripData();
   const [tab, setTab] = useState<TabKey>('itinerary');
@@ -39,9 +55,13 @@ export default function AppShell() {
     () => dayNumberForDate(new Date()) ?? 1
   );
   const rowRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ x: 0, width: INDICATOR_WIDTH });
   const [motionReady, setMotionReady] = useState(false);
+  const [swipeDir, setSwipeDir] = useState<-1 | 0 | 1>(0);
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
 
   useEffect(() => {
     setItineraryDay(landingDayNumber());
@@ -90,7 +110,7 @@ export default function AppShell() {
     writeStoredItineraryDay(day);
   };
 
-  const selectTab = (key: TabKey) => {
+  const selectTab = (key: TabKey, dir: -1 | 0 | 1 = 0) => {
     if (key === 'itinerary') {
       setItineraryDay((prev) => {
         const next = resolveItineraryDay(prev);
@@ -98,8 +118,76 @@ export default function AppShell() {
         return next;
       });
     }
+    setSwipeDir(dir);
     setTab(key);
   };
+
+  // Horizontal swipe on the main pane: left = next tab, right = previous.
+  // Pointer events cover iOS/Android touch and desktop; ignore vertical scrolls
+  // and horizontal controls marked [data-swipe-ignore] (e.g. day pills).
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+
+    let startX = 0;
+    let startY = 0;
+    let startT = 0;
+    let pointerId: number | null = null;
+    let ignored = false;
+
+    const onDown = (e: PointerEvent) => {
+      if (pointerId !== null) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (document.documentElement.classList.contains('reorder-select-lock')) {
+        return;
+      }
+      const target = e.target as Element | null;
+      ignored = Boolean(target?.closest?.('[data-swipe-ignore]'));
+      if (ignored) return;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      startT = Date.now();
+    };
+
+    const finish = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      const tracked = !ignored;
+      pointerId = null;
+      ignored = false;
+      if (!tracked) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const dt = Date.now() - startT;
+      if (dt > SWIPE_MAX_MS) return;
+      if (Math.abs(dx) < SWIPE_MIN_DX) return;
+      if (Math.abs(dx) < Math.abs(dy) * SWIPE_AXIS_RATIO) return;
+
+      // Finger left → next tab; finger right → previous.
+      const direction: -1 | 1 = dx < 0 ? 1 : -1;
+      const next = neighborTab(tabRef.current, direction);
+      if (!next) return;
+      hapticLight();
+      selectTab(next, direction);
+    };
+
+    const onCancel = (e: PointerEvent) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      pointerId = null;
+      ignored = false;
+    };
+
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointerup', finish);
+    el.addEventListener('pointercancel', onCancel);
+    return () => {
+      el.removeEventListener('pointerdown', onDown);
+      el.removeEventListener('pointerup', finish);
+      el.removeEventListener('pointercancel', onCancel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="city-tint mx-auto flex h-[100dvh] max-w-app flex-col overflow-hidden">
@@ -109,12 +197,26 @@ export default function AppShell() {
         </div>
       )}
 
-      <main className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-10">
-        {tab === 'itinerary' && (
-          <ItineraryTab day={itineraryDay} onDayChange={setDay} />
-        )}
-        {tab === 'finance' && <FinanceTab />}
-        {tab === 'stats' && <StatsTab />}
+      <main
+        ref={mainRef}
+        className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-10"
+      >
+        <div
+          key={tab}
+          className={
+            swipeDir === 0
+              ? 'animate-fade-in'
+              : swipeDir > 0
+                ? 'animate-tab-in-left'
+                : 'animate-tab-in-right'
+          }
+        >
+          {tab === 'itinerary' && (
+            <ItineraryTab day={itineraryDay} onDayChange={setDay} />
+          )}
+          {tab === 'finance' && <FinanceTab />}
+          {tab === 'stats' && <StatsTab />}
+        </div>
       </main>
 
       {/* bottom tab bar */}
@@ -140,7 +242,7 @@ export default function AppShell() {
                 ref={(el) => {
                   btnRefs.current[i] = el;
                 }}
-                onClick={() => selectTab(key)}
+                onClick={() => selectTab(key, 0)}
                 className={`relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-300 ${
                   active ? '' : 'text-muted'
                 }`}

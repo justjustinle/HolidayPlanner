@@ -106,6 +106,7 @@ export default function DayPicker({
       <div className="relative">
         <div
           ref={scrollerRef}
+          data-swipe-ignore
           className="no-scrollbar relative flex gap-2 overflow-x-auto scroll-smooth py-3 pl-5 pr-14"
         >
           <span
