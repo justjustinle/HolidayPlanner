@@ -96,3 +96,21 @@ body {
 .animate-drawer-in {
   animation: drawer-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
+
+/* Itinerary cards: block iOS/Android long-press callout + text selection so
+   hold-to-reorder isn’t hijacked by the browser’s native highlight UI. */
+.reorder-surface,
+.reorder-surface * {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none;
+}
+
+/* Applied to <html> for the duration of a hold / drag session. */
+html.reorder-select-lock,
+html.reorder-select-lock * {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}

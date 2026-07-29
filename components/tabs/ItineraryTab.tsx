@@ -11,6 +11,7 @@ import {
   ReorderHint,
   readReorderHintSeen,
   writeReorderHintSeen,
+  unlockNativeSelection,
   type ReorderArmDetail,
 } from '../itinerary/reorderGestures';
 import TabHeader from '../ui/TabHeader';
@@ -248,9 +249,11 @@ export default function ItineraryTab({
       dragRef.current = null;
       setDrag(null);
       unlockScroll();
+      unlockNativeSelection();
       document.body.style.touchAction = '';
       document.body.style.userSelect = '';
       document.documentElement.style.touchAction = '';
+      document.documentElement.style.userSelect = '';
 
       if (!commit || !state) return;
       // Ignore accidental "drops" with no real movement (common after iOS cancel).
@@ -355,6 +358,8 @@ export default function ItineraryTab({
       document.body.style.touchAction = 'none';
       document.documentElement.style.touchAction = 'none';
       document.body.style.userSelect = 'none';
+      document.documentElement.style.userSelect = 'none';
+      document.documentElement.classList.add('reorder-select-lock');
 
       const onPointerMove = (e: PointerEvent) => {
         const current = dragRef.current;

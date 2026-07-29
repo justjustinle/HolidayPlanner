@@ -82,7 +82,7 @@ export default function ItineraryCard({
     <>
       <div
         data-activity-row={item.id}
-        className={`relative flex items-stretch gap-1.5 transition-opacity ${
+        className={`reorder-surface relative flex items-stretch gap-1.5 transition-opacity ${
           dimmed && !isDragSource ? 'opacity-45' : ''
         } ${isDragSource ? 'opacity-35' : ''}`}
       >
@@ -133,11 +133,10 @@ export default function ItineraryCard({
             onPointerUp={longPress.onPointerUp}
             onPointerCancel={longPress.onPointerCancel}
             onClickCapture={longPress.onClickCapture}
-            className="cursor-pointer select-none rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow"
+            onContextMenu={longPress.onContextMenu}
+            className="reorder-surface cursor-pointer select-none rounded-xl border border-black/5 bg-cream-card px-3.5 py-3 text-left shadow-card transition-shadow"
             style={{
               transition: `box-shadow ${MOTION.snappy} ${MOTION.easeOut}`,
-              WebkitUserSelect: 'none',
-              userSelect: 'none',
               // Allow vertical page scroll until long-press arms; then JS sets none.
               touchAction: isDragSource ? 'none' : 'pan-y',
             }}
