@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import TimeWheel from '../ui/TimeWheel';
@@ -13,6 +13,14 @@ import {
   type TimeValue,
 } from '@/lib/time';
 import type { ItineraryItem } from '@/lib/types';
+import {
+  clearActivityDraft,
+  isActivityDraftPristine,
+  onPageHidden,
+  readActivityDraft,
+  writeActivityDraft,
+  type ActivityCreateDraft,
+} from '@/lib/createDrafts';
 
 function defaultEndAfter(start: TimeValue): TimeValue {
   const total = start.hour24 * 60 + start.minute + 60;
@@ -23,6 +31,9 @@ function defaultEndAfter(start: TimeValue): TimeValue {
 // Add or edit an itinerary card. Pass `item` to edit — anyone can change any
 // activity (title, time, location, notes). Day stays the one currently selected /
 // the item's existing day.
+//
+// Create mode persists the form to localStorage so switching to Maps / WhatsApp
+// (or another tab) doesn’t discard the draft; the sheet reopens when they return.
 export default function AddCardSheet({
   day,
   item,
@@ -32,24 +43,75 @@ export default function AddCardSheet({
   item?: ItineraryItem;
   onClose: () => void;
 }) {
-  const { addItineraryItem, updateItineraryItem } = useTripData();
+  const { addItineraryItem, updateItineraryItem, activeTripId } = useTripData();
   const editing = Boolean(item);
+  const tripKey = activeTripId;
+
+  const saved = !editing ? readActivityDraft(tripKey) : null;
+
   const [time, setTime] = useState<TimeValue>(() =>
-    item ? parseTimeLabel(item.time_label) : { hour24: 9, minute: 0 }
+    item
+      ? parseTimeLabel(item.time_label)
+      : saved?.time ?? { hour24: 9, minute: 0 }
   );
   const [endTime, setEndTime] = useState<TimeValue | null>(() =>
-    item?.end_time_label ? parseTimeLabel(item.end_time_label) : null
+    item?.end_time_label
+      ? parseTimeLabel(item.end_time_label)
+      : (saved?.endTime ?? null)
   );
-  const [title, setTitle] = useState(item?.title ?? '');
-  const [location, setLocation] = useState(item?.location ?? '');
-  const [notes, setNotes] = useState(item?.notes ?? '');
+  const [title, setTitle] = useState(() =>
+    item ? item.title : (saved?.title ?? '')
+  );
+  const [location, setLocation] = useState(() =>
+    item ? (item.location ?? '') : (saved?.location ?? '')
+  );
+  const [notes, setNotes] = useState(() =>
+    item ? (item.notes ?? '') : (saved?.notes ?? '')
+  );
   const [busy, setBusy] = useState(false);
 
-  const dayNumber = item?.day_number ?? day;
+  const dayNumber = item?.day_number ?? saved?.day ?? day;
   const d = dayByNumber(dayNumber);
   const startLabel = buildTimeLabel(time);
   const endLabel = endTime ? buildTimeLabel(endTime) : null;
   const endInvalid = Boolean(endLabel && !isEndAfterStart(startLabel, endLabel));
+
+  const draftRef = useRef<ActivityCreateDraft | null>(null);
+  if (!editing) {
+    draftRef.current = {
+      v: 1,
+      open: true,
+      day: dayNumber,
+      title,
+      time,
+      endTime,
+      location,
+      notes,
+    };
+  }
+
+  useEffect(() => {
+    if (editing || !draftRef.current) return;
+    writeActivityDraft(draftRef.current, tripKey);
+  }, [editing, tripKey, dayNumber, title, time, endTime, location, notes]);
+
+  useEffect(() => {
+    if (editing) return;
+    return onPageHidden(() => {
+      if (draftRef.current) writeActivityDraft(draftRef.current, tripKey);
+    });
+  }, [editing, tripKey]);
+
+  const dismiss = (clear: boolean) => {
+    if (!editing) {
+      if (clear || isActivityDraftPristine({ title, time, endTime, location, notes })) {
+        clearActivityDraft(tripKey);
+      } else if (draftRef.current) {
+        writeActivityDraft({ ...draftRef.current, open: false }, tripKey);
+      }
+    }
+    onClose();
+  };
 
   const save = async () => {
     if (!title.trim() || busy || endInvalid) return;
@@ -67,6 +129,7 @@ export default function AddCardSheet({
         await updateItineraryItem(item.id, payload);
       } else {
         await addItineraryItem(payload);
+        clearActivityDraft(tripKey);
       }
       onClose();
     } finally {
@@ -78,7 +141,7 @@ export default function AddCardSheet({
     'w-full rounded-xl border border-black/10 bg-cream-card px-4 py-3 text-[15px] text-ink outline-none focus:border-ink';
 
   return (
-    <Sheet title={editing ? 'Edit activity' : 'New activity'} onClose={onClose}>
+    <Sheet title={editing ? 'Edit activity' : 'New activity'} onClose={() => dismiss(false)}>
       {d && (
         <div className="mb-3 flex items-center gap-2 rounded-xl bg-black/[.04] px-4 py-2.5 text-[13px] text-muted">
           <span

@@ -25,6 +25,7 @@ import {
   type ReorderTimesResult,
 } from '@/lib/reorder';
 import { formatTimeLabel, nowToMinutes, timelineGapPx, timeToMinutes } from '@/lib/time';
+import { readActivityDraft, writeActivityDraft } from '@/lib/createDrafts';
 import { hapticLight } from '@/lib/motion';
 import type { ItineraryItem } from '@/lib/types';
 import { TIMELINE_GUTTER_PX, TIMELINE_RAIL_COL_PX, TIMELINE_TIME_COL_PX } from '../itinerary/YarnTimelineRail';
@@ -85,7 +86,8 @@ export default function ItineraryTab({
   day: number;
   onDayChange: (day: number) => void;
 }) {
-  const { itinerary, trip, tripDays, updateItineraryItem } = useTripData();
+  const { itinerary, trip, tripDays, updateItineraryItem, activeTripId } =
+    useTripData();
   const [adding, setAdding] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const nowRef = useRef<HTMLDivElement>(null);
@@ -103,6 +105,45 @@ export default function ItineraryTab({
   const dragListenersRef = useRef<(() => void) | null>(null);
   const movedDuringDragRef = useRef(false);
   const armOriginYRef = useRef(0);
+
+  // Reopen an in-progress "New activity" sheet after tab switches / app resume.
+  useEffect(() => {
+    const sync = () => {
+      if (readActivityDraft(activeTripId)?.open) setAdding(true);
+    };
+    sync();
+    const onVis = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pageshow', sync);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pageshow', sync);
+    };
+  }, [activeTripId]);
+
+  const openAddSheet = () => {
+    const existing = readActivityDraft(activeTripId);
+    if (existing && !existing.open) {
+      writeActivityDraft({ ...existing, open: true, day }, activeTripId);
+    } else if (!existing) {
+      writeActivityDraft(
+        {
+          v: 1,
+          open: true,
+          day,
+          title: '',
+          time: { hour24: 9, minute: 0 },
+          endTime: null,
+          location: '',
+          notes: '',
+        },
+        activeTripId
+      );
+    }
+    setAdding(true);
+  };
 
   const selected = dayByNumber(day, tripDays);
   const todayDay = dayNumberForDateInTrip(now, trip.start_date, tripDays.length);
@@ -511,7 +552,7 @@ export default function ItineraryTab({
               </div>
             </div>
             <button
-              onClick={() => setAdding(true)}
+              onClick={openAddSheet}
               aria-label="Add activity"
               className="flex h-8 flex-none items-center gap-1 rounded-full pl-2.5 pr-3 text-[13px] font-medium text-cream-card"
               style={{ background: selected.accentHex }}
@@ -587,7 +628,10 @@ export default function ItineraryTab({
       </div>
 
       {adding && (
-        <AddCardSheet day={day} onClose={() => setAdding(false)} />
+        <AddCardSheet
+          day={readActivityDraft(activeTripId)?.day ?? day}
+          onClose={() => setAdding(false)}
+        />
       )}
 
       {drag && (

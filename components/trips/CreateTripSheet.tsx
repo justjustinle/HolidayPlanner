@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Copy, Loader2, Plus, Share2, Trash2 } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import { useTripData } from '../TripDataProvider';
@@ -8,6 +8,13 @@ import { useAuth } from '../AuthProvider';
 import type { CreateTripResult } from '@/lib/types';
 import type { TripDay } from '@/lib/trip';
 import { COUNTRY_OPTIONS, normalizeCountryName } from '@/lib/countries';
+import {
+  clearTripDraft,
+  onPageHidden,
+  readTripDraft,
+  writeTripDraft,
+  type TripCreateDraft,
+} from '@/lib/createDrafts';
 
 const ACCENTS = ['#c9992e', '#2f97a6', '#b0472f', '#3f9b8a', '#7a5cc9', '#4f7fd6'];
 
@@ -101,37 +108,73 @@ export default function CreateTripSheet({
   const { createTrip, updateTrip, setActiveTrip, trip, tripDays, currencies } =
     useTripData();
   const { account } = useAuth();
-  const [name, setName] = useState(editing ? trip.name : '');
-  const [homeCurrency, setHomeCurrency] = useState(
-    editing ? trip.base_currency : 'GBP'
+  const saved = !editing ? readTripDraft() : null;
+  const [name, setName] = useState(() =>
+    editing ? trip.name : (saved?.name ?? '')
   );
-  const [destinations, setDestinations] = useState<Destination[]>(() =>
-    editing
-      ? destinationsFromTrip(trip.start_date, tripDays)
-      : [
-          {
-            id: newId(),
-            country: '',
-            city: '',
-            startDate: '',
-            endDate: '',
-            accentHex: ACCENTS[0],
-          },
-        ]
+  const [homeCurrency, setHomeCurrency] = useState(() =>
+    editing ? trip.base_currency : (saved?.homeCurrency ?? 'GBP')
   );
+  const [destinations, setDestinations] = useState<Destination[]>(() => {
+    if (editing) return destinationsFromTrip(trip.start_date, tripDays);
+    if (saved?.destinations?.length) return saved.destinations;
+    return [
+      {
+        id: newId(),
+        country: '',
+        city: '',
+        startDate: '',
+        endDate: '',
+        accentHex: ACCENTS[0],
+      },
+    ];
+  });
   const [destinationCurrencies, setDestinationCurrencies] = useState<string[]>(
     () =>
       editing
         ? currencies
             .filter((currency) => currency.code !== trip.base_currency)
             .map((currency) => currency.code)
-        : []
+        : (saved?.destinationCurrencies ?? [])
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreateTripResult | null>(null);
-  const [origin, setOrigin] = useState('');
+  const [origin, setOrigin] = useState(() => saved?.origin ?? '');
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+
+  const draftRef = useRef<TripCreateDraft | null>(null);
+  if (!editing && !created) {
+    draftRef.current = {
+      v: 1,
+      open: true,
+      name,
+      homeCurrency,
+      origin,
+      destinations,
+      destinationCurrencies,
+    };
+  }
+
+  useEffect(() => {
+    if (editing || created || !draftRef.current) return;
+    writeTripDraft(draftRef.current);
+  }, [
+    editing,
+    created,
+    name,
+    homeCurrency,
+    origin,
+    destinations,
+    destinationCurrencies,
+  ]);
+
+  useEffect(() => {
+    if (editing || created) return;
+    return onPageHidden(() => {
+      if (draftRef.current) writeTripDraft(draftRef.current);
+    });
+  }, [editing, created]);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -205,6 +248,21 @@ export default function CreateTripSheet({
     return null;
   }, [destinationCurrencies, destinations, homeCurrency, name]);
 
+  const dismiss = () => {
+    if (!editing && !created) {
+      if (draftRef.current) {
+        const empty =
+          !name.trim() &&
+          destinations.every(
+            (d) => !d.country.trim() && !d.city.trim() && !d.startDate && !d.endDate
+          );
+        if (empty) clearTripDraft();
+        else writeTripDraft({ ...draftRef.current, open: false });
+      }
+    }
+    onClose();
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (busy) return;
@@ -241,6 +299,7 @@ export default function CreateTripSheet({
           account?.email?.split('@')[0] ||
           'Me',
       });
+      clearTripDraft();
       setCreated(result);
     } catch (caught) {
       setError(
@@ -264,7 +323,7 @@ export default function CreateTripSheet({
 
   if (created && !editing) {
     return (
-      <Sheet title="Invite your group" onClose={onClose}>
+      <Sheet title="Invite your group" onClose={dismiss}>
         <div className="rounded-2xl bg-cream-card p-4 text-center">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-nhatrang/15 text-nhatrang">
             <Check size={21} />
@@ -342,7 +401,7 @@ export default function CreateTripSheet({
   }
 
   return (
-    <Sheet title={editing ? 'Edit trip' : 'Create a trip'} onClose={onClose}>
+    <Sheet title={editing ? 'Edit trip' : 'Create a trip'} onClose={dismiss}>
       <form onSubmit={submit}>
         <label htmlFor="trip-name" className="mb-1 block text-xs uppercase tracking-wide text-muted">
           Trip name

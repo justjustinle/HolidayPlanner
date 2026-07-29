@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, LogOut, Loader2, Ticket, X } from 'lucide-react';
 import { useTripData } from '../TripDataProvider';
 import { useAuth } from '../AuthProvider';
 import { rangeLabelFromDays, formatTripDate, type TripDay } from '@/lib/trip';
+import { readTripDraft, writeTripDraft } from '@/lib/createDrafts';
 import CreateTripSheet from './CreateTripSheet';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import type { Trip } from '@/lib/types';
@@ -30,6 +31,30 @@ export default function MyTripsScreen() {
   const [leaving, setLeaving] = useState<Trip | null>(null);
   const [leavingId, setLeavingId] = useState<string | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sync = () => {
+      if (readTripDraft()?.open) setCreating(true);
+    };
+    sync();
+    const onVis = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pageshow', sync);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pageshow', sync);
+    };
+  }, []);
+
+  const openCreate = () => {
+    const existing = readTripDraft();
+    if (existing && !existing.open) {
+      writeTripDraft({ ...existing, open: true });
+    }
+    setCreating(true);
+  };
 
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +157,7 @@ export default function MyTripsScreen() {
 
       <button
         type="button"
-        onClick={() => setCreating(true)}
+        onClick={openCreate}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3.5 text-[15px] font-medium text-white"
       >
         <Plus size={18} /> Create a trip
