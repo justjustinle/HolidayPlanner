@@ -34,24 +34,29 @@ export const TIMELINE_NODE_TOP_PX =
 export const TIMELINE_NODE_CENTER_Y_PX =
   TIMELINE_NODE_TOP_PX + TIMELINE_NODE_SIZE_PX / 2;
 
+/** Half the diamond’s vertical tip-to-tip span after 45° rotation. */
+const DIAMOND_HALF_DIAG_PX = (TIMELINE_NODE_SIZE_PX * Math.SQRT2) / 2;
+
 /**
- * How far the dashed segment extends into the next row so it meets the next
- * diamond (tucks under its center — closes the hairline gap above the tip).
+ * How far the rail extends into the next row — through the next diamond’s
+ * center so the join sits under the opaque node.
  */
 export const TIMELINE_RAIL_OVERLAP_PX = Math.ceil(TIMELINE_NODE_CENTER_Y_PX);
 
-/** Solid tip so a transparent dash gap never opens above the next diamond. */
-const TIMELINE_RAIL_JOIN_PX = 18;
+/** Dash: 5px solid + 4px gap. */
+const DASH_SOLID_PX = 5;
+const DASH_GAP_PX = 4;
+const DASH_PERIOD_PX = DASH_SOLID_PX + DASH_GAP_PX;
 
-function dashedRailStyle(accentHex: string): {
-  backgroundImage: string;
-  opacity: number;
-} {
-  return {
-    backgroundImage: `repeating-linear-gradient(to bottom, ${accentHex} 0 5px, transparent 5px 9px)`,
-    opacity: 0.55,
-  };
-}
+/**
+ * Keep this much solid (undashed) at each end so the line always plugs into
+ * the diamond — never ends on a transparent dash gap.
+ * Tall enough that a clear solid stem sits above the next tip.
+ */
+const TIMELINE_RAIL_SOLID_CAP_PX = DASH_PERIOD_PX * 2;
+
+/** Page surface — matches `.city-tint` (accent wash over cream). */
+const CITY_TINT = 'color-mix(in srgb, var(--city-accent) 12%, #f7f1e6)';
 
 function TimelineDash({
   top,
@@ -60,28 +65,29 @@ function TimelineDash({
   top: number | string;
   accentHex: string;
 }) {
+  // Opaque muted stroke (mix with cream, not transparent) so gaps can punch
+  // cleanly without alpha fringe.
+  const stroke = `color-mix(in srgb, ${accentHex} 55%, #f7f1e6)`;
   return (
     <div
       className="absolute left-1/2 w-0.5 -translate-x-1/2"
       style={{
         top,
         bottom: -TIMELINE_RAIL_OVERLAP_PX,
-        ...dashedRailStyle(accentHex),
       }}
     >
-      {/* Solid caps so transparent dash gaps never open at either diamond. */}
+      {/* Continuous solid backbone — reaches both diamonds with no holes. */}
+      <span className="absolute inset-0" style={{ background: stroke }} />
+      {/*
+        Dash gaps only in the middle. Pattern paints from the bottom up so the
+        pixels just above each solid cap are always backbone (never a cream gap).
+      */}
       <span
-        className="absolute left-0 right-0 top-0"
+        className="absolute left-0 right-0"
         style={{
-          height: TIMELINE_RAIL_JOIN_PX,
-          background: accentHex,
-        }}
-      />
-      <span
-        className="absolute bottom-0 left-0 right-0"
-        style={{
-          height: TIMELINE_RAIL_JOIN_PX,
-          background: accentHex,
+          top: TIMELINE_RAIL_SOLID_CAP_PX,
+          bottom: TIMELINE_RAIL_SOLID_CAP_PX,
+          backgroundImage: `repeating-linear-gradient(to top, transparent 0 ${DASH_SOLID_PX}px, ${CITY_TINT} ${DASH_SOLID_PX}px ${DASH_PERIOD_PX}px)`,
         }}
       />
     </div>
@@ -106,7 +112,7 @@ export function TimelineRail({
       aria-hidden
     >
       <span
-        className="absolute left-1/2 z-[1] -translate-x-1/2 rotate-45 rounded-[1px]"
+        className="absolute left-1/2 z-[1] -translate-x-1/2 rotate-45"
         style={{
           top: TIMELINE_NODE_TOP_PX,
           width: TIMELINE_NODE_SIZE_PX,
@@ -114,7 +120,13 @@ export function TimelineRail({
           background: accentHex,
         }}
       />
-      {!isLast && <TimelineDash top={TIMELINE_NODE_CENTER_Y_PX} accentHex={accentHex} />}
+      {!isLast && (
+        <TimelineDash
+          // From diamond center — node paints over the upper join.
+          top={TIMELINE_NODE_CENTER_Y_PX}
+          accentHex={accentHex}
+        />
+      )}
     </div>
   );
 }
