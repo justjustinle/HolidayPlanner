@@ -92,9 +92,11 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
               {symbolFor(expense.local_currency, currencies)}
               {expense.local_amount.toLocaleString()}
             </div>
-            <div className="text-[11px] text-muted">
-              {formatBaseCurrency(expense.base_amount_gbp, trip.base_currency, currencies)}
-            </div>
+            {expense.local_currency !== trip.base_currency && (
+              <div className="text-[11px] text-muted">
+                {formatBaseCurrency(expense.base_amount_gbp, trip.base_currency, currencies)}
+              </div>
+            )}
           </div>
           <button
             onClick={(e) => {
