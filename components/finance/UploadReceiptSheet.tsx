@@ -525,13 +525,12 @@ export default function UploadReceiptSheet({
             </p>
           )}
           <p className="mb-4 mt-1 text-right text-[13px] text-muted">
-            {hasRate ? (
+            {currency === trip.base_currency ? null : hasRate ? (
               <>
                 ={' '}
                 <span className="font-semibold text-ink">
                   {formatBaseCurrency(gbp, trip.base_currency, currencies)}
-                </span>{' '}
-                home
+                </span>
               </>
             ) : (
               <span className="text-saigon">Set the {currency} exchange rate first</span>
