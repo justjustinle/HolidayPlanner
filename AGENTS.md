@@ -41,7 +41,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - **trip_settings** — single row (id=1): `vnd_per_gbp, thb_per_gbp` (group FX rates)
 - **itinerary_items** — `id, day_number, time_label, end_time_label (nullable), title, location, notes, photo_url (legacy), created_at`
 - **photos** — `id, activity_id→itinerary_items, url, uploaded_by_id, tagged_user_ids[], created_at`
-- **expenses** — `id, activity_id (legacy, nullable), label, day_number, kind, local_amount, local_currency, base_amount_gbp, paid_by_id, image_url (optional proof-of-payment), created_at`
+- **expenses** — `id, activity_id (legacy, nullable), label, day_number, kind, local_amount, local_currency, base_amount_gbp, paid_by_id, image_url (optional proof-of-payment), is_upcoming, payment_date, created_at`
   - `kind` = **`'manual' | 'receipt' | 'settlement'`** (plain text, **no CHECK constraint** — new kinds need no migration)
   - ⚠️ Column names: **`local_amount` / `base_amount_gbp` / `paid_by_id` / `label`** — NOT `amount` / `paid_by` / `description`. There is **no `is_settlement`, no `group_id`**.
 - **expense_splits** — `id, expense_id, user_id, amount_owed` (it's **`amount_owed`**, not `amount`)
@@ -56,7 +56,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 
 **lib/**
 - `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `TRIP_TITLE`, `tripDateRangeLabel()` → **"28th Aug – 9th Sep"** (keeps st/nd/rd/th), `dayByNumber`, `defaultDayNumber`, `landingDayNumber` (today match → last stored day → Day 1; key `travel_itinerary_day`), `CURRENCY_SYMBOL`
-- `settle.ts` — `computeNetBalances` (net = paid − owed; manual splits + receipt claims), `minimizeTransfers` (greedy "who pays whom"), `totalSpend` (excludes settlements), `computeIncurredByUser` (per-person share of group spend), `listSettlements`
+- `settle.ts` — `computeNetBalances` (net = paid − owed; manual splits + receipt claims), `minimizeTransfers` (greedy "who pays whom"), `totalSpend` (excludes settlements), `computeIncurredByUser` (per-person share of group spend), `isUpcomingPending` / `expensesIncludedInBalances` (deferred upcoming payments), `listSettlements`
 - `wrapped.ts` / `wrappedLoad.ts` — Trip Wrapped recap assembly + server loader for `/trip/[id]/wrapped`
 - `currency.ts` — `formatGbp, toGbp, round2, splitEqually`
 - `types.ts` — domain types; `ExpenseKind`, `SETTLEMENT_LABEL`, `Transfer`, `SettledPayment`

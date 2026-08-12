@@ -112,6 +112,10 @@ export interface NewExpenseInput {
   imageFile?: File | null;
   /** Clear any existing attached photo (ignored when imageFile is set). */
   removeImage?: boolean;
+  /** Deferred until paymentDate — excluded from balances until that local date. */
+  isUpcoming?: boolean;
+  /** Local calendar date `YYYY-MM-DD`; required when isUpcoming is true. */
+  paymentDate?: string | null;
 }
 
 export interface NewReceiptInput {
@@ -1026,10 +1030,14 @@ export default function TripDataProvider({
       participantIds,
       customSharesLocal,
       imageFile,
+      isUpcoming = false,
+      paymentDate = null,
     }) => {
       const baseGbp = toBase(amount, currency, currencies);
       const parts = participantIds.length ? participantIds : [paidById];
       const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
+      const upcoming = Boolean(isUpcoming);
+      const payment_date = upcoming ? paymentDate || null : null;
 
       if (demoMode) {
         const expId = genId();
@@ -1049,6 +1057,8 @@ export default function TripDataProvider({
             base_amount_gbp: baseGbp,
             paid_by_id: paidById,
             image_url,
+            is_upcoming: upcoming,
+            payment_date,
           },
         ]);
         setSplits((prev) => [
@@ -1074,6 +1084,8 @@ export default function TripDataProvider({
           local_currency: currency,
           base_amount_gbp: baseGbp,
           paid_by_id: paidById,
+          is_upcoming: upcoming,
+          payment_date,
         })
         .select()
         .single();
@@ -1142,6 +1154,8 @@ export default function TripDataProvider({
         customSharesLocal,
         imageFile,
         removeImage,
+        isUpcoming = false,
+        paymentDate = null,
       }
     ) => {
       const existing = expenses.find((e) => e.id === id);
@@ -1150,6 +1164,8 @@ export default function TripDataProvider({
       const baseGbp = toBase(amount, currency, currencies);
       const parts = participantIds.length ? participantIds : [paidById];
       const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
+      const upcoming = Boolean(isUpcoming);
+      const payment_date = upcoming ? paymentDate || null : null;
 
       let nextImageUrl = existing.image_url ?? null;
       if (imageFile) {
@@ -1177,6 +1193,8 @@ export default function TripDataProvider({
         local_currency: currency,
         base_amount_gbp: baseGbp,
         paid_by_id: paidById,
+        is_upcoming: upcoming,
+        payment_date,
         ...(isManual ? { image_url: nextImageUrl } : {}),
       };
 

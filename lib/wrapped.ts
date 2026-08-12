@@ -13,7 +13,7 @@ import type { TripDay } from './trip';
 import { rangeLabelFromDays } from './trip';
 import { uniqueCountriesFromTripDays } from './countries';
 import { formatBaseCurrency, round2 } from './currency';
-import { computeIncurredByUser, totalSpend } from './settle';
+import { computeIncurredByUser, isUpcomingPending, totalSpend } from './settle';
 import { parseTimeLabel } from './time';
 import { photoUploadCounts } from './stats';
 
@@ -94,12 +94,14 @@ function uniqueDestinations(days: TripDay[]): string[] {
 
 function paidTotals(
   profiles: Profile[],
-  expenses: Expense[]
+  expenses: Expense[],
+  now: Date = new Date()
 ): Map<string, number> {
   const totals = new Map<string, number>();
   for (const p of profiles) totals.set(p.id, 0);
   for (const e of expenses) {
     if (e.kind === 'settlement') continue;
+    if (isUpcomingPending(e, now)) continue;
     if (!totals.has(e.paid_by_id)) continue;
     totals.set(e.paid_by_id, round2((totals.get(e.paid_by_id) ?? 0) + e.base_amount_gbp));
   }

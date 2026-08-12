@@ -117,6 +117,8 @@ export type ExpenseCreateDraft = {
   customShares: Record<string, number> | null;
   /** Compressed image data URL — omitted when too large for localStorage. */
   preview?: string | null;
+  isUpcoming?: boolean;
+  paymentDate?: string | null;
 };
 
 export function readExpenseDraft(
@@ -142,13 +144,18 @@ export function clearExpenseDraft(tripId?: string | null): void {
 }
 
 export function isExpenseDraftPristine(
-  d: Pick<ExpenseCreateDraft, 'label' | 'amountStr' | 'customShares' | 'preview'>
+  d: Pick<
+    ExpenseCreateDraft,
+    'label' | 'amountStr' | 'customShares' | 'preview' | 'isUpcoming' | 'paymentDate'
+  >
 ): boolean {
   return (
     !d.label.trim() &&
     !d.amountStr.trim() &&
     d.customShares === null &&
-    !d.preview
+    !d.preview &&
+    !d.isUpcoming &&
+    !d.paymentDate
   );
 }
 

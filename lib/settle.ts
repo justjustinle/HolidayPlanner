@@ -8,6 +8,7 @@ import type {
   Transfer,
 } from './types';
 import { round2 } from './currency';
+import { parseLocalDate } from './trip';
 
 /** Proportional tax/service multiplier: receiptTotal ÷ itemSubtotal. */
 export function receiptTaxMultiplier(itemSubtotal: number, receiptTotal: number): number {
@@ -35,6 +36,34 @@ export function receiptLineSharesGbp(
   return shares;
 }
 
+/**
+ * True while an expense is marked upcoming and its payment date is still in
+ * the future on the device-local calendar. Evaluated at read time — no job
+ * flips the flag when the date arrives.
+ *
+ * `payment_date` is `YYYY-MM-DD`. It becomes included at local midnight on
+ * that calendar day (i.e. once `now >= start of payment_date`).
+ */
+export function isUpcomingPending(
+  expense: Pick<Expense, 'is_upcoming' | 'payment_date'>,
+  now: Date = new Date()
+): boolean {
+  if (!expense.is_upcoming) return false;
+  const raw = expense.payment_date?.trim();
+  if (!raw) return true; // upcoming without a date stays excluded defensively
+  const due = parseLocalDate(raw);
+  if (Number.isNaN(due.getTime())) return true;
+  return now < due;
+}
+
+/** Expenses that should count toward balances / spend / incurred totals. */
+export function expensesIncludedInBalances(
+  expenses: Expense[],
+  now: Date = new Date()
+): Expense[] {
+  return expenses.filter((e) => !isUpcomingPending(e, now));
+}
+
 // Net balance for one person = total they PAID − total they OWE (their shares).
 // Positive → the group owes them (creditor). Negative → they owe (debtor).
 //
@@ -43,12 +72,16 @@ export function receiptLineSharesGbp(
 // fall back to the payer (so books always balance even mid-claiming). Any
 // service charge / tax gap between line items and the receipt total is spread
 // proportionally across the items.
+//
+// Upcoming expenses whose payment date is still in the future are excluded
+// (along with their splits / receipt claims) until that date arrives.
 export function computeNetBalances(
   profiles: Profile[],
   expenses: Expense[],
   splits: ExpenseSplit[],
   receipts: Receipt[] = [],
-  receiptItems: ReceiptItem[] = []
+  receiptItems: ReceiptItem[] = [],
+  now: Date = new Date()
 ): Map<string, number> {
   const net = new Map<string, number>();
   for (const p of profiles) net.set(p.id, 0);
@@ -56,15 +89,19 @@ export function computeNetBalances(
     if (net.has(id)) net.set(id, round2((net.get(id) ?? 0) + delta));
   };
 
-  for (const e of expenses) {
+  const included = expensesIncludedInBalances(expenses, now);
+  const includedIds = new Set(included.map((e) => e.id));
+
+  for (const e of included) {
     add(e.paid_by_id, e.base_amount_gbp);
   }
   for (const s of splits) {
+    if (!includedIds.has(s.expense_id)) continue;
     add(s.user_id, -s.amount_owed);
   }
 
   for (const r of receipts) {
-    const expense = expenses.find((e) => e.id === r.expense_id);
+    const expense = included.find((e) => e.id === r.expense_id);
     if (!expense) continue;
     const items = receiptItems.filter((i) => i.receipt_id === r.id);
     const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
@@ -129,10 +166,10 @@ export function minimizeTransfers(
 }
 
 // Total group spend in GBP. Settlements are money moving between members, not
-// group spend, so they're excluded.
-export function totalSpend(expenses: Expense[]): number {
+// group spend, so they're excluded. Upcoming-not-yet-due expenses are too.
+export function totalSpend(expenses: Expense[], now: Date = new Date()): number {
   return round2(
-    expenses
+    expensesIncludedInBalances(expenses, now)
       .filter((e) => e.kind !== 'settlement')
       .reduce((sum, e) => sum + e.base_amount_gbp, 0)
   );
@@ -149,7 +186,8 @@ export function computeIncurredByUser(
   expenses: Expense[],
   splits: ExpenseSplit[],
   receipts: Receipt[] = [],
-  receiptItems: ReceiptItem[] = []
+  receiptItems: ReceiptItem[] = [],
+  now: Date = new Date()
 ): Map<string, number> {
   const incurred = new Map<string, number>();
   for (const p of profiles) incurred.set(p.id, 0);
@@ -157,10 +195,13 @@ export function computeIncurredByUser(
     if (incurred.has(id)) incurred.set(id, round2((incurred.get(id) ?? 0) + delta));
   };
 
+  const included = expensesIncludedInBalances(expenses, now).filter(
+    (e) => e.kind !== 'settlement'
+  );
+  const includedIds = new Set(included.map((e) => e.id));
   const receiptExpenseIds = new Set(receipts.map((r) => r.expense_id));
 
-  for (const e of expenses) {
-    if (e.kind === 'settlement') continue;
+  for (const e of included) {
     if (e.kind === 'receipt' || receiptExpenseIds.has(e.id)) continue;
     for (const s of splits) {
       if (s.expense_id === e.id) add(s.user_id, s.amount_owed);
@@ -168,8 +209,8 @@ export function computeIncurredByUser(
   }
 
   for (const r of receipts) {
-    const expense = expenses.find((e) => e.id === r.expense_id);
-    if (!expense || expense.kind === 'settlement') continue;
+    const expense = included.find((e) => e.id === r.expense_id);
+    if (!expense) continue;
     const items = receiptItems.filter((i) => i.receipt_id === r.id);
     const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
     if (itemSubtotal <= 0) {

@@ -9,9 +9,18 @@ import UploadReceiptSheet from './UploadReceiptSheet';
 import ReceiptViewer from './ReceiptViewer';
 import { useTripData } from '../TripDataProvider';
 import { formatBaseCurrency, round2, symbolFor } from '@/lib/currency';
-import { receiptTaxMultiplier } from '@/lib/settle';
-import { dayByNumber } from '@/lib/trip';
+import { isUpcomingPending, receiptTaxMultiplier } from '@/lib/settle';
+import { dayByNumber, parseLocalDate } from '@/lib/trip';
 import type { Expense } from '@/lib/types';
+
+function formatPaymentDate(isoDate: string): string {
+  const d = parseLocalDate(isoDate);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  return d.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  });
+}
 
 // One expense row in the Expenses tab. Manual expenses show who's splitting;
 // receipt expenses list their line items with tap-to-claim chips. Tapping a
@@ -39,6 +48,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   const receiptImageUrl = isReceipt
     ? receipt?.image_url ?? null
     : expense.image_url ?? null;
+  const upcomingPending = isUpcomingPending(expense);
 
   // Line amounts scaled so tax/service on the receipt total is included.
   const { multiplier, taxGapLocal } = useMemo(() => {
@@ -61,11 +71,19 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
           <div className="text-[15px] font-medium text-ink">
             {expense.label ?? 'Expense'}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted">
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted">
             <Avatar name={payer?.name ?? '?'} src={payer?.avatar_url} size={16} />
             {payer?.name ?? 'Someone'} paid
             {day && <span>· {day.label}</span>}
             {isReceipt && <span>· receipt</span>}
+            {upcomingPending && (
+              <span className="rounded-full bg-bangkok/15 px-2 py-0.5 text-[11px] font-semibold text-bangkok">
+                Upcoming
+                {expense.payment_date
+                  ? ` · ${formatPaymentDate(expense.payment_date)}`
+                  : ''}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex flex-none items-center gap-2">

@@ -180,6 +180,12 @@ export default function LogExpenseSheet({
   );
   const [removedImage, setRemovedImage] = useState(false);
   const [viewingImage, setViewingImage] = useState(false);
+  const [isUpcoming, setIsUpcoming] = useState(
+    () => Boolean(expense?.is_upcoming ?? saved?.isUpcoming)
+  );
+  const [paymentDate, setPaymentDate] = useState(
+    () => expense?.payment_date ?? saved?.paymentDate ?? ''
+  );
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const draftRef = useRef<ExpenseCreateDraft | null>(null);
@@ -195,6 +201,8 @@ export default function LogExpenseSheet({
       participants,
       customShares,
       preview,
+      isUpcoming,
+      paymentDate: paymentDate || null,
     };
   }
 
@@ -212,6 +220,8 @@ export default function LogExpenseSheet({
     participants,
     customShares,
     preview,
+    isUpcoming,
+    paymentDate,
   ]);
 
   useEffect(() => {
@@ -248,7 +258,14 @@ export default function LogExpenseSheet({
   const dismiss = () => {
     if (creating) {
       if (
-        isExpenseDraftPristine({ label, amountStr, customShares, preview }) ||
+        isExpenseDraftPristine({
+          label,
+          amountStr,
+          customShares,
+          preview,
+          isUpcoming,
+          paymentDate,
+        }) ||
         !draftRef.current
       ) {
         clearExpenseDraft(tripKey);
@@ -344,6 +361,7 @@ export default function LogExpenseSheet({
     hasRate &&
     paidById &&
     (isReceipt || participants.length > 0) &&
+    (!isUpcoming || Boolean(paymentDate)) &&
     !busy;
 
   const save = async () => {
@@ -367,6 +385,8 @@ export default function LogExpenseSheet({
             : undefined,
         imageFile: isReceipt ? undefined : file,
         removeImage: isReceipt ? undefined : removedImage && !file,
+        isUpcoming,
+        paymentDate: isUpcoming ? paymentDate || null : null,
       };
       if (expense) await updateExpense(expense.id, input);
       else {
@@ -496,6 +516,47 @@ export default function LogExpenseSheet({
               </button>
             );
           })}
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-black/5 bg-cream-card px-4 py-3">
+          <label className="flex cursor-pointer items-center justify-between gap-3">
+            <span>
+              <span className="block text-[14px] font-medium text-ink">
+                Upcoming payment
+              </span>
+              <span className="mt-0.5 block text-[12px] text-muted">
+                Exclude from balances until the payment date
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={isUpcoming}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setIsUpcoming(on);
+                if (!on) setPaymentDate('');
+              }}
+              className="h-5 w-5 rounded border-black/20 accent-ink"
+            />
+          </label>
+          {isUpcoming && (
+            <div className="mt-3 border-t border-black/5 pt-3">
+              <label
+                htmlFor="expense-payment-date"
+                className="mb-1 block text-xs uppercase tracking-wide text-muted"
+              >
+                Payment date
+              </label>
+              <input
+                id="expense-payment-date"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                required
+                className={inputCls}
+              />
+            </div>
+          )}
         </div>
 
         {/* split between (manual expenses; receipts split via item claims) */}

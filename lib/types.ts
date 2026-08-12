@@ -98,6 +98,10 @@ export interface Expense {
   paid_by_id: string;
   /** Optional proof-of-payment photo (manual expenses). Receipt scans use Receipt.image_url. */
   image_url?: string | null;
+  /** When true, expense is deferred until payment_date (see isUpcomingPending). */
+  is_upcoming?: boolean;
+  /** Local calendar date `YYYY-MM-DD`; required when is_upcoming is true. */
+  payment_date?: string | null;
   created_at?: string;
 }
 

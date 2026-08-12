@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { describe, it, beforeEach } from 'node:test';
 
 import { round2, splitEqually, toGbp } from './currency';
+import { computeNetBalances, totalSpend } from './settle';
 import {
   ALEX,
   JO,
@@ -100,6 +101,41 @@ describe('Scenario 1 — Equal 5-way split', () => {
       [...byUser.values()].reduce((s, n) => s + n, 0)
     );
     assert.equal(incurredSum, spend(ledger));
+  });
+
+  it('Upcoming future-dated expenses are excluded until their payment date', () => {
+    const ledger = emptyLedger();
+    addManual(ledger, {
+      label: 'Due later hotel',
+      dayNumber: 2,
+      amount: 200,
+      currency: 'GBP',
+      paidById: ALEX,
+      participantIds: [ALEX, SAM],
+    });
+    const exp = ledger.expenses[ledger.expenses.length - 1];
+    exp.is_upcoming = true;
+    exp.payment_date = '2099-01-15';
+
+    assert.equal(spend(ledger), 0);
+    const net = nets(ledger);
+    assert.equal(net.get(ALEX), 0);
+    assert.equal(net.get(SAM), 0);
+    assert.equal(incurred(ledger).get(ALEX) ?? 0, 0);
+
+    // Once the payment date arrives (local midnight), it counts.
+    const onDueDay = new Date(2099, 0, 15, 0, 0, 0);
+    assert.equal(totalSpend(ledger.expenses, onDueDay), 200);
+    const dueNet = computeNetBalances(
+      USERS,
+      ledger.expenses,
+      ledger.splits,
+      ledger.receipts,
+      ledger.receiptItems,
+      onDueDay
+    );
+    assert.equal(dueNet.get(ALEX), 100);
+    assert.equal(dueNet.get(SAM), -100);
   });
 });
 
