@@ -102,6 +102,9 @@ export function isActivityDraftPristine(d: Omit<ActivityCreateDraft, 'v' | 'open
 
 // ── Manual expense ─────────────────────────────────────────────────────────
 
+/** ~700KB string budget so we stay under typical 5MB quotas with other keys. */
+const MAX_PREVIEW_CHARS = 700_000;
+
 export type ExpenseCreateDraft = {
   v: 1;
   open: boolean;
@@ -112,6 +115,8 @@ export type ExpenseCreateDraft = {
   paidById: string;
   participants: string[];
   customShares: Record<string, number> | null;
+  /** Compressed image data URL — omitted when too large for localStorage. */
+  preview?: string | null;
 };
 
 export function readExpenseDraft(
@@ -125,7 +130,11 @@ export function writeExpenseDraft(
   draft: ExpenseCreateDraft,
   tripId?: string | null
 ): void {
-  writeJson(key('expense', tripId ?? null), draft);
+  const preview =
+    draft.preview && draft.preview.length <= MAX_PREVIEW_CHARS
+      ? draft.preview
+      : null;
+  writeJson(key('expense', tripId ?? null), { ...draft, preview });
 }
 
 export function clearExpenseDraft(tripId?: string | null): void {
@@ -133,9 +142,14 @@ export function clearExpenseDraft(tripId?: string | null): void {
 }
 
 export function isExpenseDraftPristine(
-  d: Pick<ExpenseCreateDraft, 'label' | 'amountStr' | 'customShares'>
+  d: Pick<ExpenseCreateDraft, 'label' | 'amountStr' | 'customShares' | 'preview'>
 ): boolean {
-  return !d.label.trim() && !d.amountStr.trim() && d.customShares === null;
+  return (
+    !d.label.trim() &&
+    !d.amountStr.trim() &&
+    d.customShares === null &&
+    !d.preview
+  );
 }
 
 // ── Receipt ────────────────────────────────────────────────────────────────
@@ -153,9 +167,6 @@ export type ReceiptCreateDraft = {
   /** Compressed image data URL — omitted when too large for localStorage. */
   preview: string | null;
 };
-
-/** ~700KB string budget so we stay under typical 5MB quotas with other keys. */
-const MAX_PREVIEW_CHARS = 700_000;
 
 export function readReceiptDraft(
   tripId?: string | null

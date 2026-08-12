@@ -30,7 +30,7 @@ Next.js 14.2 (App Router) · React 18 · TypeScript · Tailwind 3 · Supabase (P
 - **Default branch:** `claude/itinerary-app-design-brepuv` — base for PRs, and what Vercel deploys to production.
 - **Vercel:** team `justjustinles-projects` (`team_ZKvomPExwcUqaEfOpMI2LGSu`), project `holiday-planner` (`prj_TqOHN6tShUigSwBXxrNx8kbF6j2y`). Production: **holiday-planner-ruby.vercel.app**. (`vercel.json` sets `"framework": "nextjs"` even though Vercel's auto-detect metadata says "vite".)
 - **Supabase (ACTIVE):** "HolidayPlanr", ref `wvgulynvhgyzuecysocx`, eu-central-2. The other project `cjjzcfoorhpfrucyqhvv` is NOT used — ignore it.
-- **Storage:** public bucket **`memories`** (`photos/`, `avatars/`, `receipts/`).
+- **Storage:** public bucket **`memories`** (`photos/`, `avatars/`, `receipts/`, `expenses/`).
 - Secrets (Supabase anon key, VAPID keys, `CRON_SECRET`) live in Vercel env + GitHub Actions secrets — **never commit them**.
 
 ## 4. Data model (Supabase `public` schema)
@@ -41,7 +41,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - **trip_settings** — single row (id=1): `vnd_per_gbp, thb_per_gbp` (group FX rates)
 - **itinerary_items** — `id, day_number, time_label, end_time_label (nullable), title, location, notes, photo_url (legacy), created_at`
 - **photos** — `id, activity_id→itinerary_items, url, uploaded_by_id, tagged_user_ids[], created_at`
-- **expenses** — `id, activity_id (legacy, nullable), label, day_number, kind, local_amount, local_currency, base_amount_gbp, paid_by_id, created_at`
+- **expenses** — `id, activity_id (legacy, nullable), label, day_number, kind, local_amount, local_currency, base_amount_gbp, paid_by_id, image_url (optional proof-of-payment), created_at`
   - `kind` = **`'manual' | 'receipt' | 'settlement'`** (plain text, **no CHECK constraint** — new kinds need no migration)
   - ⚠️ Column names: **`local_amount` / `base_amount_gbp` / `paid_by_id` / `label`** — NOT `amount` / `paid_by` / `description`. There is **no `is_settlement`, no `group_id`**.
 - **expense_splits** — `id, expense_id, user_id, amount_owed` (it's **`amount_owed`**, not `amount`)

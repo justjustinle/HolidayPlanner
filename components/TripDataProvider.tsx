@@ -108,6 +108,10 @@ export interface NewExpenseInput {
   // Optional custom local-currency amounts (same currency as `amount`), one
   // per participant, summing to `amount`. When omitted, splits are equal.
   customSharesLocal?: { userId: string; amount: number }[];
+  /** New or replacement proof-of-payment photo. */
+  imageFile?: File | null;
+  /** Clear any existing attached photo (ignored when imageFile is set). */
+  removeImage?: boolean;
 }
 
 export interface NewReceiptInput {
@@ -1021,6 +1025,7 @@ export default function TripDataProvider({
       paidById,
       participantIds,
       customSharesLocal,
+      imageFile,
     }) => {
       const baseGbp = toBase(amount, currency, currencies);
       const parts = participantIds.length ? participantIds : [paidById];
@@ -1028,6 +1033,9 @@ export default function TripDataProvider({
 
       if (demoMode) {
         const expId = genId();
+        const image_url = imageFile
+          ? await fileToDataUrl(await compressToWebp(imageFile))
+          : null;
         setExpenses((prev) => [
           ...prev,
           {
@@ -1040,6 +1048,7 @@ export default function TripDataProvider({
             local_currency: currency,
             base_amount_gbp: baseGbp,
             paid_by_id: paidById,
+            image_url,
           },
         ]);
         setSplits((prev) => [
@@ -1069,6 +1078,23 @@ export default function TripDataProvider({
         .select()
         .single();
       if (error || !exp) throw error ?? new Error('Could not save expense');
+
+      let image_url: string | null = null;
+      if (imageFile) {
+        const compressed = await compressToWebp(imageFile);
+        const path = `expenses/${(exp as Expense).id}.webp`;
+        const up = await supabase!.storage
+          .from(SUPABASE_BUCKET)
+          .upload(path, compressed, { upsert: true, contentType: 'image/webp' });
+        if (up.error) throw up.error;
+        image_url = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path).data.publicUrl;
+        const { error: imgErr } = await supabase!
+          .from('expenses')
+          .update({ image_url })
+          .eq('id', (exp as Expense).id);
+        if (imgErr) throw imgErr;
+      }
+
       await supabase!.from('expense_splits').insert(
         parts.map((uid, i) => ({
           trip_id: activeTripIdRef.current!,
@@ -1106,7 +1132,17 @@ export default function TripDataProvider({
   const updateExpense = useCallback<TripDataValue['updateExpense']>(
     async (
       id,
-      { label, dayNumber, amount, currency, paidById, participantIds, customSharesLocal }
+      {
+        label,
+        dayNumber,
+        amount,
+        currency,
+        paidById,
+        participantIds,
+        customSharesLocal,
+        imageFile,
+        removeImage,
+      }
     ) => {
       const existing = expenses.find((e) => e.id === id);
       if (!existing) return;
@@ -1114,6 +1150,26 @@ export default function TripDataProvider({
       const baseGbp = toBase(amount, currency, currencies);
       const parts = participantIds.length ? participantIds : [paidById];
       const shares = resolveSharesGbp(parts, amount, baseGbp, customSharesLocal);
+
+      let nextImageUrl = existing.image_url ?? null;
+      if (imageFile) {
+        if (demoMode) {
+          nextImageUrl = await fileToDataUrl(await compressToWebp(imageFile));
+        } else {
+          const compressed = await compressToWebp(imageFile);
+          const path = `expenses/${id}.webp`;
+          const up = await supabase!.storage
+            .from(SUPABASE_BUCKET)
+            .upload(path, compressed, { upsert: true, contentType: 'image/webp' });
+          if (up.error) throw up.error;
+          nextImageUrl = supabase!.storage
+            .from(SUPABASE_BUCKET)
+            .getPublicUrl(path).data.publicUrl;
+        }
+      } else if (removeImage) {
+        nextImageUrl = null;
+      }
+
       const patch = {
         label,
         day_number: dayNumber,
@@ -1121,6 +1177,7 @@ export default function TripDataProvider({
         local_currency: currency,
         base_amount_gbp: baseGbp,
         paid_by_id: paidById,
+        ...(isManual ? { image_url: nextImageUrl } : {}),
       };
 
       if (demoMode) {

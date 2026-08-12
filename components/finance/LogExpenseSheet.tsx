@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { List, X } from 'lucide-react';
+import { Camera, List, X } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
+import ReceiptViewer from './ReceiptViewer';
 import { useTripData } from '../TripDataProvider';
+import { compressToWebp, fileToDataUrl } from '@/lib/image';
 import {
   toBase,
   formatBaseCurrency,
@@ -170,6 +172,15 @@ export default function LogExpenseSheet({
   const [busy, setBusy] = useState(false);
   const [pickingActivity, setPickingActivity] = useState(false);
   const [editingCustomSplit, setEditingCustomSplit] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(
+    () =>
+      (!isReceipt ? expense?.image_url : null) ?? saved?.preview ?? null
+  );
+  const [removedImage, setRemovedImage] = useState(false);
+  const [viewingImage, setViewingImage] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const draftRef = useRef<ExpenseCreateDraft | null>(null);
   if (creating) {
@@ -183,6 +194,7 @@ export default function LogExpenseSheet({
       paidById,
       participants,
       customShares,
+      preview,
     };
   }
 
@@ -199,6 +211,7 @@ export default function LogExpenseSheet({
     paidById,
     participants,
     customShares,
+    preview,
   ]);
 
   useEffect(() => {
@@ -208,10 +221,34 @@ export default function LogExpenseSheet({
     });
   }, [creating, tripKey]);
 
+  // Rebuild a File from a persisted preview so save still attaches after resume.
+  useEffect(() => {
+    if (!creating || file || !preview?.startsWith('data:')) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(preview);
+        const blob = await res.blob();
+        if (cancelled) return;
+        setFile(
+          new File([blob], 'expense.webp', {
+            type: blob.type || 'image/webp',
+          })
+        );
+      } catch {
+        /* ignore — user can re-pick */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creating, preview]);
+
   const dismiss = () => {
     if (creating) {
       if (
-        isExpenseDraftPristine({ label, amountStr, customShares }) ||
+        isExpenseDraftPristine({ label, amountStr, customShares, preview }) ||
         !draftRef.current
       ) {
         clearExpenseDraft(tripKey);
@@ -283,6 +320,24 @@ export default function LogExpenseSheet({
     setEditingCustomSplit(false);
   };
 
+  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setError(null);
+    const compressed = await compressToWebp(f);
+    setFile(compressed);
+    setPreview(await fileToDataUrl(compressed));
+    setRemovedImage(false);
+  };
+
+  const clearPhoto = () => {
+    setFile(null);
+    setPreview(null);
+    setRemovedImage(true);
+    setViewingImage(false);
+  };
+
   const canSave =
     label.trim() &&
     amount > 0 &&
@@ -294,6 +349,7 @@ export default function LogExpenseSheet({
   const save = async () => {
     if (!canSave) return;
     setBusy(true);
+    setError(null);
     try {
       const input = {
         label: label.trim(),
@@ -309,6 +365,8 @@ export default function LogExpenseSheet({
                 amount: customShares[userId] ?? 0,
               }))
             : undefined,
+        imageFile: isReceipt ? undefined : file,
+        removeImage: isReceipt ? undefined : removedImage && !file,
       };
       if (expense) await updateExpense(expense.id, input);
       else {
@@ -316,6 +374,8 @@ export default function LogExpenseSheet({
         clearExpenseDraft(tripKey);
       }
       onClose();
+    } catch (err) {
+      setError((err as Error).message || 'Could not save expense');
     } finally {
       setBusy(false);
     }
@@ -512,15 +572,87 @@ export default function LogExpenseSheet({
           </>
         )}
 
+        {!isReceipt && (
+          <div className="mb-4">
+            <div className="mb-1.5 text-xs uppercase tracking-wide text-muted">
+              Payment photo (optional)
+            </div>
+            {preview ? (
+              <div className="overflow-hidden rounded-2xl border border-black/10 bg-cream-card">
+                <button
+                  type="button"
+                  onClick={() => setViewingImage(true)}
+                  className="block w-full"
+                  aria-label="View payment photo"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={preview}
+                    alt="Payment"
+                    className="max-h-40 w-full object-contain"
+                  />
+                </button>
+                <div className="flex border-t border-black/5">
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="flex-1 py-2 text-center text-[12px] text-muted"
+                  >
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearPhoto}
+                    className="flex-1 border-l border-black/5 py-2 text-center text-[12px] text-saigon"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-black/15 bg-cream-card py-5 text-muted"
+              >
+                <Camera size={22} />
+                <span className="text-[13px]">Attach a photo of the payment</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {error && (
+          <p className="mb-3 rounded-xl bg-saigon/10 px-3 py-2 text-[13px] text-saigon">
+            {error}
+          </p>
+        )}
+
         <button
           type="button"
           onClick={save}
           disabled={!canSave}
           className="w-full rounded-xl bg-ink py-3 text-[15px] font-medium text-white disabled:opacity-40"
         >
-          {expense ? 'Save changes' : 'Save expense'}
+          {busy ? 'Saving…' : expense ? 'Save changes' : 'Save expense'}
         </button>
+
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={onPickPhoto}
+          className="hidden"
+        />
       </Sheet>
+
+      {viewingImage && preview && (
+        <ReceiptViewer
+          src={preview}
+          alt={label.trim() || 'Payment photo'}
+          onClose={() => setViewingImage(false)}
+        />
+      )}
 
       {pickingActivity && (
         <ActivityPickerSheet

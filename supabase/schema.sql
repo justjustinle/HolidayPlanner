@@ -63,6 +63,7 @@ create table if not exists expenses (
   local_currency varchar(3) not null,  -- 'VND', 'THB', 'GBP'
   base_amount_gbp numeric(12, 2) not null, -- Computed via active exchange rate
   paid_by_id uuid references profiles(id) on delete set null not null,
+  image_url text,                      -- optional proof-of-payment photo (manual expenses)
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

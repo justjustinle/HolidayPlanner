@@ -18,8 +18,9 @@ import type { Expense } from '@/lib/types';
 // receipt opens the receipt editor; tapping a manual expense opens the log
 // sheet. Claim amounts include proportional tax/service when the receipt
 // total exceeds the item subtotal — so a £100 bill with £93 of items shares
-// the £7 gap across whoever claims each line. Receipt photos (when stored)
-// show as a thumbnail — tap the thumb to view full-screen without editing.
+// the £7 gap across whoever claims each line. Attached photos (receipt scans
+// or manual payment proof) show as a thumbnail — tap the thumb to view
+// full-screen without editing.
 export default function ExpenseCard({ expense }: { expense: Expense }) {
   const { profiles, me, trip, splits, receipts, receiptItems, tripDays, currencies, setItemClaim, deleteExpense } =
     useTripData();
@@ -35,7 +36,9 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   const items = receipt ? receiptItems.filter((i) => i.receipt_id === receipt.id) : [];
   const mySplitters = splits.filter((s) => s.expense_id === expense.id);
   const isReceipt = expense.kind === 'receipt';
-  const receiptImageUrl = receipt?.image_url ?? null;
+  const receiptImageUrl = isReceipt
+    ? receipt?.image_url ?? null
+    : expense.image_url ?? null;
 
   // Line amounts scaled so tax/service on the receipt total is included.
   const { multiplier, taxGapLocal } = useMemo(() => {
@@ -73,7 +76,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
                 e.stopPropagation();
                 setViewingReceipt(true);
               }}
-              aria-label="View receipt photo"
+              aria-label={isReceipt ? 'View receipt photo' : 'View payment photo'}
               className="h-11 w-11 overflow-hidden rounded-lg border border-black/10 bg-black/[.04] shadow-card"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -96,6 +96,8 @@ export interface Expense {
   local_currency: CurrencyCode;
   base_amount_gbp: number;
   paid_by_id: string;
+  /** Optional proof-of-payment photo (manual expenses). Receipt scans use Receipt.image_url. */
+  image_url?: string | null;
   created_at?: string;
 }
 
