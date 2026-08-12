@@ -56,7 +56,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 
 **lib/**
 - `trip.ts` — `TRIP_DAYS` (13 hard-coded days: city + accent hex + `dateLabel` with ordinal suffixes), `TRIP_TITLE`, `tripDateRangeLabel()` → **"28th Aug – 9th Sep"** (keeps st/nd/rd/th), `dayByNumber`, `defaultDayNumber`, `landingDayNumber` (today match → last stored day → Day 1; key `travel_itinerary_day`), `CURRENCY_SYMBOL`
-- `settle.ts` — `computeNetBalances` (net = paid − owed; manual splits + receipt claims), `minimizeTransfers` (greedy "who pays whom"), `totalSpend` (excludes settlements), `listSettlements`
+- `settle.ts` — `computeNetBalances` (net = paid − owed; manual splits + receipt claims), `minimizeTransfers` (greedy "who pays whom"), `totalSpend` (excludes settlements), `computeIncurredByUser` (per-person share of group spend), `listSettlements`
 - `currency.ts` — `formatGbp, toGbp, round2, splitEqually`
 - `types.ts` — domain types; `ExpenseKind`, `SETTLEMENT_LABEL`, `Transfer`, `SettledPayment`
 - `supabase.ts` — client + `isSupabaseConfigured` + `SUPABASE_BUCKET`

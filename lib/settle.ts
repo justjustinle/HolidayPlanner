@@ -138,6 +138,55 @@ export function totalSpend(expenses: Expense[]): number {
   );
 }
 
+/**
+ * Total expense each person incurred (their share / amount owed) across all
+ * group spend — regardless of who paid. Settlements are excluded. Manual
+ * expenses use expense_splits; receipts use claimed line shares (unclaimed
+ * lines fall back to the payer). Sums should match `totalSpend`.
+ */
+export function computeIncurredByUser(
+  profiles: Profile[],
+  expenses: Expense[],
+  splits: ExpenseSplit[],
+  receipts: Receipt[] = [],
+  receiptItems: ReceiptItem[] = []
+): Map<string, number> {
+  const incurred = new Map<string, number>();
+  for (const p of profiles) incurred.set(p.id, 0);
+  const add = (id: string, delta: number) => {
+    if (incurred.has(id)) incurred.set(id, round2((incurred.get(id) ?? 0) + delta));
+  };
+
+  const receiptExpenseIds = new Set(receipts.map((r) => r.expense_id));
+
+  for (const e of expenses) {
+    if (e.kind === 'settlement') continue;
+    if (e.kind === 'receipt' || receiptExpenseIds.has(e.id)) continue;
+    for (const s of splits) {
+      if (s.expense_id === e.id) add(s.user_id, s.amount_owed);
+    }
+  }
+
+  for (const r of receipts) {
+    const expense = expenses.find((e) => e.id === r.expense_id);
+    if (!expense || expense.kind === 'settlement') continue;
+    const items = receiptItems.filter((i) => i.receipt_id === r.id);
+    const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
+    if (itemSubtotal <= 0) {
+      add(expense.paid_by_id, expense.base_amount_gbp);
+      continue;
+    }
+    const shares = receiptLineSharesGbp(items, expense.base_amount_gbp);
+    for (let i = 0; i < items.length; i++) {
+      const ower = items[i].claimed_by_id ?? expense.paid_by_id;
+      add(ower, shares[i]);
+    }
+  }
+
+  for (const [id, v] of incurred) incurred.set(id, round2(v));
+  return incurred;
+}
+
 // Reconstruct the log of logged settlements (newest first) from 'settlement'
 // expense rows. paid_by_id is the payer/debtor; the single split's user_id is
 // the receiver. Rows missing their split are skipped defensively.

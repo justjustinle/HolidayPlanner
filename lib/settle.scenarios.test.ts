@@ -24,6 +24,7 @@ import {
   addReceipt,
   balancesObject,
   emptyLedger,
+  incurred,
   netSum,
   nets,
   resetIds,
@@ -87,6 +88,18 @@ describe('Scenario 1 — Equal 5-way split', () => {
     assert.equal(t.length, 4);
     assert.ok(t.every((x) => x.toId === ALEX && x.amount === 20));
     assert.equal(spend(ledger), 100);
+
+    // Incurred = each person's share of the bill, regardless of who paid.
+    const byUser = incurred(ledger);
+    assert.equal(byUser.get(ALEX), 20);
+    assert.equal(byUser.get(SAM), 20);
+    assert.equal(byUser.get(JO), 20);
+    assert.equal(byUser.get(PRIYA), 20);
+    assert.equal(byUser.get(TOM), 20);
+    const incurredSum = round2(
+      [...byUser.values()].reduce((s, n) => s + n, 0)
+    );
+    assert.equal(incurredSum, spend(ledger));
   });
 });
 
@@ -265,6 +278,17 @@ describe('Scenario 5 — Receipt with every item claimed', () => {
     assertZeroSum(ledger, 'scenario 5');
     // Receipts contribute to spend
     assert.equal(spend(ledger), 12.56);
+
+    const byUser = incurred(ledger);
+    assert.equal(byUser.get(ALEX), round2((240 / 560) * 12.56));
+    assert.equal(byUser.get(JO), round2((120 / 560) * 12.56));
+    assert.equal(byUser.get(PRIYA), round2((200 / 560) * 12.56));
+    assert.equal(byUser.get(SAM), 0); // paid, claimed nothing
+    assert.equal(byUser.get(TOM), 0);
+    assert.equal(
+      round2([...byUser.values()].reduce((s, n) => s + n, 0)),
+      spend(ledger)
+    );
   });
 });
 

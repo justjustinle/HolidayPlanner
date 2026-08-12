@@ -21,7 +21,13 @@ import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { formatBaseCurrency, round2 } from '@/lib/currency';
 import { downloadExpensesCsv } from '@/lib/exportExpensesCsv';
-import { computeNetBalances, listSettlements, minimizeTransfers, totalSpend } from '@/lib/settle';
+import {
+  computeIncurredByUser,
+  computeNetBalances,
+  listSettlements,
+  minimizeTransfers,
+  totalSpend,
+} from '@/lib/settle';
 import { defaultDayNumber } from '@/lib/trip';
 import { formatDayMonth } from '@/lib/time';
 import {
@@ -51,6 +57,7 @@ export default function FinanceTab() {
   const [listOpen, setListOpen] = useState(false);
   const [settledOpen, setSettledOpen] = useState(false);
   const [balancesOpen, setBalancesOpen] = useState(false);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   // Outstanding transfer awaiting settle confirmation; settlement awaiting undo.
   const [settling, setSettling] = useState<Transfer | null>(null);
   const [undoing, setUndoing] = useState<SettledPayment | null>(null);
@@ -96,14 +103,33 @@ export default function FinanceTab() {
   // Everything is trip-wide: expenses persist across all days of the trip.
   // Settlement rows flow through net balances as ordinary expense+split, so
   // outstanding transfers already reflect payments that have been logged.
-  const { net, transfers, total } = useMemo(() => {
+  const { net, transfers, total, incurredByUser } = useMemo(() => {
     const net = computeNetBalances(profiles, expenses, splits, receipts, receiptItems);
     return {
       net,
       transfers: minimizeTransfers(profiles, net),
       total: totalSpend(expenses),
+      incurredByUser: computeIncurredByUser(
+        profiles,
+        expenses,
+        splits,
+        receipts,
+        receiptItems
+      ),
     };
   }, [profiles, expenses, splits, receipts, receiptItems]);
+
+  // Per-person share of group spend (highest first) for the total breakdown.
+  const spendBreakdown = useMemo(
+    () =>
+      profiles
+        .map((p) => ({
+          profile: p,
+          amount: round2(incurredByUser.get(p.id) ?? 0),
+        }))
+        .sort((a, b) => b.amount - a.amount),
+    [profiles, incurredByUser]
+  );
 
   // The historical log of logged settlements (newest first).
   const settledPayments = useMemo(
@@ -385,6 +411,51 @@ export default function FinanceTab() {
           <div className="mt-1 font-serif text-[30px] font-semibold leading-tight">
             {formatBase(total)}
           </div>
+
+          {profiles.length > 0 && (
+            <div className="mt-3 border-t border-cream/10 pt-3">
+              <button
+                type="button"
+                onClick={() => setBreakdownOpen((o) => !o)}
+                aria-expanded={breakdownOpen}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <span className="text-[12px] font-semibold uppercase tracking-wide text-cream/60">
+                  View breakdown
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`text-cream/60 transition-transform ${
+                    breakdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {breakdownOpen && (
+                <div className="mt-2.5 space-y-2">
+                  {spendBreakdown.map(({ profile: p, amount }) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between gap-3 text-[14px]"
+                    >
+                      <span className="flex min-w-0 items-center gap-2 text-cream">
+                        <Avatar name={p.name} src={p.avatar_url} size={24} />
+                        <span className="truncate">
+                          {p.name}
+                          {me?.id === p.id && (
+                            <span className="text-cream/50"> (you)</span>
+                          )}
+                        </span>
+                      </span>
+                      <span className="flex-none font-medium text-cream">
+                        {formatBase(amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import {
   listSettlements,
   minimizeTransfers,
   totalSpend,
+  computeIncurredByUser,
 } from './settle';
 import type {
   CurrencyCode,
@@ -221,6 +222,16 @@ export function transfers(ledger: Ledger): Transfer[] {
 
 export function spend(ledger: Ledger): number {
   return totalSpend(ledger.expenses);
+}
+
+export function incurred(ledger: Ledger): Map<string, number> {
+  return computeIncurredByUser(
+    USERS,
+    ledger.expenses,
+    ledger.splits,
+    ledger.receipts,
+    ledger.receiptItems
+  );
 }
 
 export function settlements(ledger: Ledger): SettledPayment[] {
