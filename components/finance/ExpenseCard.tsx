@@ -6,6 +6,7 @@ import Avatar from '../ui/Avatar';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import LogExpenseSheet from './LogExpenseSheet';
 import UploadReceiptSheet from './UploadReceiptSheet';
+import ReceiptViewer from './ReceiptViewer';
 import { useTripData } from '../TripDataProvider';
 import { formatBaseCurrency, round2, symbolFor } from '@/lib/currency';
 import { receiptTaxMultiplier } from '@/lib/settle';
@@ -17,12 +18,14 @@ import type { Expense } from '@/lib/types';
 // receipt opens the receipt editor; tapping a manual expense opens the log
 // sheet. Claim amounts include proportional tax/service when the receipt
 // total exceeds the item subtotal — so a £100 bill with £93 of items shares
-// the £7 gap across whoever claims each line.
+// the £7 gap across whoever claims each line. Receipt photos (when stored)
+// show as a thumbnail — tap the thumb to view full-screen without editing.
 export default function ExpenseCard({ expense }: { expense: Expense }) {
   const { profiles, me, trip, splits, receipts, receiptItems, tripDays, currencies, setItemClaim, deleteExpense } =
     useTripData();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [viewingReceipt, setViewingReceipt] = useState(false);
 
   const profileOf = (id: string | null) => profiles.find((p) => p.id === id);
   const payer = profileOf(expense.paid_by_id);
@@ -32,6 +35,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   const items = receipt ? receiptItems.filter((i) => i.receipt_id === receipt.id) : [];
   const mySplitters = splits.filter((s) => s.expense_id === expense.id);
   const isReceipt = expense.kind === 'receipt';
+  const receiptImageUrl = receipt?.image_url ?? null;
 
   // Line amounts scaled so tax/service on the receipt total is included.
   const { multiplier, taxGapLocal } = useMemo(() => {
@@ -50,7 +54,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
       onClick={() => setEditing(true)}
       className="cursor-pointer rounded-2xl border border-black/5 bg-cream-card p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-[15px] font-medium text-ink">
             {expense.label ?? 'Expense'}
           </div>
@@ -62,6 +66,24 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
           </div>
         </div>
         <div className="flex flex-none items-center gap-2">
+          {receiptImageUrl && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewingReceipt(true);
+              }}
+              aria-label="View receipt photo"
+              className="h-11 w-11 overflow-hidden rounded-lg border border-black/10 bg-black/[.04] shadow-card"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={receiptImageUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </button>
+          )}
           <div className="text-right">
             <div className="text-[15px] font-semibold text-ink">
               {symbolFor(expense.local_currency, currencies)}
@@ -104,7 +126,7 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
               {taxGapLocal.toLocaleString()} tax/service — split proportionally on claim
             </p>
           )}
-          {items.map((item, idx) => {
+          {items.map((item) => {
             const claimer = profileOf(item.claimed_by_id);
             const isMine = item.claimed_by_id != null && item.claimed_by_id === me?.id;
             const canClaim = me != null && item.claimed_by_id == null;
@@ -190,6 +212,16 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
               onClose={() => setEditing(false)}
             />
           )}
+        </div>
+      )}
+
+      {viewingReceipt && receiptImageUrl && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ReceiptViewer
+            src={receiptImageUrl}
+            alt={expense.label ?? 'Receipt'}
+            onClose={() => setViewingReceipt(false)}
+          />
         </div>
       )}
     </div>

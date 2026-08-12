@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import Sheet from '../ui/Sheet';
 import Avatar from '../ui/Avatar';
+import ReceiptViewer from './ReceiptViewer';
 import { useTripData } from '../TripDataProvider';
 import { compressToWebp, dataUrlToBase64, fileToDataUrl } from '@/lib/image';
 import { toBase, formatBaseCurrency, round2, symbolFor } from '@/lib/currency';
@@ -113,6 +114,7 @@ export default function UploadReceiptSheet({
     return saved?.items ?? [];
   });
   const [busy, setBusy] = useState(false);
+  const [viewingImage, setViewingImage] = useState(false);
 
   const draftRef = useRef<ReceiptCreateDraft | null>(null);
   if (creating) {
@@ -290,6 +292,7 @@ export default function UploadReceiptSheet({
       setTotalStr(String(itemSubtotal));
     }
     setBusy(true);
+    setError(null);
     try {
       const payload = {
         merchant,
@@ -313,6 +316,8 @@ export default function UploadReceiptSheet({
         clearReceiptDraft(tripKey);
       }
       onClose();
+    } catch (err) {
+      setError((err as Error).message || 'Could not save receipt');
     } finally {
       setBusy(false);
     }
@@ -370,13 +375,37 @@ export default function UploadReceiptSheet({
       {/* stage 2: review + save */}
       {scanned && (
         <>
-          {isEditing && preview && (
+          {preview ? (
+            <div className="mb-3 overflow-hidden rounded-2xl border border-black/10 bg-cream-card">
+              <button
+                type="button"
+                onClick={() => setViewingImage(true)}
+                className="block w-full"
+                aria-label="View receipt photo"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={preview}
+                  alt="Receipt"
+                  className="max-h-40 w-full object-contain"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="w-full border-t border-black/5 py-2 text-center text-[12px] text-muted"
+              >
+                Replace photo
+              </button>
+            </div>
+          ) : (
             <button
+              type="button"
               onClick={() => inputRef.current?.click()}
-              className="mb-3 overflow-hidden rounded-2xl border border-black/10 bg-cream-card"
+              className="mb-3 flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-black/15 bg-cream-card py-5 text-muted"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Receipt" className="max-h-40 w-full object-contain" />
+              <Camera size={22} />
+              <span className="text-[13px]">Attach a receipt photo</span>
             </button>
           )}
 
@@ -534,6 +563,12 @@ export default function UploadReceiptSheet({
             shared proportionally — claiming an item includes its share of tax & service.
           </p>
 
+          {error && (
+            <p className="mb-3 rounded-xl bg-saigon/10 px-3 py-2 text-[13px] text-saigon">
+              {error}
+            </p>
+          )}
+
           <button
             onClick={save}
             disabled={!canSave}
@@ -551,6 +586,14 @@ export default function UploadReceiptSheet({
         onChange={onPick}
         className="hidden"
       />
+
+      {viewingImage && preview && (
+        <ReceiptViewer
+          src={preview}
+          alt={merchant.trim() || 'Receipt'}
+          onClose={() => setViewingImage(false)}
+        />
+      )}
     </Sheet>
   );
 }

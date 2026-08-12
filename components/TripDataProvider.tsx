@@ -1234,9 +1234,8 @@ export default function TripDataProvider({
         const up = await supabase!.storage
           .from(SUPABASE_BUCKET)
           .upload(path, compressed, { upsert: true, contentType: 'image/webp' });
-        if (!up.error) {
-          image_url = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path).data.publicUrl;
-        }
+        if (up.error) throw up.error;
+        image_url = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path).data.publicUrl;
       }
 
       const { data: receipt, error: rErr } = await supabase!
@@ -1346,9 +1345,8 @@ export default function TripDataProvider({
         const up = await supabase!.storage
           .from(SUPABASE_BUCKET)
           .upload(path, compressed, { upsert: true, contentType: 'image/webp' });
-        if (!up.error) {
-          image_url = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path).data.publicUrl;
-        }
+        if (up.error) throw up.error;
+        image_url = supabase!.storage.from(SUPABASE_BUCKET).getPublicUrl(path).data.publicUrl;
       }
 
       await supabase!
