@@ -571,6 +571,10 @@ export default function CreateTripSheet({
           className={`${inputClass} mb-3 max-w-32`}
         />
 
+        <div className="mb-1 text-xs uppercase tracking-wide text-muted">
+          Destination currencies
+        </div>
+
         {destinationCurrencies.length > 0 && (
           <div className="mb-2 space-y-2">
             {destinationCurrencies.map((currency, index) => (
