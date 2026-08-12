@@ -284,7 +284,7 @@ export default function FinanceTab() {
                   <div className="flex items-center gap-2 text-[14px]">
                     <Avatar name={t.fromName} src={avatarFor(t.fromId)} size={26} />
                     <span className="text-ink">{t.fromName}</span>
-                    <ArrowRight size={15} className="text-muted" />
+                    <span className="text-muted">pays</span>
                     <Avatar name={t.toName} src={avatarFor(t.toId)} size={26} />
                     <span className="text-ink">{t.toName}</span>
                   </div>
