@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "test:settle": "tsx --test lib/settle.scenarios.test.ts",
-    "test:notifications": "tsx --test lib/notifications/client.test.ts"
+    "test:notifications": "tsx --test lib/notifications/client.test.ts",
+    "test:wrapped": "tsx --test lib/wrapped.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

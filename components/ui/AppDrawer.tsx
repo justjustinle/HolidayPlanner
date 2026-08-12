@@ -12,6 +12,7 @@ import {
   Map,
   Pencil,
   Settings2,
+  Sparkles,
 } from 'lucide-react';
 import Avatar from './Avatar';
 import YarnLogo from '../brand/YarnLogo';
@@ -38,7 +39,7 @@ export default function AppDrawer({
   onOpenEditName: () => void;
   onOpenEditTrip: () => void;
 }) {
-  const { me, signOut, setMyPhoto, setActiveTrip } = useTripData();
+  const { me, signOut, setMyPhoto, setActiveTrip, activeTripId } = useTripData();
   const { authEnabled, signOutAccount } = useAuth();
   const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'error'>(
     'idle'
@@ -89,6 +90,12 @@ export default function AppDrawer({
     e.target.value = '';
     if (!file) return;
     await setMyPhoto(file);
+  };
+
+  const openWrapped = () => {
+    if (!activeTripId) return;
+    onClose();
+    window.open(`/trip/${activeTripId}/wrapped`, '_blank', 'noopener,noreferrer');
   };
 
   const itemCls =
@@ -161,6 +168,14 @@ export default function AppDrawer({
               </button>
             </>
           )}
+          <button
+            type="button"
+            onClick={openWrapped}
+            disabled={!activeTripId}
+            className={itemCls}
+          >
+            <Sparkles size={18} className="text-muted" /> Trip Wrapped
+          </button>
           <button
             type="button"
             onClick={() => {
