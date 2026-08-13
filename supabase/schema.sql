@@ -98,6 +98,19 @@ create table if not exists receipt_items (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- 8b. CHECKLIST ITEMS — trip-scoped prep list (not day/activity linked).
+create table if not exists checklist_items (
+  id uuid default uuid_generate_v4() primary key,
+  trip_id uuid references trips(id) on delete cascade not null,
+  label text not null,
+  is_done boolean not null default false,
+  created_by_id uuid references profiles(id) on delete set null,
+  completed_by_id uuid references profiles(id) on delete set null,
+  completed_at timestamp with time zone,
+  sort_order integer not null default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- 9. TRIP STATS — one row per person / category. Stats are cumulative across
 -- the whole trip; day_number is a legacy slot the app always sets to 1.
 create table if not exists stat_entries (
@@ -151,6 +164,7 @@ create index if not exists expenses_day_idx on expenses (day_number);
 create index if not exists expense_splits_expense_idx on expense_splits (expense_id);
 create index if not exists receipts_expense_idx on receipts (expense_id);
 create index if not exists receipt_items_receipt_idx on receipt_items (receipt_id);
+create index if not exists checklist_items_trip_idx on checklist_items (trip_id, sort_order, created_at);
 create index if not exists stat_entries_user_idx on stat_entries (user_id);
 create index if not exists activity_events_trip_created_idx on activity_events (trip_id, created_at);
 create index if not exists push_subscriptions_profile_idx on push_subscriptions (profile_id);
@@ -163,6 +177,7 @@ alter table expenses enable row level security;
 alter table expense_splits enable row level security;
 alter table receipts enable row level security;
 alter table receipt_items enable row level security;
+alter table checklist_items enable row level security;
 alter table trip_settings enable row level security;
 alter table stat_entries enable row level security;
 alter table activity_events enable row level security;
@@ -178,6 +193,7 @@ create policy "Allow public access" on expenses for all using (true) with check 
 create policy "Allow public access" on expense_splits for all using (true) with check (true);
 create policy "Allow public access" on receipts for all using (true) with check (true);
 create policy "Allow public access" on receipt_items for all using (true) with check (true);
+create policy "Allow public access" on checklist_items for all using (true) with check (true);
 create policy "Allow public access" on trip_settings for all using (true) with check (true);
 create policy "Allow public access" on stat_entries for all using (true) with check (true);
 create policy "Allow public access" on activity_events for all using (true) with check (true);
@@ -191,6 +207,7 @@ alter publication supabase_realtime add table expenses;
 alter publication supabase_realtime add table expense_splits;
 alter publication supabase_realtime add table receipts;
 alter publication supabase_realtime add table receipt_items;
+alter publication supabase_realtime add table checklist_items;
 alter publication supabase_realtime add table trip_settings;
 alter publication supabase_realtime add table stat_entries;
 

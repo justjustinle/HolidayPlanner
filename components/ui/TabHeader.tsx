@@ -8,6 +8,7 @@ import WhoIsGoingSheet from './WhoIsGoingSheet';
 import InviteFriendsSheet from './InviteFriendsSheet';
 import EditNameSheet from './EditNameSheet';
 import CreateTripSheet from '../trips/CreateTripSheet';
+import ChecklistSheet, { ChecklistStrip } from '../checklist/ChecklistSheet';
 import YarnLogo from '../brand/YarnLogo';
 import { CountryFlag } from './Flag';
 import {
@@ -65,6 +66,7 @@ export default function TabHeader(props: TabHeaderProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [editTripOpen, setEditTripOpen] = useState(false);
+  const [checklistOpen, setChecklistOpen] = useState(false);
   const { trip, tripDays } = useTripData();
   const dates = rangeLabelFromDays(tripDays);
   const selectedDay = isTrip
@@ -124,6 +126,9 @@ export default function TabHeader(props: TabHeaderProps) {
               </div>
             )}
           </div>
+
+          {/* Trip-level checklist — sits in the header above day pills. */}
+          <ChecklistStrip onOpen={() => setChecklistOpen(true)} />
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3">
@@ -162,6 +167,7 @@ export default function TabHeader(props: TabHeaderProps) {
       {editTripOpen && (
         <CreateTripSheet mode="edit" onClose={() => setEditTripOpen(false)} />
       )}
+      {checklistOpen && <ChecklistSheet onClose={() => setChecklistOpen(false)} />}
     </header>
   );
 }

@@ -133,6 +133,19 @@ export interface ReceiptItem {
   created_at?: string;
 }
 
+/** Trip-scoped prep item (vaccines, passports, …) — not day/activity linked. */
+export interface ChecklistItem {
+  id: string;
+  trip_id?: string;
+  label: string;
+  is_done: boolean;
+  created_by_id: string | null;
+  completed_by_id: string | null;
+  completed_at: string | null;
+  sort_order: number;
+  created_at?: string;
+}
+
 export type StatCategory = 'poop' | 'drink' | 'mosquito' | 'coffee' | 'cards';
 
 // One person's count for one category. Stats are cumulative across the whole

@@ -47,6 +47,7 @@ Source of truth: `supabase/schema.sql`; migrations in `supabase/migration-v2.sql
 - **expense_splits** — `id, expense_id, user_id, amount_owed` (it's **`amount_owed`**, not `amount`)
 - **receipts** — `id, expense_id, merchant, image_url, created_at`
 - **receipt_items** — `id, receipt_id, name, quantity, local_amount, claimed_by_id (null until claimed), created_at`
+- **checklist_items** — trip-scoped prep list (`id, trip_id, label, is_done, created_by_id, completed_by_id, completed_at, sort_order`) — not day/activity linked
 - **stat_entries** — `id, user_id, day_number, category, count` (poop/drink/mosquito/coffee/cards; cumulative, day_number always 1)
 - **activity_events** — `id, trip_id, event_type, actor_id, recipient_id (null=broadcast), payload jsonb, created_at`
 - **push_subscriptions** — `id, profile_id, endpoint (unique), p256dh, auth, created_at` (one per device)

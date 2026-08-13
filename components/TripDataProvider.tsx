@@ -45,6 +45,7 @@ import {
   DEMO_STATS,
 } from '@/lib/demo';
 import type {
+  ChecklistItem,
   CurrencyCode,
   Expense,
   ExpenseSplit,
@@ -183,6 +184,7 @@ interface TripDataValue {
   receipts: Receipt[];
   receiptItems: ReceiptItem[];
   stats: StatEntry[];
+  checklistItems: ChecklistItem[];
 
   ensureProfile: (name: string, photo?: File | null) => Promise<Profile>;
   signInAs: (profile: Profile) => void;
@@ -212,6 +214,11 @@ interface TripDataValue {
   settleUp: (fromId: string, toId: string, amount: number) => Promise<void>;
 
   setStat: (dayNumber: number, category: StatCategory, count: number) => Promise<void>;
+
+  addChecklistItem: (label: string) => Promise<void>;
+  updateChecklistItem: (id: string, label: string) => Promise<void>;
+  setChecklistItemDone: (id: string, done: boolean) => Promise<void>;
+  deleteChecklistItem: (id: string) => Promise<void>;
 }
 
 const TripDataContext = createContext<TripDataValue | null>(null);
@@ -246,6 +253,7 @@ export default function TripDataProvider({
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [receiptItems, setReceiptItems] = useState<ReceiptItem[]>([]);
   const [stats, setStats] = useState<StatEntry[]>([]);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
 
   // Phase 4: the trip currently open. With auth off there is exactly one trip
   // (the built-in), so it is pinned; with auth on it is chosen on the My Trips
@@ -275,6 +283,7 @@ export default function TripDataProvider({
           receipts,
           receiptItems,
           stats,
+          checklistItems,
         })
       );
     } catch {
@@ -283,7 +292,7 @@ export default function TripDataProvider({
   };
   useEffect(() => {
     if (demoMode && ready) persistDemo.current();
-  }, [demoMode, ready, profiles, settings, itinerary, photos, expenses, splits, receipts, receiptItems, stats]);
+  }, [demoMode, ready, profiles, settings, itinerary, photos, expenses, splits, receipts, receiptItems, stats, checklistItems]);
 
   // --- initial load ---------------------------------------------------------
   const refetchAll = useCallback(async () => {
@@ -291,7 +300,7 @@ export default function TripDataProvider({
     const tripId = activeTripIdRef.current;
     // No trip selected yet (auth on, still on My Trips) → nothing to load.
     if (!tripId) return;
-    const [tr, td, tc, p, s, it, ph, ex, sp, rc, ri, st] = await Promise.all([
+    const [tr, td, tc, p, s, it, ph, ex, sp, rc, ri, st, cl] = await Promise.all([
       supabase.from('trips').select('*').eq('id', tripId).maybeSingle(),
       supabase.from('trip_days').select('*').eq('trip_id', tripId).order('day_number'),
       supabase.from('trip_currencies').select('*').eq('trip_id', tripId),
@@ -304,6 +313,12 @@ export default function TripDataProvider({
       supabase.from('receipts').select('*').eq('trip_id', tripId),
       supabase.from('receipt_items').select('*').eq('trip_id', tripId).order('created_at'),
       supabase.from('stat_entries').select('*').eq('trip_id', tripId),
+      supabase
+        .from('checklist_items')
+        .select('*')
+        .eq('trip_id', tripId)
+        .order('sort_order')
+        .order('created_at'),
     ]);
     // Trip metadata (fall back to the built-in identity if the migration that
     // seeds these tables hasn't been applied yet).
@@ -346,6 +361,8 @@ export default function TripDataProvider({
     if (rc.data) setReceipts(rc.data as Receipt[]);
     if (ri.data) setReceiptItems(ri.data as ReceiptItem[]);
     if (st.data) setStats(st.data as StatEntry[]);
+    if (cl.data) setChecklistItems(cl.data as ChecklistItem[]);
+    else if (!cl.error) setChecklistItems([]);
   }, []);
 
   useEffect(() => {
@@ -364,7 +381,18 @@ export default function TripDataProvider({
     }
 
     if (demoMode) {
-      let state = {
+      let state: {
+        profiles: Profile[];
+        settings: TripSettings;
+        itinerary: ItineraryItem[];
+        photos: Photo[];
+        expenses: Expense[];
+        splits: ExpenseSplit[];
+        receipts: Receipt[];
+        receiptItems: ReceiptItem[];
+        stats: StatEntry[];
+        checklistItems?: ChecklistItem[];
+      } = {
         profiles: DEMO_PROFILES,
         settings: DEMO_SETTINGS,
         itinerary: DEMO_ITINERARY,
@@ -374,6 +402,7 @@ export default function TripDataProvider({
         receipts: DEMO_RECEIPTS,
         receiptItems: DEMO_RECEIPT_ITEMS,
         stats: DEMO_STATS,
+        checklistItems: [],
       };
       try {
         const raw = localStorage.getItem(DEMO_KEY);
@@ -391,6 +420,7 @@ export default function TripDataProvider({
       setReceipts(state.receipts);
       setReceiptItems(state.receiptItems);
       setStats(state.stats);
+      setChecklistItems(state.checklistItems ?? []);
       setReady(true);
       return;
     }
@@ -585,6 +615,7 @@ export default function TripDataProvider({
     }
     // Reset the current trip's rows; refetchAll repopulates for the new trip.
     setMe(null);
+    setChecklistItems([]);
     if (tripId) void refetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1583,6 +1614,97 @@ export default function TripDataProvider({
     [demoMode, me]
   );
 
+  // --- checklist (trip-scoped prep items) --------------------------------
+  const addChecklistItem = useCallback<TripDataValue['addChecklistItem']>(
+    async (label) => {
+      const trimmed = label.trim();
+      if (!trimmed) return;
+      const sort_order =
+        checklistItems.reduce((max, i) => Math.max(max, i.sort_order), 0) + 1;
+      if (demoMode) {
+        setChecklistItems((prev) => [
+          ...prev,
+          {
+            id: genId(),
+            trip_id: activeTripIdRef.current ?? undefined,
+            label: trimmed,
+            is_done: false,
+            created_by_id: me?.id ?? null,
+            completed_by_id: null,
+            completed_at: null,
+            sort_order,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+      const { error } = await supabase!.from('checklist_items').insert({
+        trip_id: activeTripIdRef.current!,
+        label: trimmed,
+        created_by_id: me?.id ?? null,
+        sort_order,
+      });
+      if (error) throw error;
+      await refetchAll();
+    },
+    [checklistItems, demoMode, me, refetchAll]
+  );
+
+  const updateChecklistItem = useCallback<TripDataValue['updateChecklistItem']>(
+    async (id, label) => {
+      const trimmed = label.trim();
+      if (!trimmed) return;
+      if (demoMode) {
+        setChecklistItems((prev) =>
+          prev.map((i) => (i.id === id ? { ...i, label: trimmed } : i))
+        );
+        return;
+      }
+      const { error } = await supabase!
+        .from('checklist_items')
+        .update({ label: trimmed })
+        .eq('id', id);
+      if (error) throw error;
+      await refetchAll();
+    },
+    [demoMode, refetchAll]
+  );
+
+  const setChecklistItemDone = useCallback<TripDataValue['setChecklistItemDone']>(
+    async (id, done) => {
+      const completed_by_id = done ? me?.id ?? null : null;
+      const completed_at = done ? new Date().toISOString() : null;
+      // Optimistic so the header progress ticks immediately.
+      setChecklistItems((prev) =>
+        prev.map((i) =>
+          i.id === id
+            ? { ...i, is_done: done, completed_by_id, completed_at }
+            : i
+        )
+      );
+      if (demoMode) return;
+      const { error } = await supabase!
+        .from('checklist_items')
+        .update({ is_done: done, completed_by_id, completed_at })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    [demoMode, me]
+  );
+
+  const deleteChecklistItem = useCallback<TripDataValue['deleteChecklistItem']>(
+    async (id) => {
+      if (demoMode) {
+        setChecklistItems((prev) => prev.filter((i) => i.id !== id));
+        return;
+      }
+      const { error } = await supabase!.from('checklist_items').delete().eq('id', id);
+      if (error) throw error;
+      await refetchAll();
+    },
+    [demoMode, refetchAll]
+  );
+
   const value = useMemo<TripDataValue>(
     () => ({
       ready,
@@ -1609,6 +1731,7 @@ export default function TripDataProvider({
       receipts,
       receiptItems,
       stats,
+      checklistItems,
       ensureProfile,
       signInAs,
       updateMyName,
@@ -1628,6 +1751,10 @@ export default function TripDataProvider({
       deleteExpense,
       settleUp,
       setStat,
+      addChecklistItem,
+      updateChecklistItem,
+      setChecklistItemDone,
+      deleteChecklistItem,
     }),
     [
       ready,
@@ -1654,6 +1781,7 @@ export default function TripDataProvider({
       receipts,
       receiptItems,
       stats,
+      checklistItems,
       ensureProfile,
       signInAs,
       updateMyName,
@@ -1673,6 +1801,10 @@ export default function TripDataProvider({
       deleteExpense,
       settleUp,
       setStat,
+      addChecklistItem,
+      updateChecklistItem,
+      setChecklistItemDone,
+      deleteChecklistItem,
     ]
   );
 
