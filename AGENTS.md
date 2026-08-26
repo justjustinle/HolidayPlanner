@@ -6,6 +6,40 @@ day pill = white + city accent outline; unselected = page bg + thin black outlin
 
 ---
 
+## Working norms
+
+Behavioral defaults for work in this repo.
+
+### Surface uncertainty before coding
+
+- State assumptions explicitly when the task is ambiguous; ask rather than pick silently.
+- When multiple reasonable interpretations exist, present them and let the user choose.
+- If a simpler approach exists than what was asked for, say so before writing the code.
+
+### Surgical scope
+
+Every changed line should trace to the request.
+
+- Don't reformat, rename, or "improve" code the task didn't touch.
+- Remove imports, variables, or functions that your edits orphaned; leave pre-existing dead code alone unless asked.
+
+### Verify against explicit criteria
+
+Reframe vague work as something checkable before starting:
+
+- "Add validation" → write tests for invalid inputs, then make them pass.
+- "Fix the bug" → write a reproducing test, then make it pass.
+- "Refactor X" → confirm tests pass before and after.
+
+For multi-step work, state a brief plan up front pairing each step with its verification:
+
+```
+1. <change> → verify: <check>
+2. <change> → verify: <check>
+```
+
+---
+
 ## 1. What the app is
 
 A collaborative travel PWA for one group's **Thailand & Vietnam trip (28 Aug – 9 Sep 2026)**.
