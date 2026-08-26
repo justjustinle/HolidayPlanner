@@ -9,7 +9,12 @@ import UploadReceiptSheet from './UploadReceiptSheet';
 import ReceiptViewer from './ReceiptViewer';
 import { useTripData } from '../TripDataProvider';
 import { formatBaseCurrency, round2, symbolFor } from '@/lib/currency';
-import { isUpcomingPending, receiptTaxMultiplier } from '@/lib/settle';
+import {
+  amountIncurredOnExpense,
+  isUpcomingPending,
+  localShareFromBase,
+  receiptTaxMultiplier,
+} from '@/lib/settle';
 import { dayByNumber, parseLocalDate } from '@/lib/trip';
 import type { Expense } from '@/lib/types';
 
@@ -22,8 +27,9 @@ function formatPaymentDate(isoDate: string): string {
   });
 }
 
-// One expense row in the Expenses tab. Manual expenses show who's splitting;
-// receipt expenses list their line items with tap-to-claim chips. Tapping a
+// One expense row in the Expenses tab. Each card shows the viewer's personal
+// share ("your share") so it's obvious how much that expense cost them.
+// Receipt expenses also list line items with tap-to-claim chips. Tapping a
 // receipt opens the receipt editor; tapping a manual expense opens the log
 // sheet. Claim amounts include proportional tax/service when the receipt
 // total exceeds the item subtotal — so a £100 bill with £93 of items shares
@@ -43,7 +49,6 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
 
   const receipt = receipts.find((r) => r.expense_id === expense.id);
   const items = receipt ? receiptItems.filter((i) => i.receipt_id === receipt.id) : [];
-  const mySplitters = splits.filter((s) => s.expense_id === expense.id);
   const isReceipt = expense.kind === 'receipt';
   const receiptImageUrl = isReceipt
     ? receipt?.image_url ?? null
@@ -61,6 +66,19 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   }, [items, expense.local_amount]);
 
   const hasTaxGap = taxGapLocal > 0.005 && items.length > 0;
+
+  // Viewer's personal cost for this expense (GBP), plus local equivalent.
+  const myShareGbp = me
+    ? amountIncurredOnExpense(expense, me.id, splits, receipts, receiptItems)
+    : 0;
+  const hasMyShare = myShareGbp > 0.005;
+  const myShareLocal = localShareFromBase(
+    expense.local_amount,
+    expense.base_amount_gbp,
+    myShareGbp
+  );
+  const localSym = symbolFor(expense.local_currency, currencies);
+  const showGbpAlongside = expense.local_currency !== trip.base_currency;
 
   return (
     <div
@@ -129,14 +147,24 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
         </div>
       </div>
 
-      {/* manual expense: who splits it */}
-      {!isReceipt && mySplitters.length > 0 && (
-        <div className="mt-2.5 flex items-center gap-1">
-          <span className="mr-1 text-[11px] text-muted">split:</span>
-          {mySplitters.map((s) => {
-            const p = profileOf(s.user_id);
-            return <Avatar key={s.id} name={p?.name ?? '?'} src={p?.avatar_url} size={20} />;
-          })}
+      {/* personal cost of this expense for the signed-in member */}
+      {hasMyShare && (
+        <div className="mt-2.5 flex items-baseline justify-between gap-2">
+          <span className="text-[11px] text-muted">your share</span>
+          <span className="text-right">
+            <span className="text-[13px] font-semibold text-ink">
+              {localSym}
+              {myShareLocal.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
+            {showGbpAlongside && (
+              <span className="ml-1.5 text-[11px] text-muted">
+                {formatBaseCurrency(myShareGbp, trip.base_currency, currencies)}
+              </span>
+            )}
+          </span>
         </div>
       )}
 

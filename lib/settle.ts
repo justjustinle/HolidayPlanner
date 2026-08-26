@@ -176,6 +176,61 @@ export function totalSpend(expenses: Expense[], now: Date = new Date()): number 
 }
 
 /**
+ * One person's share of a single expense, in the trip base currency (GBP).
+ * Same rules as `computeIncurredByUser`: manual expenses use `expense_splits`;
+ * receipts use claimed line shares (unclaimed lines fall back to the payer).
+ * Settlements are not personal spend — always 0.
+ *
+ * Does not apply the upcoming-payment filter; callers that need trip totals
+ * should pass already-included expenses (as `computeIncurredByUser` does).
+ */
+export function amountIncurredOnExpense(
+  expense: Pick<Expense, 'id' | 'kind' | 'paid_by_id' | 'base_amount_gbp'>,
+  userId: string,
+  splits: ExpenseSplit[],
+  receipts: Receipt[] = [],
+  receiptItems: ReceiptItem[] = []
+): number {
+  if (expense.kind === 'settlement') return 0;
+
+  const receipt = receipts.find((r) => r.expense_id === expense.id);
+  if (expense.kind === 'receipt' || receipt) {
+    // Receipt-kind with no receipt row is skipped in trip totals too.
+    if (!receipt) return 0;
+    const items = receiptItems.filter((i) => i.receipt_id === receipt.id);
+    const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
+    if (itemSubtotal <= 0) {
+      return expense.paid_by_id === userId ? round2(expense.base_amount_gbp) : 0;
+    }
+    const shares = receiptLineSharesGbp(items, expense.base_amount_gbp);
+    let total = 0;
+    for (let i = 0; i < items.length; i++) {
+      const ower = items[i].claimed_by_id ?? expense.paid_by_id;
+      if (ower === userId) total = round2(total + shares[i]);
+    }
+    return total;
+  }
+
+  let total = 0;
+  for (const s of splits) {
+    if (s.expense_id === expense.id && s.user_id === userId) {
+      total = round2(total + s.amount_owed);
+    }
+  }
+  return total;
+}
+
+/** Local-currency equivalent of a base-currency share of this expense. */
+export function localShareFromBase(
+  localAmount: number,
+  baseAmount: number,
+  baseShare: number
+): number {
+  if (!(baseAmount > 0)) return 0;
+  return round2(localAmount * (baseShare / baseAmount));
+}
+
+/**
  * Total expense each person incurred (their share / amount owed) across all
  * group spend — regardless of who paid. Settlements are excluded. Manual
  * expenses use expense_splits; receipts use claimed line shares (unclaimed
@@ -198,29 +253,17 @@ export function computeIncurredByUser(
   const included = expensesIncludedInBalances(expenses, now).filter(
     (e) => e.kind !== 'settlement'
   );
-  const includedIds = new Set(included.map((e) => e.id));
-  const receiptExpenseIds = new Set(receipts.map((r) => r.expense_id));
 
   for (const e of included) {
-    if (e.kind === 'receipt' || receiptExpenseIds.has(e.id)) continue;
-    for (const s of splits) {
-      if (s.expense_id === e.id) add(s.user_id, s.amount_owed);
-    }
-  }
-
-  for (const r of receipts) {
-    const expense = included.find((e) => e.id === r.expense_id);
-    if (!expense) continue;
-    const items = receiptItems.filter((i) => i.receipt_id === r.id);
-    const itemSubtotal = items.reduce((sum, i) => sum + i.local_amount, 0);
-    if (itemSubtotal <= 0) {
-      add(expense.paid_by_id, expense.base_amount_gbp);
-      continue;
-    }
-    const shares = receiptLineSharesGbp(items, expense.base_amount_gbp);
-    for (let i = 0; i < items.length; i++) {
-      const ower = items[i].claimed_by_id ?? expense.paid_by_id;
-      add(ower, shares[i]);
+    for (const p of profiles) {
+      const share = amountIncurredOnExpense(
+        e,
+        p.id,
+        splits,
+        receipts,
+        receiptItems
+      );
+      if (share) add(p.id, share);
     }
   }
 

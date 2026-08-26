@@ -12,7 +12,12 @@ import assert from 'node:assert/strict';
 import { describe, it, beforeEach } from 'node:test';
 
 import { round2, splitEqually, toGbp } from './currency';
-import { computeNetBalances, totalSpend } from './settle';
+import {
+  amountIncurredOnExpense,
+  computeNetBalances,
+  localShareFromBase,
+  totalSpend,
+} from './settle';
 import {
   ALEX,
   JO,
@@ -101,6 +106,32 @@ describe('Scenario 1 — Equal 5-way split', () => {
       [...byUser.values()].reduce((s, n) => s + n, 0)
     );
     assert.equal(incurredSum, spend(ledger));
+  });
+
+  it('amountIncurredOnExpense matches each persons trip-level share of the dinner', () => {
+    const ledger = emptyLedger();
+    const expenseId = addManual(ledger, {
+      label: 'Group dinner Bangkok',
+      dayNumber: 1,
+      amount: 100,
+      currency: 'GBP',
+      paidById: ALEX,
+      participantIds: [ALEX, SAM, JO, PRIYA, TOM],
+    });
+    const expense = ledger.expenses.find((e) => e.id === expenseId)!;
+    for (const id of [ALEX, SAM, JO, PRIYA, TOM]) {
+      assert.equal(
+        amountIncurredOnExpense(
+          expense,
+          id,
+          ledger.splits,
+          ledger.receipts,
+          ledger.receiptItems
+        ),
+        20
+      );
+    }
+    assert.equal(localShareFromBase(100, 100, 20), 20);
   });
 
   it('Upcoming future-dated expenses are excluded until their payment date', () => {
@@ -325,6 +356,45 @@ describe('Scenario 5 — Receipt with every item claimed', () => {
       round2([...byUser.values()].reduce((s, n) => s + n, 0)),
       spend(ledger)
     );
+  });
+
+  it('amountIncurredOnExpense returns each claimers share, and 0 for the payer who claimed nothing', () => {
+    const ledger = emptyLedger();
+    const expenseId = addReceipt(ledger, {
+      label: 'Chatuchak food court',
+      dayNumber: 2,
+      amount: 560,
+      currency: 'THB',
+      paidById: SAM,
+      items: [
+        { name: 'Pad thai', quantity: 2, localAmount: 240, claimedById: ALEX },
+        { name: 'Mango sticky rice', quantity: 1, localAmount: 120, claimedById: JO },
+        { name: 'Coconut shakes', quantity: 2, localAmount: 200, claimedById: PRIYA },
+      ],
+    });
+    const expense = ledger.expenses.find((e) => e.id === expenseId)!;
+    const alexShare = round2((240 / 560) * 12.56);
+    assert.equal(
+      amountIncurredOnExpense(
+        expense,
+        ALEX,
+        ledger.splits,
+        ledger.receipts,
+        ledger.receiptItems
+      ),
+      alexShare
+    );
+    assert.equal(
+      amountIncurredOnExpense(
+        expense,
+        SAM,
+        ledger.splits,
+        ledger.receipts,
+        ledger.receiptItems
+      ),
+      0
+    );
+    assert.equal(localShareFromBase(560, 12.56, alexShare), round2(560 * (alexShare / 12.56)));
   });
 });
 
