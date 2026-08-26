@@ -8,7 +8,7 @@ import LogExpenseSheet from './LogExpenseSheet';
 import UploadReceiptSheet from './UploadReceiptSheet';
 import ReceiptViewer from './ReceiptViewer';
 import { useTripData } from '../TripDataProvider';
-import { formatBaseCurrency, round2, symbolFor } from '@/lib/currency';
+import { formatBaseCurrency, formatMoney, round2, symbolFor } from '@/lib/currency';
 import {
   amountIncurredOnExpense,
   isUpcomingPending,
@@ -83,28 +83,19 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
   return (
     <div
       onClick={() => setEditing(true)}
-      className="cursor-pointer rounded-2xl border border-black/5 bg-cream-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-medium text-ink">
-            {expense.label ?? 'Expense'}
-          </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted">
-            <Avatar name={payer?.name ?? '?'} src={payer?.avatar_url} size={16} />
-            {payer?.name ?? 'Someone'} paid
-            {day && <span>· {day.label}</span>}
-            {isReceipt && <span>· receipt</span>}
-            {upcomingPending && (
-              <span className="rounded-full bg-bangkok/15 px-2 py-0.5 text-[11px] font-semibold text-bangkok">
-                Upcoming
-                {expense.payment_date
-                  ? ` · ${formatPaymentDate(expense.payment_date)}`
-                  : ''}
-              </span>
-            )}
-          </div>
+      className="cursor-pointer rounded-2xl border border-black/5 bg-cream-card px-4 py-3.5"
+    >
+      {/*
+        Three columns keep the group total and "your share" on one right
+        edge. The trash icon has its own column so it no longer shoves the
+        total left of the share amount.
+      */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_1.25rem] items-start gap-x-2">
+        <div className="min-w-0 text-[15px] font-medium leading-snug text-ink">
+          {expense.label ?? 'Expense'}
         </div>
-        <div className="flex flex-none items-center gap-2">
+
+        <div className="flex items-start gap-2">
           {receiptImageUrl && (
             <button
               type="button"
@@ -123,54 +114,72 @@ export default function ExpenseCard({ expense }: { expense: Expense }) {
               />
             </button>
           )}
-          <div className="text-right">
-            <div className="text-[15px] font-semibold text-ink">
-              {symbolFor(expense.local_currency, currencies)}
-              {expense.local_amount.toLocaleString()}
+          <div className="text-right tabular-nums">
+            <div className="text-[15px] font-semibold leading-snug text-ink">
+              {formatMoney(expense.local_amount, localSym)}
             </div>
-            {expense.local_currency !== trip.base_currency && (
-              <div className="text-[11px] text-muted">
+            {showGbpAlongside && (
+              <div className="mt-px text-[11px] leading-tight text-muted">
                 {formatBaseCurrency(expense.base_amount_gbp, trip.base_currency, currencies)}
               </div>
             )}
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setConfirming(true);
-            }}
-            aria-label="Delete expense"
-            className="text-muted/50 hover:text-saigon"
-          >
-            <Trash2 size={15} />
-          </button>
         </div>
-      </div>
 
-      {/* personal cost of this expense for the signed-in member */}
-      {hasMyShare && (
-        <div className="mt-2.5 flex items-baseline justify-between gap-2">
-          <span className="text-[11px] text-muted">your share</span>
-          <span className="text-right">
-            <span className="text-[13px] font-semibold text-ink">
-              {localSym}
-              {myShareLocal.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirming(true);
+          }}
+          aria-label="Delete expense"
+          className="mt-0.5 justify-self-end text-muted/45 hover:text-saigon"
+        >
+          <Trash2 size={15} />
+        </button>
+
+        <div className="col-start-1 mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[12px] leading-none text-muted">
+          <Avatar name={payer?.name ?? '?'} src={payer?.avatar_url} size={18} />
+          {payer?.name ?? 'Someone'} paid
+          {day && <span>· {day.label}</span>}
+          {isReceipt && <span>· receipt</span>}
+          {upcomingPending && (
+            <span className="rounded-full bg-bangkok/15 px-2 py-0.5 text-[11px] font-semibold text-bangkok">
+              Upcoming
+              {expense.payment_date
+                ? ` · ${formatPaymentDate(expense.payment_date)}`
+                : ''}
             </span>
-            {showGbpAlongside && (
-              <span className="ml-1.5 text-[11px] text-muted">
-                {formatBaseCurrency(myShareGbp, trip.base_currency, currencies)}
-              </span>
-            )}
-          </span>
+          )}
         </div>
-      )}
+
+        {hasMyShare && (
+          <>
+            <div className="col-span-3 mt-3 border-t border-black/[.07]" />
+            <div className="self-center pt-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Your share
+            </div>
+            <div className="pt-2.5 text-right tabular-nums">
+              <div className="text-[15px] font-semibold leading-snug text-ink">
+                {formatMoney(myShareLocal, localSym)}
+              </div>
+              {showGbpAlongside && (
+                <div className="mt-px text-[11px] leading-tight text-muted">
+                  {formatBaseCurrency(myShareGbp, trip.base_currency, currencies)}
+                </div>
+              )}
+            </div>
+            <span />
+          </>
+        )}
+      </div>
 
       {/* receipt expense: claimable line items */}
       {items.length > 0 && (
-        <div className="mt-3 space-y-1.5 border-t border-black/5 pt-3">
+        <div
+          className={`mt-3 space-y-1.5 pt-3 ${
+            hasMyShare ? '' : 'border-t border-black/5'
+          }`}
+        >
           {hasTaxGap && (
             <p className="text-[11px] font-medium text-nhatrang">
               Incl. {symbolFor(expense.local_currency, currencies)}

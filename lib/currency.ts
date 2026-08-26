@@ -108,6 +108,15 @@ export function formatBaseCurrency(
   return `${symbolFor(baseCode, currencies)}${round2(n).toFixed(2)}`;
 }
 
+// Local (or any) money for UI: grouped thousands, always two decimals
+// so £349.50 and ฿1,000.00 read as the same kind of figure.
+export function formatMoney(amount: number, symbol: string): string {
+  return `${symbol}${round2(amount).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 // Split a total equally across `count` people, correcting the last share so
 // the parts always sum back to the exact total (no lost/gained pennies).
 // Used for both GBP base shares and local-currency prefills.
