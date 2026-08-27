@@ -4,8 +4,11 @@ import type { Photo, Profile, StatCategory, StatEntry } from './types';
 // a single row in stat_entries, stored under this fixed day_number slot.
 export const STATS_DAY = 1;
 
-// The five self-input counters. The photos-taken stat is derived/read-only
-// and handled separately in the UI. Icons live in StatsTab (Lucide).
+// Luggage weights are stored as integer tenths of a kilogram (125 → 12.5 kg).
+export const LUGGAGE_WEIGHT_SCALE = 10;
+
+// The five self-input counters. Luggage before/after and photos-taken are
+// handled separately in the UI. Icons live in StatsTab (Lucide).
 export const COUNTER_CATEGORIES: {
   key: StatCategory;
   label: string;
@@ -18,12 +21,33 @@ export const COUNTER_CATEGORIES: {
 ];
 
 export const ALL_LEADERBOARD_CATEGORIES: {
-  key: StatCategory | 'photos';
+  key: StatCategory | 'photos' | 'luggage_change';
   label: string;
 }[] = [
   ...COUNTER_CATEGORIES.map((c) => ({ key: c.key, label: c.label })),
   { key: 'photos', label: 'Photos taken' },
+  { key: 'luggage_change', label: 'Luggage change' },
 ];
+
+export function weightKgFromCount(count: number): number {
+  return count / LUGGAGE_WEIGHT_SCALE;
+}
+
+export function countFromWeightKg(kg: number): number {
+  return Math.max(0, Math.round(kg * LUGGAGE_WEIGHT_SCALE));
+}
+
+/** Format a tenths-of-kg count as e.g. "12.5 kg". */
+export function formatLuggageKg(count: number): string {
+  return `${weightKgFromCount(count).toFixed(1)} kg`;
+}
+
+/** Format a signed delta in tenths-of-kg as e.g. "+1.5 kg" / "−0.5 kg". */
+export function formatLuggageDelta(deltaTenths: number): string {
+  const kg = weightKgFromCount(deltaTenths);
+  const sign = kg > 0 ? '+' : kg < 0 ? '−' : '';
+  return `${sign}${Math.abs(kg).toFixed(1)} kg`;
+}
 
 export function statFor(
   stats: StatEntry[],
@@ -66,4 +90,21 @@ export function photoUploadCounts(
     if (uid && totals.has(uid)) totals.set(uid, (totals.get(uid) ?? 0) + 1);
   }
   return totals;
+}
+
+/**
+ * After − before luggage weight in tenths of a kg.
+ * Missing when either check-in weight has not been logged yet.
+ */
+export function luggageChangeTenths(
+  profiles: Profile[],
+  stats: StatEntry[]
+): Map<string, number | null> {
+  const deltas = new Map<string, number | null>();
+  for (const p of profiles) {
+    const before = statFor(stats, p.id, STATS_DAY, 'luggage_before');
+    const after = statFor(stats, p.id, STATS_DAY, 'luggage_after');
+    deltas.set(p.id, before > 0 && after > 0 ? after - before : null);
+  }
+  return deltas;
 }
