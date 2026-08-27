@@ -1,8 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 // A bottom sheet that slides up over a scrim. Tapping the scrim or ✕ closes it.
+// Portaled to body so it stays viewport-fixed even when a parent (tab pager)
+// applies a transform.
 export default function Sheet({
   title,
   onClose,
@@ -18,8 +22,13 @@ export default function Sheet({
   headerActions?: React.ReactNode;
   titleClassName?: string;
 }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     <div
+      data-app-overlay
       onClick={onClose}
       className="fixed inset-0 z-50 mx-auto flex max-w-app items-end animate-fade-in"
       style={{ background: 'rgba(30,20,10,.35)' }}
@@ -49,6 +58,7 @@ export default function Sheet({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
