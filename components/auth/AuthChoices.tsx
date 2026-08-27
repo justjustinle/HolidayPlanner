@@ -15,6 +15,30 @@ function GoogleMark() {
   );
 }
 
+/** Map opaque Supabase/Resend failures to something readable on the sign-in screen. */
+function friendlyAuthError(caught: unknown, fallback: string): string {
+  const raw =
+    caught instanceof Error
+      ? caught.message
+      : typeof caught === 'string'
+        ? caught
+        : '';
+  const message = raw.trim();
+  if (!message) return fallback;
+  const lower = message.toLowerCase();
+  if (
+    lower.includes('error sending confirmation email') ||
+    lower.includes('error sending magic link') ||
+    lower.includes('error sending email')
+  ) {
+    return 'Could not send the sign-in email. Check that Resend SMTP uses a verified sender domain (not gmail.com).';
+  }
+  if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit')) {
+    return 'Too many sign-in emails just now. Wait a minute and try again.';
+  }
+  return message;
+}
+
 export default function AuthChoices({
   nextPath,
   googleLabel = 'Continue with Google',
@@ -34,7 +58,7 @@ export default function AuthChoices({
     try {
       await signInWithGoogle(nextPath);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Google sign-in could not start.');
+      setError(friendlyAuthError(caught, 'Google sign-in could not start.'));
       setBusy(null);
     }
   };
@@ -49,7 +73,7 @@ export default function AuthChoices({
       await signInWithEmail(address, nextPath);
       setSentTo(address);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not send the sign-in email.');
+      setError(friendlyAuthError(caught, 'Could not send the sign-in email.'));
     } finally {
       setBusy(null);
     }

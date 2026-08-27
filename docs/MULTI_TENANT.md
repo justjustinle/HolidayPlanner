@@ -69,9 +69,14 @@ Applying migration v6 without a signed-in session locks every anon request out
   Keep `{{ .ConfirmationURL }}` in the CTA — it works with the browser PKCE
   callback `AuthProvider` uses. The logo in those templates loads from
   `https://holiday-planner-ruby.vercel.app/brand/yarn-email-icon.png`.
-- The From display name stays **Supabase Auth** on the built-in mailer. To
-  show **Yarn** (and send to non-team addresses in production), configure
-  custom SMTP under Authentication → SMTP and set the sender name there.
+- Custom SMTP (Resend) is required for Yarn-branded templates and for sending
+  beyond the project team. In Authentication → SMTP set Sender name **Yarn**
+  and Sender email to an address on a **Resend-verified domain**
+  (e.g. `noreply@mail.yourdomain.com`). Do **not** use `@gmail.com` — Resend
+  returns `550 The gmail.com domain is not verified` and the app surfaces
+  “Error sending confirmation email”.
+  Quick self-test without a domain: `beth.t@example.com` (delivers only to
+  the Resend account owner).
 
 ### 3. Env vars (Vercel + GitHub Actions)
 
