@@ -4,7 +4,12 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
-import { YARN_ICON, yarnIconPathMarkup, yarnIconSvg } from '../lib/brand/yarn-icon';
+import {
+  YARN_ICON,
+  yarnIconPathMarkup,
+  yarnIconSvg,
+  yarnPwaIconSvg,
+} from '../lib/brand/yarn-icon';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIRS = [
@@ -201,9 +206,11 @@ writeAll(
 
 console.log('Yarn brand assets written to brand/yarn/ and assets/');
 
-// Live app icons — proposed gold for PWA install + static fallback.
-const goldSvg = yarnIconSvg(COLORS.gold);
-writeFileSync(join(PUBLIC_ICONS, 'icon.svg'), goldSvg);
-writeFileSync(join(PUBLIC_ICONS, 'icon-192.png'), pngFromSvg(goldSvg, 192));
-writeFileSync(join(PUBLIC_ICONS, 'icon-512.png'), pngFromSvg(goldSvg, 512));
+// Live app icons — gold mark on opaque white. Transparent PNGs read as a
+// black home-screen tile on iOS (apple-touch) and Android (maskable).
+const PWA_BG = '#FFFFFF';
+const pwaSvg = yarnPwaIconSvg(COLORS.gold, PWA_BG, 512);
+writeFileSync(join(PUBLIC_ICONS, 'icon.svg'), pwaSvg);
+writeFileSync(join(PUBLIC_ICONS, 'icon-192.png'), pngFromSvg(pwaSvg, 192));
+writeFileSync(join(PUBLIC_ICONS, 'icon-512.png'), pngFromSvg(pwaSvg, 512));
 console.log('wrote public/icons/icon.svg, icon-192.png, icon-512.png');

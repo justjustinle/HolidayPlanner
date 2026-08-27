@@ -29,3 +29,27 @@ export function yarnIconSvg(color: string, _strandColor = color): string {
 </svg>
 `;
 }
+
+/**
+ * Square PWA / home-screen icon. Opaque background is required — iOS and
+ * Android fill transparent apple-touch / maskable icons with black.
+ */
+export function yarnPwaIconSvg(
+  color: string,
+  background = '#FFFFFF',
+  size = 512,
+): string {
+  const scale = size / Math.max(YARN_ICON.width, YARN_ICON.height);
+  const drawnW = YARN_ICON.width * scale;
+  const drawnH = YARN_ICON.height * scale;
+  const x = (size - drawnW) / 2;
+  const y = (size - drawnH) / 2;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Yarn">
+  <rect width="${size}" height="${size}" fill="${background}"/>
+  <g transform="translate(${x} ${y}) scale(${scale})">
+    ${yarnIconPathMarkup(color)}
+  </g>
+</svg>
+`;
+}
