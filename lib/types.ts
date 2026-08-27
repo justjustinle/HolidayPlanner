@@ -146,7 +146,14 @@ export interface ChecklistItem {
   created_at?: string;
 }
 
-export type StatCategory = 'poop' | 'drink' | 'mosquito' | 'coffee' | 'cards';
+export type StatCategory =
+  | 'poop'
+  | 'drink'
+  | 'mosquito'
+  | 'coffee'
+  | 'cards'
+  | 'luggage_before'
+  | 'luggage_after';
 
 // One person's count for one category. Stats are cumulative across the whole
 // trip; day_number is kept for schema compatibility and is always STATS_DAY.

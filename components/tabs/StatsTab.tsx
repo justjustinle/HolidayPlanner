@@ -1,11 +1,18 @@
 'use client';
 
-import { useMemo, type ComponentType, type ReactNode } from 'react';
+import {
+  useMemo,
+  useState,
+  useEffect,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import {
   Beer,
   Bug,
   Camera,
   Coffee,
+  Luggage,
   Minus,
   Plus,
   Spade,
@@ -18,13 +25,18 @@ import {
   ALL_LEADERBOARD_CATEGORIES,
   COUNTER_CATEGORIES,
   STATS_DAY,
+  countFromWeightKg,
+  formatLuggageDelta,
+  luggageChangeTenths,
   photoUploadCounts,
   statFor,
   statTotals,
+  weightKgFromCount,
 } from '@/lib/stats';
 import type { StatCategory } from '@/lib/types';
 
 type IconType = ComponentType<LucideProps>;
+type LeaderboardKey = StatCategory | 'photos' | 'luggage_change';
 
 /** Custom toilet glyph (filled) — Lucide has no toilet icon. */
 function ToiletIcon({ size = 24, className, ...rest }: LucideProps) {
@@ -46,13 +58,16 @@ function ToiletIcon({ size = 24, className, ...rest }: LucideProps) {
   );
 }
 
-const STAT_ICONS: Record<StatCategory | 'photos', IconType> = {
+const STAT_ICONS: Record<LeaderboardKey, IconType> = {
   poop: ToiletIcon,
   drink: Beer,
   mosquito: Bug,
   coffee: Coffee,
   cards: Spade,
   photos: Camera,
+  luggage_before: Luggage,
+  luggage_after: Luggage,
+  luggage_change: Luggage,
 };
 
 const ACCENT = 'var(--city-accent)';
@@ -135,11 +150,77 @@ function GhostStepButton({
   );
 }
 
+function LuggageWeightField({
+  label,
+  valueTenths,
+  disabled,
+  onCommit,
+}: {
+  label: string;
+  valueTenths: number;
+  disabled?: boolean;
+  onCommit: (tenths: number) => void;
+}) {
+  const [draft, setDraft] = useState(
+    valueTenths > 0 ? weightKgFromCount(valueTenths).toFixed(1) : ''
+  );
+
+  useEffect(() => {
+    setDraft(valueTenths > 0 ? weightKgFromCount(valueTenths).toFixed(1) : '');
+  }, [valueTenths]);
+
+  const commit = () => {
+    const trimmed = draft.trim();
+    if (trimmed === '') {
+      onCommit(0);
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setDraft(valueTenths > 0 ? weightKgFromCount(valueTenths).toFixed(1) : '');
+      return;
+    }
+    onCommit(countFromWeightKg(parsed));
+  };
+
+  return (
+    <label className="flex min-w-0 flex-1 flex-col gap-1">
+      <span className="text-[11px] text-muted">{label}</span>
+      <span className="flex items-center gap-1.5 rounded-xl border border-black/10 bg-cream px-2.5 py-2">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.1"
+          min="0"
+          disabled={disabled}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder="0.0"
+          className="min-w-0 flex-1 bg-transparent font-serif text-[22px] font-semibold leading-none text-ink outline-none tabular-nums placeholder:text-muted/40 disabled:opacity-40"
+          aria-label={`${label} luggage weight in kilograms`}
+        />
+        <span className="flex-none text-[12px] text-muted">kg</span>
+      </span>
+    </label>
+  );
+}
+
 export default function StatsTab() {
   const { profiles, me, stats, photos, setStat } = useTripData();
 
   const myCount = (category: StatCategory) =>
     me ? statFor(stats, me.id, STATS_DAY, category) : 0;
+
+  const myBefore = myCount('luggage_before');
+  const myAfter = myCount('luggage_after');
+  const myDelta =
+    myBefore > 0 && myAfter > 0 ? myAfter - myBefore : null;
 
   const myPhotoCount = useMemo(
     () => (me ? photoUploadCounts(profiles, photos).get(me.id) ?? 0 : 0),
@@ -150,13 +231,32 @@ export default function StatsTab() {
   const leaderboards = useMemo(
     () =>
       ALL_LEADERBOARD_CATEGORIES.map((cat) => {
+        if (cat.key === 'luggage_change') {
+          const deltas = luggageChangeTenths(profiles, stats);
+          const rows = profiles
+            .map((p) => ({
+              profile: p,
+              total: deltas.get(p.id) ?? null,
+            }))
+            .sort((a, b) => {
+              // Logged deltas first (highest gain wins), then unset.
+              if (a.total === null && b.total === null) return 0;
+              if (a.total === null) return 1;
+              if (b.total === null) return -1;
+              return b.total - a.total;
+            });
+          return { ...cat, rows };
+        }
         const totals =
           cat.key === 'photos'
             ? photoUploadCounts(profiles, photos)
             : statTotals(profiles, stats, cat.key);
         const rows = profiles
-          .map((p) => ({ profile: p, total: totals.get(p.id) ?? 0 }))
-          .sort((a, b) => b.total - a.total);
+          .map((p) => ({
+            profile: p,
+            total: totals.get(p.id) ?? 0,
+          }))
+          .sort((a, b) => (b.total as number) - (a.total as number));
         return { ...cat, rows };
       }),
     [profiles, stats, photos]
@@ -174,7 +274,7 @@ export default function StatsTab() {
         )}
 
         {/* Compact self counters */}
-        <div className="mb-8 grid grid-cols-2 gap-2">
+        <div className="mb-4 grid grid-cols-2 gap-2">
           {COUNTER_CATEGORIES.map((cat) => {
             const count = myCount(cat.key);
             const Icon = STAT_ICONS[cat.key];
@@ -229,6 +329,47 @@ export default function StatsTab() {
           </div>
         </div>
 
+        {/* Luggage check-in — before / after holiday */}
+        <div className="mb-8 rounded-2xl border border-black/5 bg-cream-card p-3 shadow-card">
+          <div className="mb-3 flex items-center gap-2">
+            <StatIconBadge icon={Luggage} />
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium leading-tight text-ink">
+                Luggage check-in
+              </p>
+              <p className="text-[11px] leading-snug text-muted">
+                Weight before the holiday and after
+              </p>
+            </div>
+            {myDelta !== null && (
+              <span
+                className="ml-auto flex-none rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums"
+                style={{ background: ACCENT_TINT, color: ACCENT }}
+              >
+                {formatLuggageDelta(myDelta)}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <LuggageWeightField
+              label="Before"
+              valueTenths={myBefore}
+              disabled={!me}
+              onCommit={(tenths) =>
+                setStat(STATS_DAY, 'luggage_before', tenths)
+              }
+            />
+            <LuggageWeightField
+              label="After"
+              valueTenths={myAfter}
+              disabled={!me}
+              onCommit={(tenths) =>
+                setStat(STATS_DAY, 'luggage_after', tenths)
+              }
+            />
+          </div>
+        </div>
+
         {/* Leaderboards */}
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <h2 className="font-serif text-[22px] font-semibold leading-tight text-ink">
@@ -242,6 +383,7 @@ export default function StatsTab() {
         <div className="space-y-4">
           {leaderboards.map((board) => {
             const Icon = STAT_ICONS[board.key];
+            const isLuggage = board.key === 'luggage_change';
             return (
               <div
                 key={board.key}
@@ -256,7 +398,15 @@ export default function StatsTab() {
                 <div className="space-y-1">
                   {board.rows.map(({ profile, total }, i) => {
                     const isMe = me?.id === profile.id;
-                    const isLeader = i === 0 && total > 0;
+                    const hasValue =
+                      total !== null &&
+                      (isLuggage ? true : (total as number) > 0);
+                    const isLeader = i === 0 && hasValue;
+                    const display = isLuggage
+                      ? total === null
+                        ? '—'
+                        : formatLuggageDelta(total)
+                      : (total as number).toLocaleString();
                     return (
                       <div
                         key={profile.id}
@@ -287,12 +437,12 @@ export default function StatsTab() {
                           className={`flex-none tabular-nums ${
                             isLeader
                               ? 'font-serif text-[16px] font-bold text-ink'
-                              : total > 0
+                              : hasValue
                                 ? 'text-[14px] font-semibold text-ink'
                                 : 'text-[14px] text-muted'
                           }`}
                         >
-                          {total.toLocaleString()}
+                          {display}
                         </span>
                       </div>
                     );

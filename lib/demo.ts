@@ -167,4 +167,11 @@ export const DEMO_STATS: StatEntry[] = [
   { id: 'demo-st4', user_id: 'demo-jo', day_number: 1, category: 'coffee', count: 4 },
   { id: 'demo-st5', user_id: 'demo-alex', day_number: 1, category: 'cards', count: 2 },
   { id: 'demo-st6', user_id: 'demo-jo', day_number: 1, category: 'cards', count: 1 },
+  // Luggage check-in weights in tenths of a kg (e.g. 185 = 18.5 kg).
+  { id: 'demo-st7', user_id: 'demo-alex', day_number: 1, category: 'luggage_before', count: 185 },
+  { id: 'demo-st8', user_id: 'demo-alex', day_number: 1, category: 'luggage_after', count: 212 },
+  { id: 'demo-st9', user_id: 'demo-sam', day_number: 1, category: 'luggage_before', count: 160 },
+  { id: 'demo-st10', user_id: 'demo-sam', day_number: 1, category: 'luggage_after', count: 155 },
+  { id: 'demo-st11', user_id: 'demo-jo', day_number: 1, category: 'luggage_before', count: 200 },
+  { id: 'demo-st12', user_id: 'demo-jo', day_number: 1, category: 'luggage_after', count: 230 },
 ];
