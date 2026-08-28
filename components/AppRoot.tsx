@@ -9,10 +9,12 @@ import MyTripsScreen from './trips/MyTripsScreen';
 // Decides between the loading state, the sign-in gate, the My Trips picker, and
 // the app itself.
 export default function AppRoot() {
-  const { ready, me, activeTripId } = useTripData();
+  const { ready, me, activeTripId, tripBootstrapping } = useTripData();
   const { authReady, authEnabled, account } = useAuth();
 
-  if (!ready || !authReady) {
+  // Hold the splash until auth + trip restore finish. Otherwise cold start
+  // briefly paints WelcomeGate / My Trips / claim-join before the itinerary.
+  if (!ready || !authReady || tripBootstrapping) {
     return (
       <div className="mx-auto flex min-h-[100dvh] max-w-app items-center justify-center">
         <div className="animate-fade-in text-sm text-muted">Loading your trip…</div>

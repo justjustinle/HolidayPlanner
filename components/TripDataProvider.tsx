@@ -66,6 +66,15 @@ const ME_KEY = 'travel_user_profile';
 const DEMO_KEY = 'travel_demo_state_v2';
 const ACTIVE_TRIP_KEY = 'active_trip_id';
 
+function readStoredActiveTripId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(ACTIVE_TRIP_KEY);
+  } catch {
+    return null;
+  }
+}
+
 // The built-in trip identity, used in demo mode and as a fallback before the
 // multi-trip migration is applied. When Supabase returns a `trips` row (+ days
 // + currencies) those take over, so nothing in lib/trip.ts stays load-bearing.
@@ -173,6 +182,10 @@ interface TripDataValue {
   activeTripId: string | null;
   myTrips: Trip[];
   setActiveTrip: (tripId: string | null) => void;
+  // True while auth-on cold start is still restoring the last-open trip (or
+  // while a trip switch refetch is in flight). AppRoot should keep showing the
+  // loading screen so My Trips / claim-join never flash before the itinerary.
+  tripBootstrapping: boolean;
   createTrip: (input: NewTripInput) => Promise<CreateTripResult>;
   updateTrip: (input: TripDetailsInput) => Promise<void>;
   profiles: Profile[];
@@ -257,14 +270,20 @@ export default function TripDataProvider({
 
   // Phase 4: the trip currently open. With auth off there is exactly one trip
   // (the built-in), so it is pinned; with auth on it is chosen on the My Trips
-  // screen and persisted per device. A ref mirrors it so the many mutation
-  // callbacks can stamp the current trip without being re-created on switch.
-  const [activeTripId, setActiveTripIdState] = useState<string | null>(
-    authEnabled ? null : ACTIVE_TRIP_ID
+  // screen and persisted per device. Hydrate from localStorage immediately so
+  // the first authenticated paint can skip My Trips when a trip was already open.
+  // A ref mirrors it so the many mutation callbacks can stamp the current trip
+  // without being re-created on switch.
+  const [activeTripId, setActiveTripIdState] = useState<string | null>(() =>
+    authEnabled ? readStoredActiveTripId() : ACTIVE_TRIP_ID
   );
   const activeTripIdRef = useRef(activeTripId);
   activeTripIdRef.current = activeTripId;
   const [myTrips, setMyTrips] = useState<Trip[]>([]);
+  // Auth-on cold start: hold the loading screen until we've validated (or
+  // cleared) the restored trip against the signed-in account's memberships.
+  const [tripBootstrapDone, setTripBootstrapDone] = useState(!authEnabled);
+  const [tripLoading, setTripLoading] = useState(false);
 
   // --- demo persistence -----------------------------------------------------
   const persistDemo = useRef<() => void>(() => {});
@@ -508,77 +527,6 @@ export default function TripDataProvider({
     if (membership?.id !== me?.id) persistMe(membership);
   }, [authEnabled, authReady, account, profiles, me]);
 
-  // When the account resolves (auth on), load the trips it belongs to and
-  // restore the last-open trip from this device (if the account is still a
-  // member of it). Otherwise land on My Trips (activeTripId stays null).
-  useEffect(() => {
-    if (!authEnabled || !authReady) return;
-    if (!account) {
-      setMyTrips([]);
-      setActiveTripIdState(null);
-      activeTripIdRef.current = null;
-      return;
-    }
-    void (async () => {
-      // A pending invite (deep-linked /join/[code]) takes priority: join, then
-      // open that trip.
-      let pending: string | null = null;
-      try {
-        pending = localStorage.getItem('pending_join_code');
-      } catch {
-        /* ignore */
-      }
-      if (pending && supabase) {
-        try {
-          const { data } = await supabase.rpc('join_trip', { invite_code: pending.trim() });
-          try {
-            localStorage.removeItem('pending_join_code');
-          } catch {
-            /* ignore */
-          }
-          await loadMyTrips();
-          if (typeof data === 'string') {
-            setActiveTrip(data);
-            return;
-          }
-        } catch {
-          try {
-            localStorage.removeItem('pending_join_code');
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-
-      const list = await loadMyTrips();
-      let stored: string | null = null;
-      try {
-        stored = localStorage.getItem(ACTIVE_TRIP_KEY);
-      } catch {
-        /* ignore */
-      }
-      if (stored && list.some((t) => t.id === stored)) {
-        setActiveTrip(stored);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authEnabled, authReady, account]);
-
-  // Signed in, a trip is open, but no membership on it → offer claim/join.
-  // (With no trip open we show My Trips instead, not the claim gate.)
-  const needsMembership =
-    authEnabled && authReady && ready && !!account && !!activeTripId && !me;
-
-  const claimMembership = useCallback(
-    async (memberId: string) => {
-      if (!supabase) return;
-      const { error } = await supabase.rpc('claim_member', { p_member: memberId });
-      if (error) throw error;
-      await refetchAll();
-    },
-    [refetchAll]
-  );
-
   // --- multi-trip (Phase 4) -------------------------------------------------
   // The trips the signed-in account is a member of (auth-on only).
   const loadMyTrips = useCallback(async () => {
@@ -604,21 +552,151 @@ export default function TripDataProvider({
     return list;
   }, [account]);
 
-  const setActiveTrip = useCallback<TripDataValue['setActiveTrip']>((tripId) => {
-    setActiveTripIdState(tripId);
-    activeTripIdRef.current = tripId;
-    try {
-      if (tripId) localStorage.setItem(ACTIVE_TRIP_KEY, tripId);
-      else localStorage.removeItem(ACTIVE_TRIP_KEY);
-    } catch {
-      /* ignore */
+  // Awaitable activate used by cold-start restore and by setActiveTrip.
+  const activateTrip = useCallback(
+    async (tripId: string | null) => {
+      const changing = activeTripIdRef.current !== tripId;
+      setActiveTripIdState(tripId);
+      activeTripIdRef.current = tripId;
+      try {
+        if (tripId) localStorage.setItem(ACTIVE_TRIP_KEY, tripId);
+        else localStorage.removeItem(ACTIVE_TRIP_KEY);
+      } catch {
+        /* ignore */
+      }
+      // Reset membership when switching trips so we never keep a stale `me`
+      // from the previous trip. Same-id restore (cold-start hydrate) keeps `me`.
+      if (changing) {
+        setMe(null);
+        setChecklistItems([]);
+      }
+      if (tripId) {
+        setTripLoading(true);
+        try {
+          await refetchAll();
+        } finally {
+          setTripLoading(false);
+        }
+      } else {
+        setTripLoading(false);
+      }
+    },
+    [refetchAll]
+  );
+
+  const setActiveTrip = useCallback<TripDataValue['setActiveTrip']>(
+    (tripId) => {
+      void activateTrip(tripId);
+    },
+    [activateTrip]
+  );
+
+  // When the account resolves (auth on), load the trips it belongs to and
+  // restore the last-open trip from this device (if the account is still a
+  // member of it). Otherwise land on My Trips (activeTripId stays null).
+  // Hold tripBootstrapping until this finishes so AppRoot does not flash
+  // My Trips / the claim-join gate during cold start.
+  useEffect(() => {
+    if (!authEnabled || !authReady) return;
+    if (!account) {
+      setMyTrips([]);
+      setActiveTripIdState(null);
+      activeTripIdRef.current = null;
+      setTripBootstrapDone(true);
+      setTripLoading(false);
+      return;
     }
-    // Reset the current trip's rows; refetchAll repopulates for the new trip.
-    setMe(null);
-    setChecklistItems([]);
-    if (tripId) void refetchAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let cancelled = false;
+    setTripBootstrapDone(false);
+    void (async () => {
+      try {
+        // A pending invite (deep-linked /join/[code]) takes priority: join, then
+        // open that trip.
+        let pending: string | null = null;
+        try {
+          pending = localStorage.getItem('pending_join_code');
+        } catch {
+          /* ignore */
+        }
+        if (pending && supabase) {
+          try {
+            const { data } = await supabase.rpc('join_trip', { invite_code: pending.trim() });
+            try {
+              localStorage.removeItem('pending_join_code');
+            } catch {
+              /* ignore */
+            }
+            await loadMyTrips();
+            if (cancelled) return;
+            if (typeof data === 'string') {
+              await activateTrip(data);
+              return;
+            }
+          } catch {
+            try {
+              localStorage.removeItem('pending_join_code');
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+
+        const list = await loadMyTrips();
+        if (cancelled) return;
+        let stored: string | null = null;
+        try {
+          stored = localStorage.getItem(ACTIVE_TRIP_KEY);
+        } catch {
+          /* ignore */
+        }
+        if (stored && list.some((t) => t.id === stored)) {
+          // Already hydrated from localStorage — refresh without clearing `me`
+          // if the id matches, so the claim-join gate never flashes.
+          await activateTrip(stored);
+        } else {
+          // Stale hydrate or nothing stored — show My Trips.
+          await activateTrip(null);
+        }
+      } finally {
+        if (!cancelled) setTripBootstrapDone(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authEnabled, authReady, account, loadMyTrips, activateTrip]);
+
+  // Signed in, a trip is open, but no membership on it → offer claim/join.
+  // (With no trip open we show My Trips instead, not the claim gate.)
+  // Only after bootstrap + trip fetch so cold start cannot flash this gate.
+  // Also stay in the loading state while profiles already contain our
+  // membership but the `me` sync effect has not committed yet — otherwise
+  // AppRoot would paint ClaimGate for one frame.
+  const membershipPending =
+    !!account &&
+    !!activeTripId &&
+    !me &&
+    profiles.some((p) => p.user_id === account.id && !p.left_at);
+  const tripBootstrapping =
+    authEnabled && (!tripBootstrapDone || tripLoading || membershipPending);
+  const needsMembership =
+    authEnabled &&
+    authReady &&
+    ready &&
+    !tripBootstrapping &&
+    !!account &&
+    !!activeTripId &&
+    !me;
+
+  const claimMembership = useCallback(
+    async (memberId: string) => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc('claim_member', { p_member: memberId });
+      if (error) throw error;
+      await refetchAll();
+    },
+    [refetchAll]
+  );
 
   const joinTripByCode = useCallback<TripDataValue['joinTripByCode']>(
     async (code) => {
@@ -1711,6 +1789,7 @@ export default function TripDataProvider({
       demoMode,
       me,
       needsMembership,
+      tripBootstrapping,
       claimMembership,
       joinTripByCode,
       leaveTrip,
@@ -1761,6 +1840,7 @@ export default function TripDataProvider({
       demoMode,
       me,
       needsMembership,
+      tripBootstrapping,
       claimMembership,
       joinTripByCode,
       leaveTrip,
